@@ -1,0 +1,194 @@
+:root{
+  /* WISO Corporate Design (aus Logo abgeleitet) */
+  --brand-green:#478E4F;
+  --brand-green-dark:#2F6F3A;
+  --brand-red:#f7a1a5;
+  --brand-gray:#6d6a60;
+
+  /* App-Tokens */
+  --blue:var(--brand-green-dark);     /* primäre UI-Farbe (Header, Buttons, Links) */
+  --ok:var(--brand-green);
+  --danger:var(--brand-red);
+  --warn:#F79009;
+
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --text:#101828;
+  --muted:#667085;
+  --border:#e4e7ec;
+  --shadow:0 2px 14px rgba(16,24,40,.08);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html{min-height:100%}
+body{
+  margin:0;
+  min-height:100vh;
+  min-height:100dvh;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{
+  max-width:1100px;
+  margin:0 auto;
+  padding:16px;
+  padding-left:max(16px, env(safe-area-inset-left));
+  padding-right:max(16px, env(safe-area-inset-right));
+}
+.topbar{
+  background:var(--blue);
+  color:#fff;
+  position:sticky;
+  top:0;
+  z-index:10;
+  padding-top:env(safe-area-inset-top,0px);
+}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand{font-weight:800;letter-spacing:.2px}
+.nav{display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:1}
+.nav a{color:#fff;text-decoration:none;opacity:.95;padding:8px 10px;border-radius:10px}
+.nav form{margin:0}
+.nav .navbtn{appearance:none;border:0;background:transparent;color:#fff;opacity:.95;padding:8px 10px;border-radius:10px;font:inherit;cursor:pointer}
+.nav a:hover{background:rgba(255,255,255,.12)}
+.nav .navbtn:hover{background:rgba(255,255,255,.12)}
+.nav a.active{background:rgba(255,255,255,.22);opacity:1}
+.userpill{display:flex;align-items:center;gap:8px;color:#fff;opacity:.95}
+.userpill .badge{background:rgba(255,255,255,.18);color:#fff}
+.card{background:var(--card);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin:12px 0;border:1px solid rgba(228,231,236,.6)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1;min-width:220px}
+label{display:block;font-size:13px;color:var(--muted);margin:6px 0}
+input,select,button,textarea{font:inherit;padding:10px 12px;border-radius:12px;border:1px solid var(--border);width:100%;background:#fff}
+select{appearance:auto}
+button{background:var(--blue);color:#fff;border:none;cursor:pointer}
+button:hover{filter:brightness(1.03)}
+button.secondary{background:#e1e5ea}
+button.danger{background:var(--danger)}
+button.small{width:auto;padding:7px 10px;border-radius:10px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.table th{font-size:13px;color:var(--muted);font-weight:700}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;background:#eef2ff;color:var(--blue);border:1px solid rgba(228,231,236,.8)}
+.badge.ok{background:rgba(18,183,106,.10);color:var(--ok);border-color:rgba(18,183,106,.25)}
+.badge.warn{background:rgba(247,144,9,.12);color:var(--warn);border-color:rgba(247,144,9,.25)}
+.badge.danger{background:rgba(180,35,24,.10);color:var(--danger);border-color:rgba(180,35,24,.25)}
+.flash{padding:10px 12px;border-radius:12px;margin:12px 0;border:1px solid rgba(228,231,236,.8)}
+.flash.success{background:rgba(18,183,106,.08)}
+.flash.error{background:rgba(180,35,24,.08)}
+.small{font-size:12px;color:var(--muted)}
+.footer{padding:8px 0 20px}
+.kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+     background:#111827;color:#fff;border-radius:8px;padding:2px 8px;font-size:12px}
+
+
+/* Brand header */
+.brand{font-weight:800;letter-spacing:.2px}
+.brandlink{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.brandlink:hover{text-decoration:none}
+.brandlogo{height:48px;width:auto;display:block}
+.brandtext{display:flex;flex-direction:column;line-height:1.05}
+.brandtitle{font-size:15px;font-weight:900;letter-spacing:.3px}
+.brandsub{font-size:12px;opacity:.9;font-weight:700}
+
+/* Improve contrast for default badge */
+.badge{background:rgba(71,142,79,.10);color:var(--blue);border:1px solid rgba(71,142,79,.22)}
+
+
+/* Burger navigation */
+.burger{
+  display:none !important; /* hidden on desktop */
+  width:auto !important;
+  flex:0 0 auto;
+  margin-left:auto;
+  background:transparent;
+  border:1px solid rgba(255,255,255,.35);
+  border-radius:14px;
+  padding:10px 10px;
+  cursor:pointer;
+  flex-direction:column;   /* stack bars */
+  gap:5px;                 /* space between bars */
+  align-items:center;
+  justify-content:center;
+}
+.burger span{
+  display:block;
+  width:22px;
+  height:2px;
+  background:#fff;
+  border-radius:2px;
+  margin:0;                /* avoid flex row spacing issues */
+}
+
+
+/* --- Mobile responsiveness (Burger + Karten-Tabellen) --- */
+@media (max-width: 720px){
+  .wrap{
+    padding:12px;
+    padding-left:max(12px, env(safe-area-inset-left));
+    padding-right:max(12px, env(safe-area-inset-right));
+  }
+  .topbar .wrap{flex-wrap:wrap;justify-content:space-between;gap:10px}
+  .brandlogo{height:36px}
+  .brandtitle{font-size:14px}
+  .brandsub{font-size:12px}
+
+  /* Burger */
+  .burger{display:flex !important}
+
+  .nav{display:none;width:100%}
+  .nav.is-open{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    background:rgba(0,0,0,.12);
+    padding:10px;
+    border-radius:14px;
+  }
+  .nav a{padding:12px 12px;border-radius:12px;white-space:normal}
+  .userpill{margin-left:0;margin-top:6px;align-self:flex-start}
+
+  /* Inputs & buttons: comfortable touch targets */
+  input,select,button,textarea{min-height:44px}
+
+  /* Grid */
+  .grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+
+  /* Tables -> cards */
+  table.table{display:block;border:0}
+  table.table thead{display:none}
+  table.table tbody{display:block}
+  table.table tr{
+    display:block;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:10px 12px;
+    margin:0 0 10px 0;
+    box-shadow: var(--shadow);
+  }
+  table.table td{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:14px;
+    border:0;
+    padding:6px 0;
+    white-space:normal;
+  }
+  table.table td::before{
+    content: attr(data-label);
+    flex:0 0 42%;
+    font-weight:800;
+    color:var(--muted);
+  }
+  table.table td:last-child{padding-bottom:0}
+}
+@media (max-width: 420px){
+  .userpill{display:none}
+}

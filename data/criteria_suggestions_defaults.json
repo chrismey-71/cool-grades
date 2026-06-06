@@ -1,0 +1,1586 @@
+[
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Mündlich",
+    "label": "Mündliche Mitarbeit (qualitativ)",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Mündlich",
+    "label": "Fachbegriffe korrekt verwendet",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Arbeitsweise",
+    "label": "Sorgfalt/Genauigkeit",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Arbeitsweise",
+    "label": "Arbeitsauftrag vollständig und termingerecht",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Methoden",
+    "label": "Strategie/Methodik passend eingesetzt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Transfer",
+    "label": "Transfer auf neue Aufgabenstellungen",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Kooperation",
+    "label": "Beitrag in Partner-/Gruppenarbeit",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "ALL",
+    "category": "Reflexion",
+    "label": "Feedback annehmen und umsetzen",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "RK",
+    "category": "Inhalt",
+    "label": "Zentrale Inhalte/Begriffe korrekt wiedergegeben",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "RK",
+    "category": "Reflexion",
+    "label": "Eigene Position begründet reflektiert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "RK",
+    "category": "Ethik",
+    "label": "Ethische Fragestellungen differenziert beurteilt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "RK",
+    "category": "Dialog",
+    "label": "Respektvoller Dialog, unterschiedliche Perspektiven",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "RK",
+    "category": "Anwendung",
+    "label": "Bezug zu Lebenswelt / aktuellen Themen hergestellt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "D",
+    "category": "Zuhören & Sprechen",
+    "label": "Beiträge strukturiert und verständlich formuliert",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "D",
+    "category": "Zuhören & Sprechen",
+    "label": "Präsentation: Inhalt, Aufbau, Medieneinsatz",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "D",
+    "category": "Lesen",
+    "label": "Informationen entnommen, Relevanz erkannt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "D",
+    "category": "Schreiben",
+    "label": "Argumente logisch aufgebaut (These–Begründung–Beispiel)",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "D",
+    "category": "Schreiben",
+    "label": "Texte überarbeitet (Stil, Rechtschreibung, Grammatik)",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "D",
+    "category": "Medien",
+    "label": "Medien zielorientiert genutzt und reflektiert",
+    "sort": 60,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "E",
+    "category": "Interaktion",
+    "label": "Gespräche aktiv mitgestaltet (Fragen, Reagieren)",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "E",
+    "category": "Sprechen",
+    "label": "Aussprache/Flüssigkeit angemessen",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "E",
+    "category": "Schreiben",
+    "label": "Textsorten passend (E-Mail, Bericht, Kommentar)",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "E",
+    "category": "Lesen & Hören",
+    "label": "Kernaussagen korrekt verstanden",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "E",
+    "category": "Wortschatz & Grammatik",
+    "label": "Sprachmittel situationsadäquat eingesetzt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "E",
+    "category": "Strategien",
+    "label": "Hilfsmittel/Strategien sinnvoll genutzt",
+    "sort": 60,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "F",
+    "category": "Interaktion",
+    "label": "Gespräche aktiv mitgestaltet (Fragen, Reagieren)",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "F",
+    "category": "Sprechen",
+    "label": "Aussprache/Flüssigkeit angemessen",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "F",
+    "category": "Schreiben",
+    "label": "Textsorten passend (E-Mail, Bericht, Kommentar)",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "F",
+    "category": "Lesen & Hören",
+    "label": "Kernaussagen korrekt verstanden",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "F",
+    "category": "Wortschatz & Grammatik",
+    "label": "Sprachmittel situationsadäquat eingesetzt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "F",
+    "category": "Strategien",
+    "label": "Hilfsmittel/Strategien sinnvoll genutzt",
+    "sort": 60,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "GPB",
+    "category": "Politische Bildung",
+    "label": "Politische Prozesse/Institutionen erklärt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "GPB",
+    "category": "Urteilen",
+    "label": "Standpunkte begründet abgewogen (Pro/Contra)",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "GPB",
+    "category": "Quellenarbeit",
+    "label": "Informationen aus Quellen entnommen und bewertet",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "GPB",
+    "category": "Argumentieren",
+    "label": "Diskussion sachlich, respektvoll, beleggestützt",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "GPB",
+    "category": "Transfer",
+    "label": "Aktuelle Ereignisse mit Fachbegriffen eingeordnet",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "KREA",
+    "category": "Gestaltung",
+    "label": "Ideen kreativ entwickelt und weitergeführt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "KREA",
+    "category": "Technik",
+    "label": "Techniken/Materialien zielgerichtet eingesetzt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "KREA",
+    "category": "Prozess",
+    "label": "Arbeitsprozess dokumentiert und reflektiert",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "KREA",
+    "category": "Präsentation",
+    "label": "Werk/Produkt präsentiert und begründet",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "KREA",
+    "category": "Kooperation",
+    "label": "Konstruktive Mitarbeit bei gemeinsamen Projekten",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "BESP",
+    "category": "Einsatz",
+    "label": "Aktive Teilnahme, Anstrengungsbereitschaft",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "BESP",
+    "category": "Technik",
+    "label": "Bewegungsausführung/Technik verbessert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "BESP",
+    "category": "Fairness",
+    "label": "Fairplay und Regeln eingehalten",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "BESP",
+    "category": "Team",
+    "label": "Teamfähigkeit und Unterstützung anderer",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "BESP",
+    "category": "Reflexion",
+    "label": "Eigenes Leistungsniveau realistisch eingeschätzt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "REHT",
+    "category": "Methodik",
+    "label": "Falllösung strukturiert (Sachverhalt–Norm–Subsumtion–Ergebnis)",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "REHT",
+    "category": "Fachlich",
+    "label": "Gesetzesbezug korrekt hergestellt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "REHT",
+    "category": "Argumentation",
+    "label": "Begründete Argumentation (Pro/Contra)",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "REHT",
+    "category": "Sprache",
+    "label": "Fachbegriffe korrekt verwendet",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "REHT",
+    "category": "Transfer",
+    "label": "Neuen Fall sinnvoll gelöst",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "FP",
+    "category": "Professionalität",
+    "label": "Pünktlichkeit, Zuverlässigkeit, Auftreten",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "FP",
+    "category": "Aufgaben",
+    "label": "Aufgaben selbstständig und sorgfältig ausgeführt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "FP",
+    "category": "Kommunikation",
+    "label": "Adressatengerechte Kommunikation im Team",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "FP",
+    "category": "Reflexion",
+    "label": "Erfahrungen reflektiert, Lernziele formuliert",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "FP",
+    "category": "Dokumentation",
+    "label": "Dokumentation/Nachweise vollständig",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "BOTH",
+    "subject_code": "FP",
+    "category": "Ethik",
+    "label": "Datenschutz/Schweigepflicht/Umgang mit Klient:innen",
+    "sort": 60,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "NWIS",
+    "category": "Naturwissenschaftliches Arbeiten",
+    "label": "Beobachtungen/Ergebnisse nachvollziehbar dokumentiert",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "NWIS",
+    "category": "Naturwissenschaftliches Arbeiten",
+    "label": "Fragestellung/Hypothese formuliert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "NWIS",
+    "category": "Fachwissen",
+    "label": "Grundbegriffe/Modelle korrekt erklärt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "NWIS",
+    "category": "Experiment/Übung",
+    "label": "Sicher und regelkonform gearbeitet",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "NWIS",
+    "category": "Transfer",
+    "label": "Alltagsbezug/Anwendung hergestellt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PSPG",
+    "category": "Fachwissen",
+    "label": "Begriffe/Modelle korrekt erläutert",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PSPG",
+    "category": "Analyse",
+    "label": "Beobachtungen/Theorien zugeordnet",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PSPG",
+    "category": "Reflexion",
+    "label": "Eigenes Verhalten/Lernen reflektiert",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PSPG",
+    "category": "Anwendung",
+    "label": "Praxisbeispiele situationsgerecht abgeleitet",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PSPG",
+    "category": "Kommunikation",
+    "label": "Empathische, wertschätzende Sprache",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SGB",
+    "category": "Fachwissen",
+    "label": "Aufgaben/Rollen im Berufsfeld erklärt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SGB",
+    "category": "Haltung",
+    "label": "Wertschätzender Umgang und professionelle Grenzen",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SGB",
+    "category": "Ethik & Recht",
+    "label": "Schweigepflicht/Datenschutz/Grundrechte beachtet",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SGB",
+    "category": "Praxis",
+    "label": "Handlungsschritte sinnvoll geplant",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SGB",
+    "category": "Reflexion",
+    "label": "Eigene Haltung/Belastung reflektiert",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SZH",
+    "category": "Fachwissen",
+    "label": "Einrichtungen/Handlungsfelder beschrieben",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SZH",
+    "category": "Methoden",
+    "label": "Methoden passend ausgewählt (zB Gespräch, Aktivierung)",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SZH",
+    "category": "Ressourcen",
+    "label": "Ressourcen/Bedarfe erkannt und berücksichtigt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SZH",
+    "category": "Kooperation",
+    "label": "Zusammenarbeit mit Team/Angehörigen reflektiert",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SZH",
+    "category": "Dokumentation",
+    "label": "Dokumentation strukturiert und korrekt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "RD4B",
+    "category": "Dokumentation",
+    "label": "Dokumente formal korrekt und vollständig",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "RD4B",
+    "category": "Reflexion",
+    "label": "Lern-/Praxisprozesse nachvollziehbar reflektiert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "RD4B",
+    "category": "Methoden",
+    "label": "Reflexionsmethoden sinnvoll angewandt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "RD4B",
+    "category": "Feedback",
+    "label": "Feedback aufgenommen und weiterentwickelt",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "RD4B",
+    "category": "Selbstorganisation",
+    "label": "Arbeitsprozess geplant und termingerecht",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SOMP",
+    "category": "Fachwissen",
+    "label": "Körperfunktionen/Grundbegriffe korrekt erklärt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SOMP",
+    "category": "Pathologie",
+    "label": "Symptome/Ursachen/Verläufe beschreiben",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SOMP",
+    "category": "Transfer",
+    "label": "Bezug zu Pflege/Alltag hergestellt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SOMP",
+    "category": "Sorgfalt",
+    "label": "Fachbegriffe und Zusammenhänge präzise",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "SOMP",
+    "category": "Hygiene/Sicherheit",
+    "label": "Sicherheitsaspekte berücksichtigt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PFHE",
+    "category": "Hygiene",
+    "label": "Hygieneregeln korrekt angewandt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PFHE",
+    "category": "Erste Hilfe",
+    "label": "Maßnahmen korrekt, ruhig, strukturiert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PFHE",
+    "category": "Pflegebasics",
+    "label": "Grundhandlungen sicher durchgeführt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PFHE",
+    "category": "Kommunikation",
+    "label": "Klient:innenorientierte Kommunikation",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "PFHE",
+    "category": "Sicherheit",
+    "label": "Risiken erkannt und angemessen reagiert",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "HO",
+    "category": "Organisation",
+    "label": "Arbeitsabläufe geplant und umgesetzt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "HO",
+    "category": "Hygiene & Sicherheit",
+    "label": "Küchen-/Haushaltssicherheit beachtet",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "HO",
+    "category": "Wirtschaftlichkeit",
+    "label": "Ressourcen sparsam eingesetzt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "HO",
+    "category": "Team",
+    "label": "Kooperation bei Arbeitsaufgaben",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "HO",
+    "category": "Sorgfalt",
+    "label": "Sauberkeit/Ordnung/Qualität",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "ENDI",
+    "category": "Fachwissen",
+    "label": "Nährstoffe/Grundlagen korrekt erklärt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "ENDI",
+    "category": "Planung",
+    "label": "Mahlzeiten/Diätformen begründet geplant",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "ENDI",
+    "category": "Hygiene",
+    "label": "Lebensmittelhygiene eingehalten",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "ENDI",
+    "category": "Transfer",
+    "label": "Ernährungswissen auf Fälle angewandt",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "ENDI",
+    "category": "Reflexion",
+    "label": "Eigene Ernährungsgewohnheiten reflektiert",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "WGE",
+    "category": "Fachwissen",
+    "label": "Räume/Standorte/Faktoren erklärt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "WGE",
+    "category": "Karten/Diagramme",
+    "label": "Karten/Diagramme korrekt interpretiert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "WGE",
+    "category": "Analyse",
+    "label": "Zusammenhänge (Wirtschaft–Umwelt–Gesellschaft) dargestellt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "WGE",
+    "category": "Aktualität",
+    "label": "Aktuelle Beispiele/News eingebunden",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "WGE",
+    "category": "Argumentation",
+    "label": "Schlussfolgerungen begründet",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "BWR",
+    "category": "Rechnungswesen",
+    "label": "Buchungslogik korrekt angewandt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "BWR",
+    "category": "Rechnungswesen",
+    "label": "Rechenweg nachvollziehbar erläutert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "BWR",
+    "category": "Betriebswirtschaft",
+    "label": "Begriffe/Modelle korrekt angewandt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "BWR",
+    "category": "Arbeitsweise",
+    "label": "Sorgfalt bei Zahlen/Belegen",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "BWR",
+    "category": "Transfer",
+    "label": "Neuen Fall selbstständig gelöst",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "OFFM",
+    "category": "Dokumente",
+    "label": "Dokumente formal korrekt (Layout, Rechtschreibung)",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "OFFM",
+    "category": "IT",
+    "label": "Programme/Tools zweckmäßig eingesetzt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "OFFM",
+    "category": "Organisation",
+    "label": "Abläufe/Termine strukturiert organisiert",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "OFFM",
+    "category": "Kommunikation",
+    "label": "Telefon/E-Mail adressatengerecht",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "OFFM",
+    "category": "Datenschutz",
+    "label": "Daten sicher/regelkonform behandelt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "APM",
+    "category": "Planung",
+    "label": "Ziele/Meilensteine klar definiert",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "APM",
+    "category": "Umsetzung",
+    "label": "Aufgaben im Team zuverlässig übernommen",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "APM",
+    "category": "Dokumentation",
+    "label": "Planungs-/Reflexionsraster sinnvoll geführt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "APM",
+    "category": "Kommunikation",
+    "label": "Absprachen/Stakeholder-Kommunikation",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "FSB",
+    "subject_code": "APM",
+    "category": "Reflexion",
+    "label": "Retrospektive: Verbesserungen abgeleitet",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SMPM",
+    "category": "Sozialmanagement",
+    "label": "Bedarfe/Ressourcen im Sozialraum analysiert",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SMPM",
+    "category": "Projekt",
+    "label": "Projektziele/Outcome klar beschrieben",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SMPM",
+    "category": "Planung",
+    "label": "Projektplan (Zeit, Aufgaben, Rollen) plausibel",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SMPM",
+    "category": "Evaluation",
+    "label": "Ergebnisse reflektiert und bewertet",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SMPM",
+    "category": "Kommunikation",
+    "label": "Zusammenarbeit mit Partnern/Team",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PPPS",
+    "category": "Fachwissen",
+    "label": "Konzepte/Begriffe korrekt erläutert",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PPPS",
+    "category": "Analyse",
+    "label": "Fälle/Themen mit Theorien begründet analysiert",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PPPS",
+    "category": "Reflexion",
+    "label": "Eigene Werte/Haltungen kritisch reflektiert",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PPPS",
+    "category": "Argumentation",
+    "label": "Positionen differenziert begründet",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PPPS",
+    "category": "Transfer",
+    "label": "Praxisbezug/Anwendungsbezug hergestellt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PRRE",
+    "category": "Reflexion",
+    "label": "Praxisbeobachtungen strukturiert reflektiert",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PRRE",
+    "category": "Supervision",
+    "label": "Rückmeldungen eingebracht und genutzt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PRRE",
+    "category": "Lernziele",
+    "label": "Eigene Lernziele formuliert und verfolgt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PRRE",
+    "category": "Dokumentation",
+    "label": "Reflexionsprotokolle vollständig",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "PRRE",
+    "category": "Haltung",
+    "label": "Professionelle Haltung (Rolle, Grenzen)",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Argumentieren",
+    "label": "Lösungsweg logisch begründet",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Operieren",
+    "label": "Rechenverfahren korrekt angewandt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Modellieren",
+    "label": "Sachaufgaben in Modelle/Formeln übertragen",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Interpretieren",
+    "label": "Ergebnisse interpretiert und dokumentiert",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Technologie",
+    "label": "Technologieeinsatz sinnvoll (TR/Excel)",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Zahlen und Maße",
+    "label": "Maßeinheiten korrekt verwendet, umgerechnet und sinnvoll gerundet",
+    "sort": 60,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Algebra und Geometrie",
+    "label": "Terme und Formeln sicher umgeformt",
+    "sort": 70,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Algebra und Geometrie",
+    "label": "Lineare oder quadratische Gleichungen und Gleichungssysteme korrekt gelöst",
+    "sort": 80,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Algebra und Geometrie",
+    "label": "Logarithmen, Trigonometrie oder Matrizen passend angewandt",
+    "sort": 90,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Funktionale Zusammenhänge",
+    "label": "Funktionen in Tabelle, Term und Graph dargestellt und gedeutet",
+    "sort": 100,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Funktionale Zusammenhänge",
+    "label": "Lineare, quadratische oder exponentielle Modelle sachbezogen eingesetzt",
+    "sort": 110,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Finanzmathematik",
+    "label": "Zinseszins-, Renten- oder Kreditrechnung nachvollziehbar durchgeführt",
+    "sort": 120,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Stochastik",
+    "label": "Daten dargestellt, hinterfragt und kritisch interpretiert",
+    "sort": 130,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Stochastik",
+    "label": "Lage- und Streuungsmaße, Regression oder Wahrscheinlichkeiten passend verwendet",
+    "sort": 140,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Analysis",
+    "label": "Änderungsraten, Extremwerte oder Wendepunkte kontextbezogen interpretiert",
+    "sort": 150,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AM",
+    "category": "Analysis",
+    "label": "Integral- oder Kostenmodelle bei Anwendungsaufgaben sinnvoll genutzt",
+    "sort": 160,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BGHE",
+    "category": "Fachwissen",
+    "label": "Biologie/Gesundheit/Hygiene/Ernährung korrekt erklärt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BGHE",
+    "category": "Naturwiss. Arbeiten",
+    "label": "Experimente/Übungen sicher durchgeführt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BGHE",
+    "category": "Gesundheit",
+    "label": "Gesundheitsförderliche Maßnahmen begründet",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BGHE",
+    "category": "Hygiene",
+    "label": "Hygienevorschriften eingehalten",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BGHE",
+    "category": "Transfer",
+    "label": "Alltags-/Berufsbezug hergestellt",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "CHPH",
+    "category": "Fachwissen",
+    "label": "Grundbegriffe/Modelle korrekt erklärt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "CHPH",
+    "category": "Experiment",
+    "label": "Versuche sicher geplant/durchgeführt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "CHPH",
+    "category": "Auswertung",
+    "label": "Messwerte korrekt ausgewertet",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "CHPH",
+    "category": "Dokumentation",
+    "label": "Protokoll/Ergebnisse nachvollziehbar",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "CHPH",
+    "category": "Transfer",
+    "label": "Anwendungen im Alltag/Beruf beschrieben",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "GWV",
+    "category": "Fachwissen",
+    "label": "Begriffe (VW/Geografie/Globalwirtschaft) korrekt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "GWV",
+    "category": "Analyse",
+    "label": "Zusammenhänge globaler Märkte erklärt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "GWV",
+    "category": "Daten",
+    "label": "Statistiken/Karten/Diagramme interpretiert",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "GWV",
+    "category": "Urteilen",
+    "label": "Wirtschaftspolitische Maßnahmen abgewogen",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "GWV",
+    "category": "Nachhaltigkeit",
+    "label": "Ökologische/soziale Aspekte einbezogen",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BW",
+    "category": "Fachwissen",
+    "label": "Begriffe/Instrumente korrekt angewandt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BW",
+    "category": "Analyse",
+    "label": "Unternehmensentscheidungen begründet",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BW",
+    "category": "Marketing/HR",
+    "label": "Konzepte/Pläne plausibel entwickelt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BW",
+    "category": "Recht/Orga",
+    "label": "Rahmenbedingungen berücksichtigt",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "BW",
+    "category": "Transfer",
+    "label": "Fallbeispiele eigenständig gelöst",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "RWCO",
+    "category": "Buchungen",
+    "label": "Kontenlogik/Buchungssätze korrekt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "RWCO",
+    "category": "Rechenweg",
+    "label": "Rechenweg nachvollziehbar",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "RWCO",
+    "category": "Controlling",
+    "label": "Kennzahlen interpretiert",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "RWCO",
+    "category": "Sorgfalt",
+    "label": "Genauigkeit/Belegbezug",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "RWCO",
+    "category": "Transfer",
+    "label": "Neuen Fall selbstständig gelöst",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AIM",
+    "category": "IT-Tools",
+    "label": "Tools/Office/Online sinnvoll eingesetzt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AIM",
+    "category": "Daten",
+    "label": "Daten strukturiert erfasst/ausgewertet",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AIM",
+    "category": "Medien",
+    "label": "Digitale Inhalte zielgruppenorientiert erstellt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AIM",
+    "category": "Sicherheit",
+    "label": "Datenschutz/IT-Sicherheit beachtet",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "AIM",
+    "category": "Organisation",
+    "label": "Arbeitsabläufe digital organisiert",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "HOEK",
+    "category": "Haushaltsplanung",
+    "label": "Planung/Organisation nachvollziehbar",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "HOEK",
+    "category": "Ernährung",
+    "label": "Ernährungswissen praktisch angewandt",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "HOEK",
+    "category": "Wirtschaftlichkeit",
+    "label": "Budget/Ressourcen sinnvoll eingesetzt",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "HOEK",
+    "category": "Hygiene/Sicherheit",
+    "label": "Hygiene- und Sicherheitsstandards eingehalten",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "HOEK",
+    "category": "Nachhaltigkeit",
+    "label": "Nachhaltige Entscheidungen begründet",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SOZL",
+    "category": "Sozialkompetenz",
+    "label": "Kooperation, Respekt, Perspektivenwechsel",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SOZL",
+    "category": "Kommunikation",
+    "label": "Aktives Zuhören, Ich-Botschaften, Feedback",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SOZL",
+    "category": "Konflikte",
+    "label": "Konflikte konstruktiv bearbeiten",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SOZL",
+    "category": "Selbstregulation",
+    "label": "Emotionen/Stress angemessen reguliert",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SOZL",
+    "category": "Reflexion",
+    "label": "Eigene Rolle/Verhalten reflektiert",
+    "sort": 50,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SP",
+    "category": "Praxis",
+    "label": "Tätigkeiten fachgerecht umgesetzt",
+    "sort": 10,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SP",
+    "category": "Haltung",
+    "label": "Professionelle Haltung, Verantwortung",
+    "sort": 20,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SP",
+    "category": "Team",
+    "label": "Kooperation im Team",
+    "sort": 30,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SP",
+    "category": "Reflexion",
+    "label": "Praxisreflexion/Transfer zur Theorie",
+    "sort": 40,
+    "active": 1
+  },
+  {
+    "school_type": "HLS",
+    "subject_code": "SP",
+    "category": "Dokumentation",
+    "label": "Nachweise/Protokolle vollständig",
+    "sort": 50,
+    "active": 1
+  }
+]

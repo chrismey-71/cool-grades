@@ -1,0 +1,46 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="156" y1="96" x2="864" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6DBD72"/>
+      <stop offset="0.48" stop-color="#478E4F"/>
+      <stop offset="1" stop-color="#2F6F3A"/>
+    </linearGradient>
+    <linearGradient id="paperGlow" x1="312" y1="200" x2="738" y2="798" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF7"/>
+      <stop offset="1" stop-color="#F5F0E6"/>
+    </linearGradient>
+    <filter id="shadow" x="178" y="120" width="668" height="784" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#14311A" flood-opacity="0.18"/>
+    </filter>
+    <filter id="badgeShadow" x="548" y="566" width="284" height="284" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#14311A" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <rect x="40" y="40" width="944" height="944" rx="224" fill="url(#bg)"/>
+
+  <circle cx="254" cy="246" r="132" fill="#FFFFFF" fill-opacity="0.08"/>
+  <circle cx="786" cy="232" r="88" fill="#FFFFFF" fill-opacity="0.08"/>
+  <circle cx="812" cy="796" r="120" fill="#FFFFFF" fill-opacity="0.08"/>
+
+  <g filter="url(#shadow)" transform="rotate(-6 512 512)">
+    <rect x="230" y="170" width="564" height="664" rx="88" fill="url(#paperGlow)"/>
+    <rect x="230" y="170" width="564" height="118" rx="88" fill="#F7A1A5"/>
+    <rect x="230" y="246" width="564" height="42" fill="#F7A1A5"/>
+
+    <path d="M392 378H474V646H558V712H308V646H392V470L338 504L300 448L392 378Z" fill="#6D6A60"/>
+
+    <rect x="500" y="424" width="190" height="66" rx="33" fill="#6D6A60"/>
+    <rect x="562" y="362" width="66" height="190" rx="33" fill="#6D6A60"/>
+
+    <rect x="330" y="650" width="352" height="20" rx="10" fill="#2F6F3A" fill-opacity="0.18"/>
+    <rect x="330" y="694" width="286" height="18" rx="9" fill="#2F6F3A" fill-opacity="0.14"/>
+    <rect x="330" y="734" width="222" height="16" rx="8" fill="#6D6A60" fill-opacity="0.20"/>
+  </g>
+
+  <g filter="url(#badgeShadow)">
+    <circle cx="690" cy="708" r="110" fill="#FFFDF7"/>
+    <circle cx="690" cy="708" r="94" fill="#2F6F3A"/>
+    <path d="M648 708L681 741L742 672" stroke="#FFFDF7" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

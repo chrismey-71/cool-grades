@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS oral_assessments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  class_id INT NOT NULL,
+  subject_id INT NOT NULL,
+  teacher_id INT NOT NULL,
+  student_id INT NOT NULL,
+  assessment_type VARCHAR(24) NOT NULL DEFAULT 'ORAL_EXAM',
+  assessment_date DATE NOT NULL,
+  impact_option_id INT NULL,
+  impact_label VARCHAR(128) NULL,
+  topic_area VARCHAR(255) NULL,
+  questions TEXT NULL,
+  category VARCHAR(120) NULL,
+  title VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (impact_option_id) REFERENCES participation_options(id) ON DELETE SET NULL,
+  INDEX idx_oral_teacher_date (teacher_id, assessment_date),
+  INDEX idx_oral_class_subject_date (class_id, subject_id, assessment_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

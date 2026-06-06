@@ -1,0 +1,33 @@
+# Local configuration
+config.php
+.env
+.env.*
+
+# Runtime and logs
+logs/
+**/logs/
+*.log
+.runtime/
+tmp/
+cache/
+
+# Databases, backups and exports
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+*.dump
+*.bak
+backups/
+exports/
+uploads/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Dependency folders, if added locally
+vendor/
+node_modules/

@@ -1,0 +1,1 @@
+<?php require_once __DIR__.'/lib/auth.php'; require_once __DIR__.'/lib/helpers.php'; $u=current_user(); if($u) redirect('/dashboard.php'); redirect('/login.php');
