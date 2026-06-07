@@ -8,8 +8,13 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ### Geplant
 
-- weitere Fehlerkorrekturen und Verbesserungen nach Bedarf
-- Sicherheits- und Dokumentationspflege
+- formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
+- Trennung zwischen reinen Lernhinweisen und Einträgen, die in Notenvorschläge einfließen
+- Lernziele, Erfolgskriterien, beobachteter Lernstand und nächste Lernschritte pro Rückmeldung
+- separate Darstellung formativer Lernrückmeldungen in Webauswertung und PDF-Berichten
+- optionale Selbst- und Peer-Feedback-Funktionen
+- stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
+- weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
 ## [1.62] - 2026-06-07
 

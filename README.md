@@ -43,9 +43,22 @@ Die Benutzer- und Administrationsdokumentation liegt im Ordner `docs/`.
 
 Weitere Projekthinweise:
 
-- `CHANGELOG.md` dokumentiert Releases und wesentliche Aenderungen.
+- `CHANGELOG.md` dokumentiert Releases und wesentliche Änderungen.
 - `SECURITY.md` beschreibt den Umgang mit Sicherheitsmeldungen.
-- `DATENSCHUTZ.md` enthaelt Hinweise zum datenschutzbewussten Betrieb.
+- `DATENSCHUTZ.md` enthält Hinweise zum datenschutzbewussten Betrieb.
+
+## Roadmap
+
+Folgende Weiterentwicklungen sind als fachliche Entwicklungsrichtung vorgesehen. Sie sind noch nicht Bestandteil der aktuellen Version und sollen schrittweise geprüft, geplant und umgesetzt werden:
+
+- formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
+- klare Trennung zwischen reinen Lernhinweisen und Einträgen, die in Notenvorschläge einfließen
+- Lernziele, Erfolgskriterien, beobachteter Lernstand und nächste Lernschritte pro Rückmeldung
+- separate Ausweisung formativer Lernrückmeldungen in Webauswertung und PDF-Berichten
+- optionale Selbst- und Peer-Feedback-Funktionen
+- stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
+
+Die App soll dabei weiterhin keine automatische Beurteilung festlegen. Auch künftige Funktionen sollen Lehrkräfte unterstützen, aber die pädagogische Entscheidung nicht ersetzen.
 
 ## Lizenz
 
