@@ -41,6 +41,10 @@ Dieses Repository enthält deshalb nur `config.example.php` als Vorlage.
 
 Die Benutzer- und Administrationsdokumentation liegt im Ordner `docs/`.
 
+## Lizenz
+
+Dieses Projekt steht unter der GNU Affero General Public License v3.0. Details stehen in der Datei `LICENSE`.
+
 ## CSV-Import
 
 Der CSV-Import für Schüler:innen erwartet Semikolon-getrennte Daten:
