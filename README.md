@@ -41,6 +41,12 @@ Dieses Repository enthält deshalb nur `config.example.php` als Vorlage.
 
 Die Benutzer- und Administrationsdokumentation liegt im Ordner `docs/`.
 
+Weitere Projekthinweise:
+
+- `CHANGELOG.md` dokumentiert Releases und wesentliche Aenderungen.
+- `SECURITY.md` beschreibt den Umgang mit Sicherheitsmeldungen.
+- `DATENSCHUTZ.md` enthaelt Hinweise zum datenschutzbewussten Betrieb.
+
 ## Lizenz
 
 Dieses Projekt steht unter der GNU Affero General Public License v3.0. Details stehen in der Datei `LICENSE`.
