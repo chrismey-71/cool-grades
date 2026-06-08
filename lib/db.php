@@ -21,15 +21,22 @@ function _ensure_schema(PDO $pdo): void {
     if(!$has){
       $pdo->exec("CREATE TABLE app_settings (
         `key` VARCHAR(64) NOT NULL PRIMARY KEY,
-        `value` VARCHAR(255) NOT NULL,
+        `value` LONGTEXT NOT NULL,
         updated_at DATETIME NOT NULL,
         created_at DATETIME NOT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM app_settings LIKE 'value'");
+    $col=$st->fetch();
+    if($col && stripos((string)($col['Type'] ?? ''), 'longtext') === false){
+      $pdo->exec("ALTER TABLE app_settings MODIFY COLUMN `value` LONGTEXT NOT NULL");
     }
     // Default: 30 minutes inactivity timeout
     $pdo->exec("INSERT IGNORE INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('session_timeout_minutes','30',NOW(),NOW())");
     $pdo->exec("INSERT IGNORE INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('brand_primary_color','#2F6F3A',NOW(),NOW())");
     $pdo->exec("INSERT IGNORE INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('event_retention_days','30',NOW(),NOW())");
+    $pdo->exec("INSERT IGNORE INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('legal_imprint_html','<p>Das Impressum wurde noch nicht hinterlegt.</p>',NOW(),NOW())");
+    $pdo->exec("INSERT IGNORE INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('legal_privacy_html','<p>Die Datenschutzbestimmung wurde noch nicht hinterlegt.</p>',NOW(),NOW())");
     $year=(int)date('Y');
     $month=(int)date('n');
     $startYear=($month >= 9) ? $year : ($year - 1);

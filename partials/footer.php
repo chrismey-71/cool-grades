@@ -2,7 +2,13 @@
 // Variables expected: $bp (string)
 ?>
 
-<div class="footer small">© <?php echo date('Y'); ?> by Christian Meysing · Version <?php echo h(app_version()); ?> · COOL-Grades · Mitarbeit und Noten nach LBV erfassen</div>
+<div class="footer small">
+  <span>© <?php echo date('Y'); ?> by Christian Meysing · Version <?php echo h(app_version()); ?> · COOL-Grades · Mitarbeit und Noten nach LBV erfassen</span>
+  <span class="footer-legal-links">
+    · <a href="<?php echo h($bp); ?>/legal.php?page=impressum">Impressum</a>
+    · <a href="<?php echo h($bp); ?>/legal.php?page=datenschutz">Datenschutz</a>
+  </span>
+</div>
 </div><!-- wrap -->
 
 <script>

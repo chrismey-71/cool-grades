@@ -33,6 +33,15 @@ render_header('Einstellungen', $u);
 
         <div class="col-12 col-md-6">
           <div class="card" style="padding:14px">
+            <h2 style="margin:0 0 8px 0">Impressum und Datenschutz</h2>
+            <div class="muted" style="font-size:13px">Öffentliche Rechtstexte für die Fußzeile mit einem einfachen HTML-Editor pflegen.</div>
+            <div style="height:10px"></div>
+            <a class="btn" href="<?php echo h($bp); ?>/admin/legal_pages.php">Rechtstexte öffnen</a>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="card" style="padding:14px">
             <h2 style="margin:0 0 8px 0">Datenbanksicherung</h2>
             <div class="muted" style="font-size:13px">Eine vollständige SQL-Sicherung der App herunterladen.</div>
             <div style="height:10px"></div>

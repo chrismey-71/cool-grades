@@ -25,6 +25,22 @@ html[data-theme="dark"] .input{
   border-color:var(--border);
 }
 
+html[data-theme="dark"] .legal-html-editor{
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+  border-color:var(--border);
+}
+
+html[data-theme="dark"] .legal-editor-toolbar button{
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  border-color:var(--border);
+}
+
+html[data-theme="dark"] .legal-editor-toolbar button:hover{
+  background:rgba(120,220,150,.10);
+}
+
 html[data-theme="dark"] .table th{color:var(--muted)}
 html[data-theme="dark"] .table td{border-bottom-color:rgba(38,50,71,.85)}
 

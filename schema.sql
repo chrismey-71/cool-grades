@@ -18,6 +18,21 @@ CREATE TABLE IF NOT EXISTS users (
   created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS app_settings (
+  `key` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `value` LONGTEXT NOT NULL,
+  updated_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO app_settings(`key`,`value`,updated_at,created_at)
+VALUES
+  ('session_timeout_minutes','30',NOW(),NOW()),
+  ('brand_primary_color','#2F6F3A',NOW(),NOW()),
+  ('event_retention_days','30',NOW(),NOW()),
+  ('legal_imprint_html','<p>Das Impressum wurde noch nicht hinterlegt.</p>',NOW(),NOW()),
+  ('legal_privacy_html','<p>Die Datenschutzbestimmung wurde noch nicht hinterlegt.</p>',NOW(),NOW());
+
 CREATE TABLE IF NOT EXISTS schools (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(180) NOT NULL,

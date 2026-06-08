@@ -16,6 +16,18 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.63] - 2026-06-08
+
+### Hinzugefügt
+
+- Admin-Pflegebereich für Impressum und Datenschutzbestimmung mit einfachem HTML-Editor
+- öffentliche Seiten für Impressum und Datenschutz über die Fußzeile
+- Migration für längere HTML-Inhalte in globalen App-Einstellungen
+
+### Geändert
+
+- Versionsnummer auf 1.63 erhöht
+
 ## [1.62] - 2026-06-07
 
 ### Hinzugefügt
@@ -44,5 +56,6 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - lokale Konfigurationsdateien, Logs, Runtime-Daten und Datenbankdateien sind vom Git-Tracking ausgeschlossen
 - `config.example.php` dient als Vorlage ohne echte Zugangsdaten
 
-[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.62...HEAD
+[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.63...HEAD
+[1.63]: https://github.com/chrismey-71/cool-grades/compare/v1.62...v1.63
 [1.62]: https://github.com/chrismey-71/cool-grades/releases/tag/v1.62
