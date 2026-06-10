@@ -3,6 +3,16 @@
 // App events go to /logs/app.log, runtime problems additionally to /logs/error.log.
 
 function app_log_dir(): string {
+  try{
+    $cfgFile = __DIR__.'/../config.php';
+    if(is_file($cfgFile)){
+      $cfg = require $cfgFile;
+      $dir = trim((string)($cfg['log_dir'] ?? ''));
+      if($dir !== '') return $dir;
+    }
+  }catch(Throwable $e){
+    // Fall back to the legacy in-app log directory.
+  }
   return __DIR__.'/../logs';
 }
 
@@ -48,6 +58,10 @@ function app_log_write(string $channel, array $row): void {
     if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
       error_log('COOL-Grades logger: cannot create log directory '.$dir);
       return;
+    }
+    $htaccess = $dir.'/.htaccess';
+    if(!is_file($htaccess)){
+      @file_put_contents($htaccess, "Require all denied\nDeny from all\n");
     }
 
     $file = app_log_file($channel);

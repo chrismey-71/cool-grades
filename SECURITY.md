@@ -6,7 +6,8 @@ COOL-Grades verarbeitet potentiell besonders schutzbedürftige schulische Leistu
 
 | Version | Status |
 | --- | --- |
-| 1.62 und neuer | Sicherheitskorrekturen vorgesehen |
+| 1.64 und neuer | Sicherheitskorrekturen vorgesehen |
+| 1.62 bis 1.63 | ältere veröffentlichte Stände |
 | ältere Entwicklungsstände | keine garantierte Pflege |
 
 ## Sicherheitslücken melden
@@ -42,6 +43,8 @@ Betreiber:innen einer Installation sollten mindestens folgende Punkte beachten:
 
 - `config.php`, Logs, Datenbank-Dumps und Backups niemals veröffentlichen.
 - HTTPS verwenden.
+- Logs möglichst außerhalb des Webroots speichern; Hinweise stehen in `docs/security-deployment.md`.
+- `install.php` nach der Installation entfernen und das Installationstoken geheim halten.
 - starke Admin-Passwörter und individuelle Benutzerkonten verwenden.
 - Standardzugang nach der Installation sofort ändern.
 - Schreibrechte auf dem Server auf das notwendige Minimum beschränken.

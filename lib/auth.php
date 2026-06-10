@@ -3,6 +3,14 @@ require_once __DIR__.'/db.php';
 require_once __DIR__.'/helpers.php';
 require_once __DIR__.'/settings.php';
 require_once __DIR__.'/logger.php';
+require_once __DIR__.'/security.php';
+
+function login_last_error(?string $message = null): string {
+  static $last = '';
+  if($message !== null) $last = $message;
+  return $last;
+}
+
 function start_session(): void {
   if (session_status()===PHP_SESSION_ACTIVE) return;
   $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
@@ -64,6 +72,7 @@ function deny_with_popup(string $message, string $fallback = '/dashboard.php'): 
   $jsMessage = json_encode($message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
   $jsTarget = json_encode($target, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
   http_response_code(403);
+  security_send_headers();
   echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Keine Berechtigung</title></head><body>';
   echo '<script>';
   echo 'var message='.$jsMessage.';';
@@ -85,10 +94,30 @@ function require_teacher_assignment(array $u,int $class_id,int $subject_id): voi
 
 function login(string $username,string $password): bool {
   start_session();
+  login_last_error('');
+  $username=trim($username);
+
+  $blocked = login_rate_limit_blocked($username);
+  if(!empty($blocked['blocked'])){
+    login_last_error((string)($blocked['message'] ?? 'Anmeldung derzeit gesperrt.'));
+    app_log('warn','login blocked by rate limit',[
+      'username'=>$username,
+      'retry_after_seconds'=>(int)($blocked['retry_after_seconds'] ?? 0),
+      'request'=>app_log_request_context(),
+    ]);
+    return false;
+  }
+
   $st=db()->prepare("SELECT id,pass_hash,is_active FROM users WHERE username=? LIMIT 1");
   $st->execute([$username]); $u=$st->fetch();
-  if(!$u || (int)$u['is_active']!==1) return false;
-  if(!password_verify($password,$u['pass_hash'])) return false;
+  if(!$u || (int)$u['is_active']!==1 || !password_verify($password,$u['pass_hash'])){
+    login_attempt_record($username, false);
+    $delay = (int)login_rate_limit_config()['delay_seconds'];
+    if($delay > 0) sleep($delay);
+    login_last_error('Login fehlgeschlagen.');
+    return false;
+  }
+  login_attempt_record($username, true);
   session_regenerate_id(true);
   $_SESSION['uid']=(int)$u['id'];
   $_SESSION['last_activity'] = time();
@@ -127,9 +156,9 @@ function logout(): void {
   }
   session_destroy();
 }
-function password_policy_ok(string $pw): bool { return mb_strlen($pw) >= 8; }
 function change_password(int $uid,string $newPw): void {
-  if(!password_policy_ok($newPw)) throw new Exception("Passwort muss mindestens 8 Zeichen haben.");
+  $errors = password_policy_errors($newPw);
+  if($errors) throw new Exception('Passwort erfüllt die Regeln nicht: '.implode(', ', $errors).'.');
   $hash=password_hash($newPw,PASSWORD_DEFAULT);
   $st=db()->prepare("UPDATE users SET pass_hash=?, must_change_password=0 WHERE id=?");
   $st->execute([$hash,$uid]);

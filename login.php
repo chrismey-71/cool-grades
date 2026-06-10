@@ -11,7 +11,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
   $username=trim($_POST['username']??''); $pw=(string)($_POST['password']??'');
   if(login($username,$pw)){ emit_event('login',[]); redirect('/dashboard.php'); }
-  $error='Login fehlgeschlagen.';
+  $error=login_last_error() ?: 'Login fehlgeschlagen.';
 }
 render_header('Login');
 ?>

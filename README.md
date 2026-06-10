@@ -25,11 +25,12 @@ Die Software ersetzt keine pädagogische Entscheidung. Notenvorschläge und Ausw
 
 1. Dateien auf den Webserver kopieren, z. B. nach `/cool-grades`.
 2. `config.example.php` nach `config.php` kopieren.
-3. In `config.php` die Datenbankverbindung eintragen.
+3. In `config.php` die Datenbankverbindung, ein langes `install_token` und einen Log-Pfad außerhalb des Webroots eintragen.
 4. Datenbankschema aus `schema.sql` einspielen.
 5. Bei bestehenden Installationen zusätzlich die Dateien aus `migrations/` in zeitlicher Reihenfolge ausführen.
-6. `install.php` im Browser lokal bzw. serverseitig geschützt aufrufen.
-7. Standard-Adminzugang nach der Installation sofort ändern.
+6. `install.php?token=...` im Browser lokal bzw. serverseitig geschützt aufrufen.
+7. Nach erfolgreicher Installation `install.php` vom Server entfernen.
+8. Standard-Adminzugang nach der Installation sofort ändern.
 
 ## Sicherheit
 
@@ -46,6 +47,7 @@ Weitere Projekthinweise:
 - `CHANGELOG.md` dokumentiert Releases und wesentliche Änderungen.
 - `SECURITY.md` beschreibt den Umgang mit Sicherheitsmeldungen.
 - `DATENSCHUTZ.md` enthält Hinweise zum datenschutzbewussten Betrieb.
+- `docs/security-deployment.md` enthält Hinweise zu Sicherheitsheadern, Installation, Login-Schutz, Nginx und Logdateien.
 
 ## Roadmap
 

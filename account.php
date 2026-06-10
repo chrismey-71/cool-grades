@@ -85,8 +85,9 @@ render_header('Konto',$u);
     <?php echo csrf_input(); ?>
     <input type="hidden" name="action" value="password">
     <div class="settings-panel-title">Neues Passwort</div>
-    <label class="muted">Neues Passwort (mind. 8 Zeichen)</label>
+    <label class="muted">Neues Passwort</label>
     <input class="input" type="password" name="new_password" required>
+    <div class="small muted settings-panel-note">Erforderlich: <?php echo h(password_policy_summary()); ?>.</div>
     <div style="height:12px"></div><button class="btn">Speichern</button>
   </form>
 </div>

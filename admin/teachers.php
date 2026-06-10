@@ -14,7 +14,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $active=(int)($_POST['is_active']??1);
     if($id===null){
       $pw=(string)($_POST['temp_password']??'');
-      if(!password_policy_ok($pw)) die('Temp-Passwort muss mind. 8 Zeichen haben.');
+      $pwErrors = password_policy_errors($pw);
+      if($pwErrors) die('Temp-Passwort erfüllt die Regeln nicht: '.h(implode(', ', $pwErrors)).'.');
       $hash=password_hash($pw,PASSWORD_DEFAULT);
       $nid=upsert('users',['username'=>$username,'first_name'=>$first,'last_name'=>$last,'role'=>'teacher','pass_hash'=>$hash,'is_active'=>$active,'must_change_password'=>1,'created_at'=>now_iso()],null);
       emit_event('admin_teacher_created',['target_id'=>$nid,'target_name'=>"$last, $first",'target_username'=>$username]);
@@ -26,7 +27,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   }
   if($a==='reset_pw'){
     $id=(int)$_POST['id']; $pw=(string)($_POST['temp_password']??'');
-    if(!password_policy_ok($pw)) die('Temp-Passwort muss mind. 8 Zeichen haben.');
+    $pwErrors = password_policy_errors($pw);
+    if($pwErrors) die('Temp-Passwort erfüllt die Regeln nicht: '.h(implode(', ', $pwErrors)).'.');
     $hash=password_hash($pw,PASSWORD_DEFAULT);
     $pdo->prepare("UPDATE users SET pass_hash=?, must_change_password=1 WHERE id=?")->execute([$hash,$id]);
     $t=$pdo->prepare("SELECT username,first_name,last_name FROM users WHERE id=?");$t->execute([$id]);$t=$t->fetch();
@@ -62,7 +64,7 @@ render_header('Lehrer:innen',$u);
               <form method="post" style="display:inline">
                 <?php echo csrf_input(); ?>
                 <input type="hidden" name="action" value="reset_pw"><input type="hidden" name="id" value="<?php echo (int)$t['id']; ?>">
-                <input class="input" name="temp_password" placeholder="Temp-PW (min 8)" style="width:160px;display:inline-block" required>
+                <input class="input" name="temp_password" placeholder="Temp-PW" style="width:160px;display:inline-block" required>
                 <button class="btn small">PW reset</button>
               </form>
               <form method="post" style="display:inline" onsubmit="return confirm('Wirklich löschen?');">
@@ -97,8 +99,9 @@ render_header('Lehrer:innen',$u);
         <select class="input" name="is_active"><option value="1" <?php echo $a===1?'selected':''; ?>>aktiv</option><option value="0" <?php echo $a===0?'selected':''; ?>>inaktiv</option></select>
         <?php if(!$edit): ?>
           <div style="height:10px"></div>
-          <label class="muted">Temporäres Passwort (min 8) – muss nach Login geändert werden</label>
+          <label class="muted">Temporäres Passwort – muss nach Login geändert werden</label>
           <input class="input" name="temp_password" required>
+          <div class="small muted settings-panel-note">Erforderlich: <?php echo h(password_policy_summary()); ?>.</div>
         <?php endif; ?>
         <div style="height:12px"></div>
         <button class="btn">Speichern</button>

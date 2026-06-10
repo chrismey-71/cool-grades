@@ -3,6 +3,7 @@ require_once __DIR__.'/auth.php';
 require_once __DIR__.'/helpers.php';
 require_once __DIR__.'/settings.php';
 require_once __DIR__.'/version.php';
+require_once __DIR__.'/security.php';
 
 function _asset_v(string $path): string {
   $full = __DIR__ . '/../' . ltrim($path,'/');
@@ -13,6 +14,7 @@ function _asset_v(string $path): string {
 function render_header(string $title, ?array $u=null): void {
   $bp = cfg()['base_path'] ?? '';
   $u  = $u ?? current_user();
+  security_send_headers();
   include __DIR__.'/../partials/header.php';
 }
 

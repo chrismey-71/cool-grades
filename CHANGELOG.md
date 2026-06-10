@@ -16,6 +16,23 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.64] - 2026-06-10
+
+### Hinzugefügt
+
+- zentrale Sicherheitsheader für gerenderte App-Seiten
+- datenbankgestützte Login-Ratenbegrenzung mit konfigurierbarer Fehlversuchsanzahl, Verzögerung und temporärer Sperre
+- konfigurierbare Passwortregeln im Adminbereich
+- Einmal-Token und Lock-Datei für `install.php`
+- konfigurierbarer Log-Pfad außerhalb des Webroots
+- Betriebsdokumentation zu Sicherheitsheadern, Installation, Nginx und Logdateien
+
+### Geändert
+
+- Passwortprüfung für Kontoänderung, Lehrkräfteanlage und Passwort-Reset vereinheitlicht
+- `.DS_Store`, AppleDouble-Dateien und `install.lock` explizit vom Git-Tracking ausgeschlossen
+- Versionsnummer auf 1.64 erhöht
+
 ## [1.63] - 2026-06-08
 
 ### Hinzugefügt
@@ -56,6 +73,7 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - lokale Konfigurationsdateien, Logs, Runtime-Daten und Datenbankdateien sind vom Git-Tracking ausgeschlossen
 - `config.example.php` dient als Vorlage ohne echte Zugangsdaten
 
-[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.63...HEAD
+[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.64...HEAD
+[1.64]: https://github.com/chrismey-71/cool-grades/compare/v1.63...v1.64
 [1.63]: https://github.com/chrismey-71/cool-grades/compare/v1.62...v1.63
 [1.62]: https://github.com/chrismey-71/cool-grades/releases/tag/v1.62

@@ -10,6 +10,7 @@ logs/
 .runtime/
 tmp/
 cache/
+install.lock
 
 # Databases, backups and exports
 *.db
@@ -24,6 +25,8 @@ uploads/
 
 # OS and editor files
 .DS_Store
+**/.DS_Store
+._*
 Thumbs.db
 .idea/
 .vscode/
