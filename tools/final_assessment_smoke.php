@@ -54,14 +54,29 @@ fa_smoke_assert_same('1. Semesterbeurteilung festlegen', $scopeOptions['semester
 fa_smoke_assert_same('2. Semesterbeurteilung festlegen', $scopeOptions['semester2'] ?? null, 'Die Beschriftung für Semester 2 muss klar sein.');
 fa_smoke_assert_same('Jahresbeurteilung festlegen', $scopeOptions['year'] ?? null, 'Die Beschriftung für die Jahresbeurteilung muss klar sein.');
 fa_smoke_assert_true(stripos(final_assessment_scope_help('semester2'), '1. Semesters') !== false, 'Die Hilfe für Semester 2 muss auf die Orientierung am 1. Semester hinweisen.');
+
+$yearlyScopeOptions = final_assessment_scope_options('yearly');
+fa_smoke_assert_same('Schulnachricht festlegen', $yearlyScopeOptions['semester1'] ?? null, 'Im Jahresmodell muss Semester 1 als Schulnachricht angezeigt werden.');
+fa_smoke_assert_true(!isset($yearlyScopeOptions['semester2']), 'Im Jahresmodell darf keine 2. Semesterbeurteilung angeboten werden.');
+fa_smoke_assert_same('Jahresbeurteilung festlegen', $yearlyScopeOptions['year'] ?? null, 'Im Jahresmodell muss die Jahresbeurteilung verfügbar bleiben.');
+fa_smoke_assert_same('year', final_assessment_scope_normalize('semester2', 'yearly'), 'Manipulierte oder alte semester2-Aufrufe müssen im Jahresmodell zur Jahresbeurteilung normalisiert werden.');
+fa_smoke_assert_true(stripos(final_assessment_scope_help('semester1', 'yearly'), 'Schulnachricht') !== false, 'Die Hilfe im Jahresmodell muss die Schulnachricht erklären.');
 fa_smoke_assert_same('semester2', final_assessment_default_scope(null, '2026-05-14'), 'Im Mai soll ohne explizite Auswahl das 2. Semester vorausgewählt werden.');
+fa_smoke_assert_same('year', final_assessment_default_scope(null, '2026-05-14', 'yearly'), 'Im Jahresmodell soll im Mai die Jahresbeurteilung vorausgewählt werden.');
 fa_smoke_assert_same('semester1', final_assessment_default_scope(null, '2026-11-14'), 'Im November soll ohne explizite Auswahl das 1. Semester vorausgewählt werden.');
+fa_smoke_assert_same('semester1', final_assessment_default_scope(null, '2026-11-14', 'yearly'), 'Im Jahresmodell soll im November die Schulnachricht vorausgewählt werden.');
 fa_smoke_assert_same('semester1', final_assessment_default_scope([
   'semester1_from' => '2025-09-01',
   'semester1_to' => '2026-01-31',
   'semester2_from' => '2026-02-01',
   'semester2_to' => '2026-08-31',
 ], '2026-01-10'), 'Wenn konkrete Semesterdaten vorhanden sind, soll die Schuljahreslogik verwendet werden.');
+fa_smoke_assert_same('year', final_assessment_default_scope([
+  'semester1_from' => '2025-09-01',
+  'semester1_to' => '2026-01-31',
+  'semester2_from' => '2026-02-01',
+  'semester2_to' => '2026-08-31',
+], '2026-05-10', 'yearly'), 'Im Jahresmodell darf der Sommerzeitraum nicht als eigenständige 2. Semesterbeurteilung vorausgewählt werden.');
 fa_smoke_assert_same(2, final_assessment_default_period_set_id([
   ['id' => 3, 'semester1_from' => '2026-09-01', 'semester2_to' => '2027-08-31'],
   ['id' => 2, 'semester1_from' => '2025-09-01', 'semester2_to' => '2026-08-31'],

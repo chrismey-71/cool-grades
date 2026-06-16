@@ -35,8 +35,10 @@ $subjectRow = $st->fetch(PDO::FETCH_ASSOC) ?: ['code' => '#'.$subject_id, 'name'
 
 $data = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope);
 $periodMeta = $data['period_meta'];
+$scope = (string)$periodMeta['scope'];
 $subjectContext = $data['subject_context'];
 $classContext = $data['class_context'];
+$isYearlyModel = (($classContext['value'] ?? null) === 'yearly');
 $rows = $data['rows'];
 
 $pdf = new SimplePdfDocument('landscape');
@@ -106,10 +108,10 @@ if(!$rows){
 $headers = ['Schueler:in'];
 $widths = [86];
 if($scope === 'semester2' || $scope === 'year'){
-  $headers[] = '1. Sem.';
+  $headers[] = $isYearlyModel ? 'Schulnachr.' : '1. Sem.';
   $widths[] = 54;
 }
-if($scope === 'year'){
+if($scope === 'year' && !$isYearlyModel){
   $headers[] = '2. Sem.';
   $widths[] = 54;
 }
@@ -124,9 +126,9 @@ foreach($rows as $row){
   $semesterContext = $row['semester_context'] ?? [];
   if($scope === 'semester2' || $scope === 'year'){
     $sem1 = $semesterContext['semester1_saved'] ?? null;
-    $rowValues[] = $sem1 ? final_assessment_grade_label($sem1['final_grade'] !== null ? (int)$sem1['final_grade'] : null) : 'keine 1.-Sem.';
+    $rowValues[] = $sem1 ? final_assessment_grade_label($sem1['final_grade'] !== null ? (int)$sem1['final_grade'] : null) : ($isYearlyModel ? 'keine Schulnachr.' : 'keine 1.-Sem.');
   }
-  if($scope === 'year'){
+  if($scope === 'year' && !$isYearlyModel){
     $sem2 = $semesterContext['semester2_saved'] ?? null;
     $rowValues[] = $sem2 ? final_assessment_grade_label($sem2['final_grade'] !== null ? (int)$sem2['final_grade'] : null) : 'keine 2.-Sem.';
   }

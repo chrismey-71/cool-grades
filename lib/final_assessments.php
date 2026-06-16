@@ -4,25 +4,26 @@ require_once __DIR__.'/settings.php';
 require_once __DIR__.'/assessment_summaries.php';
 require_once __DIR__.'/assessment_systems.php';
 
-function final_assessment_scope_options(): array {
+function final_assessment_scope_options(?string $assessmentSystem = null): array {
   $options = [];
-  foreach(final_assessment_scope_meta() as $value => $meta){
+  foreach(final_assessment_scope_meta($assessmentSystem) as $value => $meta){
     $options[$value] = (string)$meta['label'];
   }
   return $options;
 }
 
-function final_assessment_scope_label(string $scope): string {
-  return final_assessment_scope_options()[$scope] ?? 'Abschlussbeurteilung';
+function final_assessment_scope_label(string $scope, ?string $assessmentSystem = null): string {
+  return final_assessment_scope_options($assessmentSystem)[$scope] ?? 'Abschlussbeurteilung';
 }
 
-function final_assessment_scope_help(string $scope): string {
-  $meta = final_assessment_scope_meta();
+function final_assessment_scope_help(string $scope, ?string $assessmentSystem = null): string {
+  $scope = final_assessment_scope_normalize($scope, $assessmentSystem);
+  $meta = final_assessment_scope_meta($assessmentSystem);
   if(isset($meta[$scope])) return (string)$meta[$scope]['help'];
   return 'Wählen Sie zuerst, welche Abschlussbeurteilung Sie bearbeiten möchten. Die App unterstützt die pädagogische Entscheidung, legt aber keine Note automatisch fest.';
 }
 
-function final_assessment_default_scope(?array $periodSet = null, ?string $date = null): string {
+function final_assessment_default_scope(?array $periodSet = null, ?string $date = null, ?string $assessmentSystem = null): string {
   $date = $date ?: date('Y-m-d');
   if($periodSet){
     $semester1From = (string)($periodSet['semester1_from'] ?? '');
@@ -33,11 +34,13 @@ function final_assessment_default_scope(?array $periodSet = null, ?string $date 
       return 'semester1';
     }
     if($semester2From !== '' && $semester2To !== '' && $date >= $semester2From && $date <= $semester2To){
+      if($assessmentSystem === 'yearly') return 'year';
       return 'semester2';
     }
   }
 
   $month = (int)date('n', strtotime($date) ?: time());
+  if($assessmentSystem === 'yearly') return ($month >= 9 || $month === 1) ? 'semester1' : 'year';
   return ($month >= 9 || $month === 1) ? 'semester1' : 'semester2';
 }
 
@@ -87,8 +90,8 @@ function final_assessment_status_label(string $status): string {
   return $status === 'final' ? 'final gespeichert' : 'Entwurf';
 }
 
-function final_assessment_period_meta(array $periodSet, string $scope): array {
-  $scope = isset(final_assessment_scope_options()[$scope]) ? $scope : 'semester1';
+function final_assessment_period_meta(array $periodSet, string $scope, ?string $assessmentSystem = null): array {
+  $scope = final_assessment_scope_normalize($scope, $assessmentSystem);
   $schoolYearLabel = trim((string)($periodSet['label'] ?? ''));
   if($schoolYearLabel === ''){
     $schoolYearLabel = school_period_year_label((string)$periodSet['semester1_from'], (string)$periodSet['semester2_to']);
@@ -121,9 +124,9 @@ function final_assessment_period_meta(array $periodSet, string $scope): array {
   return [
     'school_period_set_id' => (int)$periodSet['id'],
     'scope' => 'semester1',
-    'scope_label' => '1. Semester',
+    'scope_label' => $assessmentSystem === 'yearly' ? 'Schulnachricht' : '1. Semester',
     'school_year_label' => $schoolYearLabel,
-    'assessment_label' => '1. Semester '.$schoolYearLabel,
+    'assessment_label' => ($assessmentSystem === 'yearly' ? 'Schulnachricht ' : '1. Semester ').$schoolYearLabel,
     'from' => (string)$periodSet['semester1_from'],
     'to' => (string)$periodSet['semester1_to'],
   ];
@@ -389,9 +392,11 @@ function final_assessment_snapshot_payload(array $summary, array $proposal, arra
 }
 
 function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, array $periodSet, string $scope): array {
-  $periodMeta = final_assessment_period_meta($periodSet, $scope);
   $subjectContext = report_eval_subject_context($pdo, $subjectId);
   $classContext = final_assessment_class_context($pdo, $classId);
+  $assessmentSystem = $classContext['value'] ?? null;
+  $scope = final_assessment_scope_normalize($scope, is_string($assessmentSystem) ? $assessmentSystem : null);
+  $periodMeta = final_assessment_period_meta($periodSet, $scope, is_string($assessmentSystem) ? $assessmentSystem : null);
   $existingCurrent = final_assessment_existing_map($pdo, $classId, $subjectId, (int)$periodMeta['school_period_set_id'], $scope);
   $summaries = report_build_student_summaries($pdo, $classId, $subjectId, (string)$periodMeta['from'], (string)$periodMeta['to']);
 
@@ -399,8 +404,8 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
   $semester2Map = [];
   $semester1Saved = [];
   $semester2Saved = [];
-  $semester1Meta = final_assessment_period_meta($periodSet, 'semester1');
-  $semester2Meta = final_assessment_period_meta($periodSet, 'semester2');
+  $semester1Meta = final_assessment_period_meta($periodSet, 'semester1', is_string($assessmentSystem) ? $assessmentSystem : null);
+  $semester2Meta = final_assessment_period_meta($periodSet, 'semester2', $assessmentSystem === 'yearly' ? null : (is_string($assessmentSystem) ? $assessmentSystem : null));
 
   if($scope === 'semester2' || $scope === 'year'){
     $semester1Saved = final_assessment_existing_map($pdo, $classId, $subjectId, (int)$periodMeta['school_period_set_id'], 'semester1');
@@ -419,7 +424,9 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
       $semester2Map[(int)$row['student_id']] = $row;
     }
     $semester1Saved = final_assessment_existing_map($pdo, $classId, $subjectId, (int)$periodMeta['school_period_set_id'], 'semester1');
-    $semester2Saved = final_assessment_existing_map($pdo, $classId, $subjectId, (int)$periodMeta['school_period_set_id'], 'semester2');
+    if($assessmentSystem !== 'yearly'){
+      $semester2Saved = final_assessment_existing_map($pdo, $classId, $subjectId, (int)$periodMeta['school_period_set_id'], 'semester2');
+    }
   }
 
   $rows = [];
@@ -442,10 +449,12 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
       );
       $semesterContext = [
         'semester1_saved' => $semester1Saved[$sid] ?? null,
-        'semester2_saved' => $semester2Saved[$sid] ?? null,
         'semester1_summary' => $semester1Map[$sid] ?? null,
         'semester2_summary' => $semester2Map[$sid] ?? null,
       ];
+      if($assessmentSystem !== 'yearly'){
+        $semesterContext['semester2_saved'] = $semester2Saved[$sid] ?? null;
+      }
     }
 
     $proposal = final_assessment_compute_proposal($summary, $subjectContext, $scope, $yearTrend);

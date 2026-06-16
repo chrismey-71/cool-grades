@@ -23,12 +23,20 @@ $subjects = $st->fetchAll();
 
 $class_id = (int)($_REQUEST['class_id'] ?? 0);
 $subject_id = (int)($_REQUEST['subject_id'] ?? 0);
+$selectedAssessmentSystem = null;
+foreach($classes as $classOption){
+  if((int)($classOption['id'] ?? 0) === $class_id){
+    $candidateSystem = (string)($classOption['assessment_system'] ?? '');
+    $selectedAssessmentSystem = class_assessment_system_is_valid($candidateSystem) ? $candidateSystem : null;
+    break;
+  }
+}
 $periodSetForScopeDefault = $school_period_set_id > 0 ? app_school_period_find($school_period_set_id, true) : null;
 $scope = array_key_exists('scope', $_REQUEST)
   ? (string)$_REQUEST['scope']
-  : final_assessment_default_scope($periodSetForScopeDefault ?: null);
+  : final_assessment_default_scope($periodSetForScopeDefault ?: null, null, $selectedAssessmentSystem);
 $selected_student_id = (int)($_REQUEST['student_id'] ?? 0);
-if(!isset(final_assessment_scope_options()[$scope])) $scope = final_assessment_default_scope($periodSetForScopeDefault ?: null);
+$scope = final_assessment_scope_normalize($scope, $selectedAssessmentSystem);
 
 $msg = '';
 $error = '';
@@ -389,11 +397,11 @@ render_header('Abschlussbeurteilung', $u);
         <div style="min-width:300px">
           <label class="muted">Beurteilungszeitraum</label>
           <select class="input" name="scope" required>
-            <?php foreach(final_assessment_scope_options() as $scopeValue => $scopeLabel): ?>
+            <?php foreach(final_assessment_scope_options($selectedAssessmentSystem) as $scopeValue => $scopeLabel): ?>
               <option value="<?php echo h($scopeValue); ?>" <?php echo $scope === $scopeValue ? 'selected' : ''; ?>><?php echo h($scopeLabel); ?></option>
             <?php endforeach; ?>
           </select>
-          <div class="muted" style="margin-top:6px;font-size:13px"><?php echo h(final_assessment_scope_help($scope)); ?></div>
+          <div class="muted" style="margin-top:6px;font-size:13px"><?php echo h(final_assessment_scope_help($scope, $selectedAssessmentSystem)); ?></div>
         </div>
         <div style="flex:0 0 auto">
           <label class="muted">&nbsp;</label>
@@ -505,8 +513,10 @@ render_header('Abschlussbeurteilung', $u);
       <?php if($selectedRow): ?>
         <?php
           $periodMeta = $rowsData['period_meta'];
+          $scope = (string)$periodMeta['scope'];
           $subjectContext = $rowsData['subject_context'];
           $classContext = $rowsData['class_context'];
+          $isYearlyModel = (($classContext['value'] ?? null) === 'yearly');
           $subjectDisplay = '';
           foreach($subjects as $subjectRow){
             if((int)$subjectRow['id'] === $subject_id){
@@ -551,7 +561,7 @@ render_header('Abschlussbeurteilung', $u);
             $sem1ForCurrent = $semesterContext['semester1_saved'] ?? null;
           }
           if($scope === 'year'){
-            $sem2ForCurrent = $semesterContext['semester2_saved'] ?? null;
+            $sem2ForCurrent = $isYearlyModel ? null : ($semesterContext['semester2_saved'] ?? null);
           }
         ?>
 
@@ -619,7 +629,7 @@ render_header('Abschlussbeurteilung', $u);
         <div class="grid final-assessment-box-grid" style="margin-top:14px">
           <div class="col-12">
             <div class="report-focus-block final-assessment-section final-section-semester">
-              <strong>1. <?php echo $scope === 'year' ? 'Semesterüberblick' : 'Überblick 1. Semester'; ?></strong>
+              <strong>1. <?php echo $isYearlyModel ? 'Überblick Schulnachricht' : ($scope === 'year' ? 'Semesterüberblick' : 'Überblick 1. Semester'); ?></strong>
               <?php if($sem1ForCurrent): ?>
                 <div class="report-kv" style="margin-top:10px">
                   <?php $sem1GradeDisplay = $sem1ForCurrent['final_grade'] !== null ? (int)$sem1ForCurrent['final_grade'] : null; ?>
@@ -632,10 +642,10 @@ render_header('Abschlussbeurteilung', $u);
                   <div class="muted" style="margin-top:10px"><strong>Kommentar:</strong> <?php echo h((string)$sem1ForCurrent['teacher_comment']); ?></div>
                 <?php endif; ?>
               <?php else: ?>
-                <div class="muted" style="margin-top:10px">Keine gespeicherte 1.-Semesterbeurteilung vorhanden.</div>
+                <div class="muted" style="margin-top:10px"><?php echo h($isYearlyModel ? 'Keine gespeicherte Schulnachricht vorhanden.' : 'Keine gespeicherte 1.-Semesterbeurteilung vorhanden.'); ?></div>
               <?php endif; ?>
 
-              <?php if($scope === 'year'): ?>
+              <?php if($scope === 'year' && !$isYearlyModel): ?>
                 <div style="height:8px"></div>
                 <?php if($sem2ForCurrent): ?>
                   <?php $sem2GradeDisplay = $sem2ForCurrent['final_grade'] !== null ? (int)$sem2ForCurrent['final_grade'] : null; ?>

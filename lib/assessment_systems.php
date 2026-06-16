@@ -36,8 +36,8 @@ function class_assessment_system_tone(?string $value): string {
   return 'critical';
 }
 
-function final_assessment_scope_meta(): array {
-  return [
+function final_assessment_scope_meta(?string $assessmentSystem = null): array {
+  $all = [
     'semester1' => [
       'label' => '1. Semesterbeurteilung festlegen',
       'help' => 'Für die Beurteilung des Wintersemesters. Die Note wird als Abschlussbeurteilung für das 1. Semester gespeichert.',
@@ -51,4 +51,26 @@ function final_assessment_scope_meta(): array {
       'help' => 'Für die abschließende Beurteilung am Jahresende. Je nach Beurteilungssystem der Klasse werden Semesterergebnisse und Jahresdaten unterschiedlich dargestellt.',
     ],
   ];
+
+  if($assessmentSystem === 'yearly'){
+    return [
+      'semester1' => [
+        'label' => 'Schulnachricht festlegen',
+        'help' => 'Für die Schulnachricht am Ende des 1. Semesters. Es wird keine eigenständige 2.-Semesterbeurteilung im Jahresmodell geführt.',
+      ],
+      'year' => $all['year'],
+    ];
+  }
+
+  return $all;
+}
+
+function final_assessment_scope_is_allowed(string $scope, ?string $assessmentSystem = null): bool {
+  return isset(final_assessment_scope_meta($assessmentSystem)[$scope]);
+}
+
+function final_assessment_scope_normalize(string $scope, ?string $assessmentSystem = null): string {
+  if(final_assessment_scope_is_allowed($scope, $assessmentSystem)) return $scope;
+  if($assessmentSystem === 'yearly' && $scope === 'semester2') return 'year';
+  return 'semester1';
 }

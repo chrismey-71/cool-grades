@@ -16,6 +16,23 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.65] - 2026-06-16
+
+### Geändert
+
+- Beurteilungslogik für das Jahresmodell fachlich korrigiert
+- Im Jahresmodell werden nur noch „Schulnachricht festlegen“ und „Jahresbeurteilung festlegen“ angeboten
+- Die Option „2. Semesterbeurteilung festlegen“ wird im Jahresmodell nicht mehr angezeigt
+- SOST- und NOST-Semesterlogik bleiben unverändert
+- PDF-Ausgabe der Abschlussbeurteilung verwendet im Jahresmodell „Schulnachricht“ statt „1. Semester“
+- Versionsnummer auf 1.65 erhöht
+
+### Migration
+
+- Bestehende „2. Semesterbeurteilungen“ aus Jahresmodell-Klassen werden einmalig nach „Jahresbeurteilung“ kopiert, wenn dort noch kein Jahresdatensatz existiert
+- Bereits vorhandene Jahresbeurteilungen werden nicht überschrieben
+- Konfliktfälle mit vorhandener 2.-Semester- und Jahresbeurteilung werden als Event `migration_yearly_semester2_to_year_conflict` protokolliert
+
 ## [1.64] - 2026-06-10
 
 ### Hinzugefügt
@@ -73,7 +90,8 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - lokale Konfigurationsdateien, Logs, Runtime-Daten und Datenbankdateien sind vom Git-Tracking ausgeschlossen
 - `config.example.php` dient als Vorlage ohne echte Zugangsdaten
 
-[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.64...HEAD
+[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.65...HEAD
+[1.65]: https://github.com/chrismey-71/cool-grades/compare/v1.64...v1.65
 [1.64]: https://github.com/chrismey-71/cool-grades/compare/v1.63...v1.64
 [1.63]: https://github.com/chrismey-71/cool-grades/compare/v1.62...v1.63
 [1.62]: https://github.com/chrismey-71/cool-grades/releases/tag/v1.62
