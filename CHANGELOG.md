@@ -16,6 +16,19 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.66] - 2026-06-17
+
+### Hinzugefügt
+
+- In der Mitarbeitserfassung werden Schüler:innen, die in der ausgewählten Stunde bereits bewertet wurden, blasser dargestellt
+- Direkt am Namen erscheint ein kompakter Zähler der vorhandenen Einträge, z. B. `(1)` oder `(2)`
+- Ein kurzer Hinweis erklärt die blasse Darstellung nur dann, wenn bereits Bewertungen in der Stunde vorhanden sind
+
+### Geändert
+
+- Die Ermittlung vorhandener Stundeneinträge erfolgt gesammelt über eine gruppierte Datenbankabfrage statt je Schüler:in einzeln
+- Versionsnummer auf 1.66 erhöht
+
 ## [1.65] - 2026-06-16
 
 ### Geändert
@@ -90,7 +103,8 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - lokale Konfigurationsdateien, Logs, Runtime-Daten und Datenbankdateien sind vom Git-Tracking ausgeschlossen
 - `config.example.php` dient als Vorlage ohne echte Zugangsdaten
 
-[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.65...HEAD
+[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.66...HEAD
+[1.66]: https://github.com/chrismey-71/cool-grades/compare/v1.65...v1.66
 [1.65]: https://github.com/chrismey-71/cool-grades/compare/v1.64...v1.65
 [1.64]: https://github.com/chrismey-71/cool-grades/compare/v1.63...v1.64
 [1.63]: https://github.com/chrismey-71/cool-grades/compare/v1.62...v1.63

@@ -480,6 +480,45 @@ $checked_criteria = ($_SERVER['REQUEST_METHOD']==='POST') ? array_map('intval',(
 $checked_perf     = ($_SERVER['REQUEST_METHOD']==='POST') ? array_map('intval',(array)$sel_perf_ids) : [];
 $checked_groups   = ($_SERVER['REQUEST_METHOD']==='POST') ? array_map('intval',(array)$sel_group_ids) : [];
 $participation_form_dirty_initial = ($_SERVER['REQUEST_METHOD']==='POST');
+$lesson_entry_counts_by_lesson = [];
+$lesson_ids_for_entry_counts = [];
+foreach($recent_lessons as $recent_lesson){
+  $recent_lesson_id=(int)($recent_lesson['id'] ?? 0);
+  if($recent_lesson_id>0) $lesson_ids_for_entry_counts[$recent_lesson_id]=$recent_lesson_id;
+}
+if($lesson_id>0) $lesson_ids_for_entry_counts[$lesson_id]=$lesson_id;
+
+if($lesson_ids_for_entry_counts){
+  try{
+    $placeholders=implode(',', array_fill(0,count($lesson_ids_for_entry_counts),'?'));
+    $params=array_values($lesson_ids_for_entry_counts);
+    $params[]=$class_id;
+    $params[]=$subject_id;
+    $params[]=(int)$u['id'];
+    $st=$pdo->prepare("SELECT lesson_id, student_id, COUNT(*) AS entry_count
+                       FROM participation_events
+                       WHERE lesson_id IN ($placeholders) AND class_id=? AND subject_id=? AND teacher_id=?
+                       GROUP BY lesson_id, student_id");
+    $st->execute($params);
+    foreach($st->fetchAll() as $row){
+      $row_lesson_id=(int)$row['lesson_id'];
+      $row_student_id=(int)$row['student_id'];
+      if(!isset($lesson_entry_counts_by_lesson[$row_lesson_id])) $lesson_entry_counts_by_lesson[$row_lesson_id]=[];
+      $lesson_entry_counts_by_lesson[$row_lesson_id][$row_student_id]=(int)$row['entry_count'];
+    }
+  }catch(Throwable $e){
+    app_log('warn','participation_new lesson entry count failed',[
+      'teacher_id'=>(int)$u['id'],
+      'class_id'=>$class_id,
+      'subject_id'=>$subject_id,
+      'lesson_id'=>$lesson_id,
+      'msg'=>$e->getMessage(),
+    ]);
+    $lesson_entry_counts_by_lesson = [];
+  }
+}
+$lesson_entry_counts_by_student = $lesson_id>0 ? ($lesson_entry_counts_by_lesson[$lesson_id] ?? []) : [];
+$has_lesson_entry_counts = count($lesson_entry_counts_by_student)>0;
 $compact_forms = compact_entry_forms_enabled($u);
 $hours_section_open = $lesson_id>0 || ((string)($_POST['create_lesson'] ?? '') === '1') || (isset($_POST['lesson_id']) && (int)$_POST['lesson_id']>0);
 $preset_section_open = $selected_preset_id>0 || $preset_name_input!=='';
@@ -875,6 +914,9 @@ render_header('Mitarbeit',$u);
     <fieldset class="multi-field contrast-panel section-students" style="<?php echo $compact_forms?'margin-top:0':''; ?>">
       <?php if(!$compact_forms): ?><legend>Auswahl</legend><?php endif; ?>
       <div class="muted">Tipp: meistens 3–10 Schüler:innen pro Woche auswählen.</div>
+      <div id="studentAlreadyRatedHint" class="student-already-rated-hint" style="<?php echo $has_lesson_entry_counts?'':'display:none'; ?>">
+        Blass dargestellte Schüler:innen wurden in dieser Stunde bereits bewertet. Die Zahl in Klammern zeigt die Anzahl der vorhandenen Einträge.
+      </div>
 
       <?php if($quick): ?>
         <div style="height:10px"></div>
@@ -911,10 +953,17 @@ render_header('Mitarbeit',$u);
       <div style="height:10px"></div>
       <div class="multi-grid" id="studentGrid">
         <?php foreach($students as $s): ?>
-          <?php $sid=(int)$s['id']; ?>
-          <label class="multi-item studentItem" data-name="<?php echo h(strtolower($s['last_name'].' '.$s['first_name'])); ?>">
+          <?php
+            $sid=(int)$s['id'];
+            $lesson_entry_count=(int)($lesson_entry_counts_by_student[$sid] ?? 0);
+            $student_already_rated=$lesson_entry_count>0;
+          ?>
+          <label class="multi-item studentItem <?php echo $student_already_rated?'student-already-rated':''; ?>" data-student-id="<?php echo $sid; ?>" data-name="<?php echo h(strtolower($s['last_name'].' '.$s['first_name'])); ?>">
             <input class="studentCb" id="stu_<?php echo $sid; ?>" type="checkbox" name="student_ids[]" value="<?php echo $sid; ?>" <?php echo in_array($sid,$checked_students,true)?'checked':''; ?>>
-            <span><?php echo h($s['last_name'].', '.$s['first_name']); ?></span>
+            <span class="student-name-label">
+              <span class="student-name-text"><?php echo h($s['last_name'].', '.$s['first_name']); ?></span>
+              <span class="student-entry-count" style="<?php echo $student_already_rated?'':'display:none'; ?>">(<?php echo $student_already_rated ? $lesson_entry_count : 0; ?>)</span>
+            </span>
           </label>
         <?php endforeach; ?>
       </div>
@@ -935,6 +984,37 @@ render_header('Mitarbeit',$u);
   </form>
 
   <script>
+  const lessonEntryCountsByLesson = <?php echo json_encode($lesson_entry_counts_by_lesson, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
+  const fixedLessonId = <?php echo (int)$lesson_id; ?>;
+
+  function updateAlreadyRatedStudents(){
+    const sel=document.getElementById('lessonSelect');
+    const activeLessonId = fixedLessonId || (sel ? parseInt(sel.value || '0', 10) : 0);
+    const counts = activeLessonId ? (lessonEntryCountsByLesson[String(activeLessonId)] || {}) : {};
+    let hasCounts=false;
+    document.querySelectorAll('.studentItem').forEach(el=>{
+      const sid=el.getAttribute('data-student-id') || '';
+      const count=parseInt(counts[sid] || 0, 10);
+      const badge=el.querySelector('.student-entry-count');
+      if(count>0){
+        el.classList.add('student-already-rated');
+        if(badge){
+          badge.textContent='('+count+')';
+          badge.style.display='';
+        }
+        hasCounts=true;
+      }else{
+        el.classList.remove('student-already-rated');
+        if(badge){
+          badge.textContent='(0)';
+          badge.style.display='none';
+        }
+      }
+    });
+    const hint=document.getElementById('studentAlreadyRatedHint');
+    if(hint) hint.style.display = hasCounts ? '' : 'none';
+  }
+
   function filterStudents(){
     const q=(document.getElementById('studentSearch').value||'').toLowerCase().trim();
     document.querySelectorAll('.studentItem').forEach(el=>{
@@ -1117,8 +1197,10 @@ render_header('Mitarbeit',$u);
           // set date to lesson date (convenience)
           eventDate.value = d;
         }
+        updateAlreadyRatedStudents();
       });
     }
+    updateAlreadyRatedStudents();
   })();
   </script>
 </div></div></div>
