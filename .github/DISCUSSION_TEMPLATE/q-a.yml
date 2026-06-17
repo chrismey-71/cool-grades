@@ -1,0 +1,30 @@
+title: "[Frage] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Stelle hier Fragen zur Nutzung, Einrichtung oder Interpretation von COOL-Grades.
+        Bitte keine sensiblen personenbezogenen Daten veröffentlichen.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: "Frage"
+      description: "Was möchtest du wissen?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Bereich"
+      options:
+        - "Erste Schritte"
+        - "Mitarbeit erfassen"
+        - "Auswertung"
+        - "Abschlussbeurteilung"
+        - "Administration"
+        - "Installation / Betrieb"
+        - "Sonstiges"
+    validations:
+      required: true

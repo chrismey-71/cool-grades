@@ -1,0 +1,35 @@
+name: "Dokumentationshinweis"
+description: "Melde unklare, fehlende oder falsche Dokumentation."
+title: "[Doku]: "
+labels: ["documentation"]
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: "Wo ist die Dokumentation betroffen?"
+      description: "Bitte Datei, Kapitel, Link oder App-Bereich nennen."
+      placeholder: "z. B. Lehrer:innen-Handbuch, Kapitel Auswertung"
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: "Was ist unklar, falsch oder fehlt?"
+      description: "Beschreibe den Dokumentationsbedarf."
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: "Verbesserungsvorschlag"
+      description: "Optional: Wie könnte der Text verständlicher werden?"
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: "Datenschutz"
+      options:
+        - label: "Ich habe keine echten Schüler:innen-, Noten-, Passwort- oder Zugangsdaten eingefügt."
+          required: true

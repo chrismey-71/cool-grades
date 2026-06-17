@@ -1,0 +1,91 @@
+name: "Fehler melden"
+description: "Melde ein reproduzierbares Problem in COOL-Grades."
+title: "[Fehler]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für die Fehlermeldung. Bitte keine echten Schüler:innen-, Noten- oder Zugangsdaten eintragen.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Was ist passiert?"
+      description: "Beschreibe kurz und konkret, was nicht funktioniert."
+      placeholder: "Beim Speichern einer Mitarbeitseintragung erscheint ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Schritte zum Nachstellen"
+      description: "Welche Schritte führen zum Fehler?"
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Erwartetes Verhalten"
+      description: "Was hättest du erwartet?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Tatsächliches Verhalten"
+      description: "Was passiert stattdessen?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Betroffener Bereich"
+      options:
+        - "Mitarbeit erfassen"
+        - "Besondere mündliche Leistung"
+        - "Besondere schriftliche Leistung"
+        - "Auswertung / PDF"
+        - "Abschlussbeurteilung"
+        - "Administration"
+        - "Installation / Betrieb"
+        - "Dokumentation"
+        - "Sonstiges"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: "Version"
+      description: "Falls bekannt, bitte die COOL-Grades-Version angeben."
+      placeholder: "z. B. 1.67"
+
+  - type: input
+    id: environment
+    attributes:
+      label: "Umgebung"
+      description: "Browser, Betriebssystem oder Serverumgebung, falls relevant."
+      placeholder: "z. B. Chrome auf macOS, Firefox auf Windows, Apache/PHP ..."
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots oder Protokollauszug"
+      description: "Optional. Bitte sensible Daten vorher anonymisieren."
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: "Datenschutz"
+      options:
+        - label: "Ich habe keine echten Schüler:innen-, Noten-, Passwort- oder Zugangsdaten eingefügt."
+          required: true

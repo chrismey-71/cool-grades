@@ -1,0 +1,33 @@
+title: "[Idee] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nutze diese Kategorie für frühe Ideen oder pädagogische Überlegungen.
+        Wenn daraus eine konkrete umsetzbare Aufgabe entsteht, kann später ein Issue angelegt werden.
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: "Idee"
+      description: "Welche Idee möchtest du vorschlagen?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: "Nutzen im Schulalltag"
+      description: "Wobei würde diese Idee helfen?"
+
+  - type: dropdown
+    id: maturity
+    attributes:
+      label: "Reifegrad"
+      options:
+        - "erste Idee"
+        - "konkreter Wunsch"
+        - "fachlich noch zu klären"
+        - "technisch noch zu prüfen"
+    validations:
+      required: true

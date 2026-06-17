@@ -16,6 +16,18 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.67] - 2026-06-17
+
+### Hinzugefügt
+
+- GitHub-Issue-Templates für Fehlermeldungen, Funktionswünsche und Dokumentationshinweise
+- GitHub-Discussion-Templates für allgemeine Nachrichten, Ideen und Fragen
+- Issue-Konfiguration mit Hinweis auf Discussions für allgemeine Rückmeldungen und auf die Security Policy für Sicherheitsmeldungen
+
+### Geändert
+
+- Versionsnummer auf 1.67 erhöht
+
 ## [1.66] - 2026-06-17
 
 ### Hinzugefügt
@@ -103,7 +115,8 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - lokale Konfigurationsdateien, Logs, Runtime-Daten und Datenbankdateien sind vom Git-Tracking ausgeschlossen
 - `config.example.php` dient als Vorlage ohne echte Zugangsdaten
 
-[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.66...HEAD
+[Unreleased]: https://github.com/chrismey-71/cool-grades/compare/v1.67...HEAD
+[1.67]: https://github.com/chrismey-71/cool-grades/compare/v1.66...v1.67
 [1.66]: https://github.com/chrismey-71/cool-grades/compare/v1.65...v1.66
 [1.65]: https://github.com/chrismey-71/cool-grades/compare/v1.64...v1.65
 [1.64]: https://github.com/chrismey-71/cool-grades/compare/v1.63...v1.64

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Frage stellen oder Nachricht hinterlassen"
+    url: "https://github.com/chrismey-71/cool-grades/discussions"
+    about: "Für allgemeine Fragen, Austausch, kurze Rückmeldungen oder Chat-artige Nachrichten bitte GitHub Discussions verwenden."
+  - name: "Sicherheitsproblem vertraulich melden"
+    url: "https://github.com/chrismey-71/cool-grades/security/policy"
+    about: "Bitte Sicherheitslücken nicht öffentlich als Issue melden."

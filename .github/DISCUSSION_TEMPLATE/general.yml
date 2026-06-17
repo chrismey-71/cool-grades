@@ -1,0 +1,28 @@
+title: "[Allgemein] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hier ist Platz für allgemeine Nachrichten, Erfahrungen und Austausch zu COOL-Grades.
+        Bitte keine echten Schüler:innen-, Noten-, Passwort- oder Zugangsdaten eintragen.
+
+  - type: textarea
+    id: message
+    attributes:
+      label: "Nachricht"
+      description: "Was möchtest du mitteilen oder diskutieren?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: context
+    attributes:
+      label: "Kontext"
+      options:
+        - "Nutzung im Unterricht"
+        - "Auswertung / Beurteilung"
+        - "Administration"
+        - "Dokumentation"
+        - "Sonstiges"
+    validations:
+      required: true
