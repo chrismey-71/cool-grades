@@ -68,6 +68,7 @@ try {
         'participation_event_lbvo',
         'final_assessment_history',
         'final_assessments',
+        'assessment_weight_settings',
         'school_period_sets',
         'teacher_student_group_members',
         'teacher_student_groups',

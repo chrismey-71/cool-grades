@@ -1190,6 +1190,30 @@ Wirkung:
 - Die Gruppe verschwindet als Auswahlhilfe.
 - Bereits gespeicherte Bewertungen bleiben vollständig erhalten.
 
+### 8.5 Gewichtung für Notenvorschläge
+
+Unter **Verwaltung → Gewichtung für Notenvorschläge** wählen Sie zuerst Schuljahr sowie Klasse und Fach. Die Einstellung gehört damit zu Ihrer konkreten Unterrichtszuordnung; sie verändert weder Gewichtungen anderer Lehrkräfte noch historische Abschlussnoten.
+
+Für alle Beurteilungsmodelle können Sie drei Bereiche gewichten:
+
+- `Mitarbeit` arbeitet mit dem bereits qualitativ verdichteten Vorschlag aus Eindruck/Relevanz.
+- `Bes. mündl. Leistungsfeststellung` arbeitet ebenfalls mit Eindruck/Relevanz und nicht mit einem Notendurchschnitt.
+- `Bes. schriftl. Leistungsfeststellung` arbeitet mit den erfassten Noten. Solange keine eigene Relevanz pro schriftlichem Eintrag vorhanden ist, werden mehrere schriftliche Noten innerhalb dieses Bereichs gleich gewichtet.
+
+Die Voreinstellung `60 % / 20 % / 20 %` ist eine pädagogische App-Voreinstellung und **keine gesetzliche Vorgabe**. Die drei Werte müssen beim Speichern zusammen 100 % ergeben.
+
+Fehlt ein Bereich, wird er nicht als 0 oder als schlechte Note behandelt. Die App nimmt ihn aus der Berechnung und verteilt die Gewichte der vorhandenen Bereiche proportional auf 100 %. Sind beispielsweise nur Mitarbeit und besondere mündliche Leistungen vorhanden, werden aus `60 % / 20 %` wirksam `75 % / 25 %`.
+
+Liegen ausschließlich besondere schriftliche Leistungsfeststellungen vor, zeigt die App nur einen deutlich gekennzeichneten rechnerischen Zwischenwert. Ein normal wirkender Notenvorschlag wird daraus nicht erzeugt.
+
+Nur im **Jahresmodell** erscheinen zusätzlich die Gewichte `Schulnachricht / 1. Semester` und `restliches Schuljahr / aktueller Leistungsstand`. Die Voreinstellung beträgt `40 % / 60 %`. Bei SOST und NOST gibt es diese Verrechnung nicht; beide Modelle bleiben semesterbezogen.
+
+Wirkung:
+
+- Die Einstellung beeinflusst nur künftig live berechnete Notenvorschläge und den beim Speichern erzeugten Vorschlags-Snapshot.
+- Eine bereits manuell festgelegte oder final gespeicherte Note wird nicht automatisch verändert.
+- Die Lehrkraft kann weiterhin bewusst vom Vorschlag abweichen.
+
 ## 9. Fächer und Schularbeitsstatus
 
 ![Fachstatus in der Auswertung](screenshots/lehrerhandbuch/17-fachstatus-auswertung.png)
@@ -1600,20 +1624,25 @@ Wirkung:
 
 ### Was bedeutet der Notenvorschlag?
 
-Der **Notenvorschlag** ist eine transparente Entscheidungshilfe. Er berücksichtigt insbesondere:
+Der **Notenvorschlag** ist eine transparente, gewichtete Entscheidungshilfe. Zunächst erzeugt die App je vorhandenem Leistungsbereich einen Bereichswert:
 
-- Mitarbeitstendenz
-- Anzahl dokumentierter Tage
-- Verteilung positiv / neutral / negativ
-- besondere mündliche Leistungen
-- in Nicht-Schularbeitsfächern auch schriftliche Leistungsfeststellungen
-- Schularbeitsstatus in der Kopfzeile
-- bei Jahresbeurteilung zusätzlich die sichtbare Entwicklung über das Schuljahr
+- Mitarbeit: qualitative Verdichtung von Eindruck/Relevanz; einzelne Beobachtungen werden nicht als Einzelnoten gemittelt.
+- Besondere mündliche Leistungsfeststellungen: qualitative Verdichtung der erfassten Eindrucks-/Relevanzwerte.
+- Besondere schriftliche Leistungsfeststellungen: Mittel der erfassten Noten; derzeit werden die Noten innerhalb des Bereichs gleich gewichtet.
+
+Für die gemeinsame Berechnung werden qualitative Eindrücke auf eine interne Vorschlagsskala übertragen. Stark positive, positive, neutrale bzw. `unauffällig (~)`, negative und stark negative Eindrücke bilden abgestufte Bereichswerte. `Unauffällig (~)` wirkt dabei neutral und wird nicht als negativ behandelt. Diese internen Bereichswerte sind keine gespeicherten Einzelnoten.
+
+Danach werden die Bereichswerte mit den unter **Verwaltung → Gewichtung für Notenvorschläge** gespeicherten Prozentwerten verbunden. Direkt beim Vorschlag sehen Sie die eingestellte Gewichtung, die wegen fehlender Bereiche tatsächlich verwendete Gewichtung, die Bereichswerte und mögliche Warnhinweise.
+
+Im Jahresmodell wird ein Jahresvorschlag zusätzlich aus dem Stand der Schulnachricht und dem restlichen Schuljahr gebildet. Eine final gespeicherte Schulnachricht wird als dokumentierter erster Teilwert verwendet; andernfalls berechnet die App den Stand des ersten Semesters aus dessen Leistungsdaten. SOST und NOST bleiben semesterbezogen und erhalten keine automatisch aus beiden Semestern gebildete Jahresnote.
 
 Wichtig:
 
 - Der Vorschlag ist **nicht verbindlich**.
 - Bei dünner Datenlage wird bewusst kein harter Vorschlag erzwungen.
+- Fehlende Bereiche werden nicht mit 0 bewertet, sondern herausgerechnet.
+- Ausschließlich schriftliche Leistungen ergeben nur einen nicht ausreichend abgesicherten Zwischenwert.
+- Der Schularbeitsstatus verändert die Gewichtung oder Zählung nicht; er bleibt ein wichtiger Interpretationshinweis.
 - Dann erscheinen Hinweise wie `Datenlage prüfen` oder `pädagogische Entscheidung erforderlich`.
 
 ### Was bedeutet finale Note?

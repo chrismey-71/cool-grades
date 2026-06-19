@@ -183,6 +183,7 @@ render_header('Notenübersicht', $u);
                     $assessment = $row['assessment'];
                     $grade = ($assessment && $assessment['final_grade'] !== null) ? (int)$assessment['final_grade'] : null;
                     $proposal = ($assessment && trim((string)($assessment['suggestion_label'] ?? '')) !== '') ? (string)$assessment['suggestion_label'] : '–';
+                    $proposalExplanation = $assessment ? trim((string)($assessment['suggestion_explanation'] ?? '')) : '';
                     $updatedAt = $assessment ? trim((string)($assessment['updated_at'] ?? '')) : '';
                     $editQuery = http_build_query([
                       'school_period_set_id' => $schoolPeriodSetId,
@@ -197,7 +198,7 @@ render_header('Notenübersicht', $u);
                     <td><strong><?php echo h((string)$row['subject_code']); ?></strong><div class="muted small"><?php echo h((string)$row['subject_name']); ?></div></td>
                     <td><?php echo h((string)$row['scope_label']); ?><div class="muted small"><?php echo h((string)$row['assessment_system_label']); ?></div></td>
                     <td><strong><?php echo h((string)$row['student_name']); ?></strong></td>
-                    <td><?php echo h($proposal); ?></td>
+                    <td title="<?php echo h($proposalExplanation); ?>"><?php echo h($proposal); ?><?php if($proposalExplanation !== ''): ?><div class="muted small">Berechnungsgrundlage im gespeicherten Snapshot</div><?php endif; ?></td>
                     <td>
                       <?php if($grade !== null): ?>
                         <span class="final-overview-grade <?php echo h($gradeTone($grade)); ?>"><?php echo $grade; ?></span>

@@ -3,6 +3,7 @@ require_once __DIR__.'/report_evaluation.php';
 require_once __DIR__.'/settings.php';
 require_once __DIR__.'/assessment_summaries.php';
 require_once __DIR__.'/assessment_systems.php';
+require_once __DIR__.'/assessment_weights.php';
 
 function final_assessment_scope_options(?string $assessmentSystem = null): array {
   $options = [];
@@ -509,79 +510,8 @@ function final_assessment_year_trend(?array $semester1Summary, ?array $semester2
 }
 
 function final_assessment_compute_proposal(array $summary, array $subjectContext, string $scope = 'semester1', array $yearTrend = []): array {
-  $base = $summary['note_proposal'] ?? ['value' => null, 'explanation' => '', 'label' => ''];
-  $dataBasis = $summary['data_basis'] ?? ['can_estimate' => false, 'label' => 'Keine Daten vorhanden', 'explanation' => ''];
-
-  $signals = [];
-  $adjustment = 0;
-  $value = $base['value'] ?? null;
-
-  if(!($dataBasis['can_estimate'] ?? false) || $value === null){
-    $signals[] = $dataBasis['label'] ?? 'Datenlage prüfen';
-    if(!empty($subjectContext['short_note'])) $signals[] = $subjectContext['short_note'];
-    return [
-      'value' => null,
-      'label' => (($dataBasis['level'] ?? '') === 'none') ? 'Keine Daten vorhanden' : 'Datenlage prüfen',
-      'short' => (($dataBasis['level'] ?? '') === 'none') ? 'keine Daten' : 'prüfen',
-      'tone' => 'neutral',
-      'explanation' => trim(($dataBasis['explanation'] ?? '').' '.implode(' · ', array_unique($signals))),
-      'base_value' => null,
-      'adjustment' => 0,
-      'signals' => array_values(array_unique($signals)),
-    ];
-  }
-
-  $signals[] = 'Mitarbeitstendenz: '.($summary['quality']['label'] ?? 'noch offen');
-  $signals[] = $base['explanation'] ?? '';
-
-  if(($summary['oral_positive_count'] ?? 0) > 0 && ($summary['oral_negative_count'] ?? 0) === 0){
-    $signals[] = 'besondere mündliche Leistungen stützen das Gesamtbild';
-  } elseif(($summary['oral_negative_count'] ?? 0) > 0){
-    $signals[] = 'besondere mündliche Leistungen pädagogisch mitprüfen';
-  }
-
-  if(($subjectContext['status'] ?? 'unset') === 'no'){
-    if(($summary['written_count'] ?? 0) > 0 && ($summary['written_avg'] ?? null) !== null){
-      $writtenAvg = (float)$summary['written_avg'];
-      if($writtenAvg <= 1.8 && $value > 1){
-        $adjustment = -1;
-        $signals[] = 'schriftliche Leistungen stützen einen etwas besseren Vorschlag';
-      } elseif($writtenAvg >= 4.2 && $value < 5){
-        $adjustment = 1;
-        $signals[] = 'schriftliche Leistungen sprechen für einen vorsichtigeren Vorschlag';
-      } elseif($writtenAvg <= 2.6){
-        $signals[] = 'schriftliche Leistungen stützen den positiven Eindruck';
-      } elseif($writtenAvg >= 3.8){
-        $signals[] = 'schriftliche Leistungen relativieren den Vorschlag';
-      }
-    } else {
-      $signals[] = 'fehlende schriftliche Sonderleistungen werden nicht negativ gewertet';
-    }
-  } else {
-    if(($subjectContext['status'] ?? 'unset') === 'yes'){
-      $signals[] = 'Schularbeitsleistungen gesondert berücksichtigen';
-    } else {
-      $signals[] = 'Fachstatus für die Interpretation prüfen';
-    }
-  }
-
-  if($scope === 'year' && $yearTrend){
-    $signals[] = $yearTrend['label'] ?? 'Jahresentwicklung prüfen';
-  }
-
-  $value = max(1, min(5, (int)$value + $adjustment));
-  $tone = $value <= 2 ? 'positive' : ($value >= 4 ? 'critical' : 'neutral');
-
-  return [
-    'value' => $value,
-    'label' => 'Notenvorschlag '.(string)$value,
-    'short' => (string)$value,
-    'tone' => $tone,
-    'explanation' => implode(' · ', array_values(array_filter(array_unique($signals)))),
-    'base_value' => $base['value'] ?? null,
-    'adjustment' => $adjustment,
-    'signals' => array_values(array_filter(array_unique($signals))),
-  ];
+  $settings = assessment_weight_settings_resolve(null, null);
+  return assessment_weight_compute_area_proposal($summary, $settings);
 }
 
 function final_assessment_snapshot_payload(array $summary, array $proposal, array $subjectContext, array $periodMeta, ?array $yearTrend = null, array $semesterContext = []): array {
@@ -620,12 +550,20 @@ function final_assessment_snapshot_payload(array $summary, array $proposal, arra
   ];
 }
 
-function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, array $periodSet, string $scope): array {
+function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, array $periodSet, string $scope, int $teacherId = 0): array {
   $subjectContext = report_eval_subject_context($pdo, $subjectId);
   $classContext = final_assessment_class_context($pdo, $classId);
   $assessmentSystem = $classContext['value'] ?? null;
   $scope = final_assessment_scope_normalize($scope, is_string($assessmentSystem) ? $assessmentSystem : null);
   $periodMeta = final_assessment_period_meta($periodSet, $scope, is_string($assessmentSystem) ? $assessmentSystem : null);
+  $weightSettings = assessment_weight_settings_load(
+    $pdo,
+    $teacherId,
+    $classId,
+    $subjectId,
+    (int)$periodMeta['school_period_set_id'],
+    is_string($assessmentSystem) ? $assessmentSystem : null
+  );
   $existingCurrent = final_assessment_existing_map($pdo, $classId, $subjectId, (int)$periodMeta['school_period_set_id'], $scope);
   $summaries = report_build_student_summaries($pdo, $classId, $subjectId, (string)$periodMeta['from'], (string)$periodMeta['to']);
 
@@ -686,7 +624,20 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
       }
     }
 
-    $proposal = final_assessment_compute_proposal($summary, $subjectContext, $scope, $yearTrend);
+    if($scope === 'year' && $assessmentSystem === 'yearly'){
+      $firstSemesterProposal = assessment_weight_compute_area_proposal($semester1Map[$sid] ?? [], $weightSettings);
+      $currentYearProposal = assessment_weight_compute_area_proposal($semester2Map[$sid] ?? [], $weightSettings);
+      $proposal = assessment_weight_compute_yearly_proposal(
+        $firstSemesterProposal,
+        $currentYearProposal,
+        $weightSettings,
+        $semester1Saved[$sid] ?? null
+      );
+    } elseif($scope === 'year' && in_array($assessmentSystem, ['sost','nost'], true)){
+      $proposal = assessment_weight_semester_model_year_notice($assessmentSystem);
+    } else {
+      $proposal = assessment_weight_compute_area_proposal($summary, $weightSettings);
+    }
     $existing = $existingCurrent[$sid] ?? null;
 
     $rows[] = [
@@ -700,6 +651,7 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
       'class_context' => $classContext,
       'year_trend' => $yearTrend,
       'semester_context' => $semesterContext,
+      'weight_settings' => $weightSettings,
     ];
   }
 
@@ -707,6 +659,7 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
     'period_meta' => $periodMeta,
     'subject_context' => $subjectContext,
     'class_context' => $classContext,
+    'weight_settings' => $weightSettings,
     'rows' => $rows,
   ];
 }

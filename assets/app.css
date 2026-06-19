@@ -1003,6 +1003,149 @@ html[data-entry-contrast="high"] .nav a.active{
 .final-overview-status.final{color:#155d3f;background:#e5f6ec;border-color:#87c9a5}
 .final-overview-status.draft{color:#7a4d0a;background:#fff1c9;border-color:#e5bd63}
 .final-overview-status.open{color:#5a6472;background:#eef1f5;border-color:#c9d0d9}
+
+/* Configurable, teacher-owned weighting for grade suggestions */
+.assessment-weight-panel{
+  border:2px solid #9abfa6;
+  border-left:7px solid #2f6f3a;
+  border-radius:18px;
+  padding:16px;
+  background:linear-gradient(135deg,#f3faf5,#fff);
+  box-shadow:0 10px 28px rgba(47,111,58,.08);
+}
+.assessment-weight-heading{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+.assessment-weight-legal{
+  border:1px solid #c8d6df;
+  border-left:5px solid #4e7891;
+  border-radius:14px;
+  padding:12px 14px;
+  background:#f5f9fc;
+}
+.assessment-weight-context{
+  display:grid;
+  grid-template-columns:minmax(170px,.65fr) minmax(300px,1.6fr) auto;
+  gap:10px;
+  align-items:end;
+}
+.assessment-weight-context .input{width:100%}
+.assessment-weight-model-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.assessment-weight-model-row span{
+  padding:6px 9px;
+  border:1px solid #c7d8cc;
+  border-radius:999px;
+  background:#fff;
+  font-size:13px;
+}
+.assessment-weight-form{
+  border:1px solid #c7d8cc;
+  border-radius:16px;
+  padding:14px;
+  background:rgba(255,255,255,.82);
+}
+.assessment-weight-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.assessment-weight-field{
+  border:1px solid var(--border);
+  border-top:5px solid #708090;
+  border-radius:14px;
+  padding:12px;
+  background:#fff;
+}
+.assessment-weight-field.participation{border-top-color:#4f7d35;background:#f5fbf1}
+.assessment-weight-field.oral{border-top-color:#a87924;background:#fffaf0}
+.assessment-weight-field.written{border-top-color:#2f6f8f;background:#f2f9fc}
+.assessment-weight-field > label,
+.assessment-year-weight-grid label{display:block;min-height:38px;font-weight:900}
+.assessment-weight-input{display:flex;align-items:center;gap:7px;margin:7px 0}
+.assessment-weight-input .input{width:110px;font-size:18px;font-weight:900;text-align:right}
+.assessment-weight-input span{font-weight:900}
+.assessment-weight-sum-error{margin-top:9px;font-weight:900}
+.assessment-year-weighting{
+  border:1px solid #d7bf81;
+  border-radius:14px;
+  padding:12px;
+  background:#fff9eb;
+}
+.assessment-year-weight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.assessment-semester-model-note{
+  border:1px solid #b9c7d5;
+  border-radius:12px;
+  padding:11px 13px;
+  background:#f4f7fa;
+  color:#3e5368;
+}
+.assessment-weight-technical{
+  border-radius:12px;
+  padding:10px 12px;
+  background:#edf5ef;
+  color:#2b5535;
+  font-size:13px;
+  font-weight:800;
+}
+.final-weight-breakdown{
+  margin-top:12px;
+  border:1px solid #bad1c0;
+  border-radius:14px;
+  padding:12px;
+  background:#f7fcf8;
+}
+.final-weight-breakdown-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:7px;
+}
+.final-weight-area-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin-top:9px;
+}
+.final-weight-area{
+  border:1px solid #d4ddd7;
+  border-radius:12px;
+  padding:9px 10px;
+  background:#fff;
+}
+.final-weight-area > span,.final-weight-area > strong,.final-weight-area > small{display:block}
+.final-weight-area > span{color:var(--muted);font-size:12px;font-weight:800;margin-bottom:4px}
+.final-weight-area > strong{font-size:16px}
+.final-weight-area > small{margin-top:4px;color:var(--muted);line-height:1.35}
+.final-weight-area.is-missing{background:#f3f4f6;color:#667085}
+.final-weight-year-row{
+  margin-top:9px;
+  border-radius:10px;
+  padding:8px 10px;
+  background:#edf4f8;
+  color:#294d61;
+  font-size:13px;
+}
+.final-weight-warning{
+  margin-top:8px;
+  border-left:4px solid #c1801c;
+  padding:7px 9px;
+  background:#fff7df;
+  color:#70470b;
+  font-size:13px;
+}
+@media (max-width:900px){
+  .assessment-weight-context{grid-template-columns:1fr}
+  .assessment-weight-grid,.assessment-year-weight-grid,.final-weight-area-grid{grid-template-columns:1fr}
+  .assessment-weight-context-action .btn{width:100%}
+}
 @media (max-width:1400px){
   .final-overview-filters{grid-template-columns:repeat(3,minmax(150px,1fr))}
 }

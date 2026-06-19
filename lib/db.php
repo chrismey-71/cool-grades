@@ -511,6 +511,30 @@ function _ensure_schema(PDO $pdo): void {
   }catch(Exception $e){ /* ignore */ }
 
   try{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS assessment_weight_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      teacher_id INT NOT NULL,
+      class_id INT NOT NULL,
+      subject_id INT NOT NULL,
+      school_period_set_id INT NOT NULL,
+      assessment_model ENUM('sost','nost','yearly') NOT NULL,
+      participation_weight DECIMAL(5,2) NULL,
+      special_oral_weight DECIMAL(5,2) NULL,
+      special_written_weight DECIMAL(5,2) NULL,
+      first_semester_to_annual_weight DECIMAL(5,2) NULL,
+      current_year_to_annual_weight DECIMAL(5,2) NULL,
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME NOT NULL,
+      UNIQUE KEY uniq_assessment_weight_context (teacher_id,class_id,subject_id,school_period_set_id),
+      INDEX idx_assessment_weight_teacher_year (teacher_id,school_period_set_id),
+      FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+      FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+      FOREIGN KEY (school_period_set_id) REFERENCES school_period_sets(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
     $st=$pdo->query("SHOW TABLES LIKE 'final_assessments'");
     $has=$st->fetch();
     if(!$has){

@@ -159,10 +159,16 @@ $proposalNoTest = final_assessment_compute_proposal(sample_summary([
   'written_avg' => null,
   'written_text' => '–',
 ]), $subjectNoSa, 'semester2');
-fa_smoke_assert_true(stripos($proposalNoTest['explanation'], 'nicht negativ') !== false, 'Fehlende Tests in Nicht-Schularbeitsfächern dürfen nicht automatisch negativ wirken.');
+fa_smoke_assert_same(2, $proposalNoTest['value'], 'Fehlende schriftliche Leistungen dürfen den Vorschlag nicht verschlechtern.');
+fa_smoke_assert_true(stripos((string)$proposalNoTest['weighting']['effective_label'], 'Mitarbeit 100') !== false, 'Bei ausschließlich verwertbarer Mitarbeit muss deren Gewicht auf 100 % normalisiert werden.');
 
 $proposalSa = final_assessment_compute_proposal(sample_summary(), $subjectSa, 'semester2');
-fa_smoke_assert_true(stripos($proposalSa['explanation'], 'Schularbeitsleistungen') !== false, 'Schularbeitsfächer müssen einen gesonderten Hinweis im Vorschlag tragen.');
+fa_smoke_assert_same($proposalNoTest['value'], $proposalSa['value'], 'Der Schularbeitsstatus darf die Zählung oder Gewichtung der Leistungsbereiche nicht verändern.');
+
+$sostYearOptions = final_assessment_scope_options('sost');
+fa_smoke_assert_true(stripos((string)($sostYearOptions['year'] ?? ''), 'ohne automatischen Jahresvorschlag') !== false, 'Die SOST-Jahresansicht muss als Übersicht ohne Jahresvorschlag gekennzeichnet sein.');
+$nostYearNotice = assessment_weight_semester_model_year_notice('nost');
+fa_smoke_assert_same(null, $nostYearNotice['value'], 'NOST darf keinen automatischen Jahresvorschlag aus beiden Semestern erzeugen.');
 
 $trendImprove = final_assessment_year_trend(
   ['note_proposal' => ['value' => 4]],

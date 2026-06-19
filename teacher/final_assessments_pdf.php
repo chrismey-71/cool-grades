@@ -33,13 +33,26 @@ $st = $pdo->prepare("SELECT code,name FROM subjects WHERE id=? LIMIT 1");
 $st->execute([$subject_id]);
 $subjectRow = $st->fetch(PDO::FETCH_ASSOC) ?: ['code' => '#'.$subject_id, 'name' => ''];
 
-$data = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope);
+$data = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope, (int)$u['id']);
 $periodMeta = $data['period_meta'];
 $scope = (string)$periodMeta['scope'];
 $subjectContext = $data['subject_context'];
 $classContext = $data['class_context'];
 $isYearlyModel = (($classContext['value'] ?? null) === 'yearly');
 $rows = $data['rows'];
+
+function _fa_pdf_proposal_weighting(array $proposal): string {
+  $parts = [];
+  $effective = (array)($proposal['weighting']['effective'] ?? []);
+  $shortLabels = ['participation'=>'MA','oral'=>'mündl.','written'=>'schriftl.'];
+  foreach($shortLabels as $key=>$label){
+    if(isset($effective[$key])) $parts[] = $label.' '.assessment_weight_format((float)$effective[$key]);
+  }
+  $yearEffective = (array)($proposal['year_weighting']['effective'] ?? []);
+  if(isset($yearEffective['first_semester'])) $parts[] = 'Schulnachr. '.assessment_weight_format((float)$yearEffective['first_semester']);
+  if(isset($yearEffective['current_year'])) $parts[] = 'akt. Stand '.assessment_weight_format((float)$yearEffective['current_year']);
+  return implode(' · ', $parts);
+}
 
 $pdf = new SimplePdfDocument('landscape');
 $pdf->setFooterText(
@@ -87,6 +100,28 @@ $pdf->boxedSection(
   [207,214,223]
 );
 
+$weightSettings = (array)($data['weight_settings'] ?? []);
+$configuredWeights = (array)($weightSettings['configured'] ?? []);
+$configuredWeightText = assessment_weight_list_label(
+  $configuredWeights,
+  ['participation','oral','written'],
+  assessment_weight_area_labels()
+);
+$weightLines = [
+  'Eingestellte Bereichsgewichtung: '.$configuredWeightText.'. Fehlende Bereiche werden nicht mit 0 bewertet, sondern aus der Berechnung genommen; die verbleibenden Gewichte werden auf 100 % normalisiert.',
+];
+if($isYearlyModel){
+  $weightLines[] = 'Jahresvorschlag: Schulnachricht / 1. Semester '.assessment_weight_format((float)($configuredWeights['first_semester'] ?? 40)).' · restliches Schuljahr / aktueller Leistungsstand '.assessment_weight_format((float)($configuredWeights['current_year'] ?? 60)).'.';
+} else {
+  $weightLines[] = strtoupper((string)($classContext['value'] ?? '')).' bleibt semesterbezogen; Winter- und Sommersemester werden nicht automatisch zu einer Jahresnote verbunden.';
+}
+$pdf->boxedSection(
+  'Gewichtung der Berechnungshilfe',
+  $weightLines,
+  [248,250,252],
+  [207,214,223]
+);
+
 $pdf->boxedSection(
   'LBV-Hinweis (§ 11 und § 14)',
   ['Die abschließende Leistungsbeurteilung ist aus den vorgesehenen Formen der Leistungsfeststellung, unter Bedachtnahme auf Lehrplan und Unterrichtsstand, sachlich und gerecht zu gewinnen. Die Beurteilungsstufe wird von der Lehrkraft festgelegt.'],
@@ -105,7 +140,7 @@ if(!$rows){
   exit;
 }
 
-$headers = ['Schueler:in'];
+$headers = ['Schüler:in'];
 $widths = [86];
 if($scope === 'semester2' || $scope === 'year'){
   $headers[] = $isYearlyModel ? 'Schulnachr.' : '1. Sem.';
@@ -115,7 +150,7 @@ if($scope === 'year' && !$isYearlyModel){
   $headers[] = '2. Sem.';
   $widths[] = 54;
 }
-$headers = array_merge($headers, ['Datenbasis','Mitarbeit','Tage','Bes. muendl.','Bes. schriftl.','Schularb.-Hinweis','Notenvorschlag','Finale Note','Kommentar','Status']);
+$headers = array_merge($headers, ['Datenbasis','Mitarbeit','Tage','Bes. mündl.','Bes. schriftl.','Fachstatus','Notenvorschlag','Finale Note','Kommentar','Status']);
 $widths = array_merge($widths, [54,50,32,62,62,72,64,48,116,44]);
 $tableRows = [];
 foreach($rows as $row){
@@ -132,14 +167,19 @@ foreach($rows as $row){
     $sem2 = $semesterContext['semester2_saved'] ?? null;
     $rowValues[] = $sem2 ? final_assessment_grade_label($sem2['final_grade'] !== null ? (int)$sem2['final_grade'] : null) : 'keine 2.-Sem.';
   }
+  $proposalDisplay = (string)$proposal['label'];
+  $proposalWeightingCompact = _fa_pdf_proposal_weighting($proposal);
+  if($proposalWeightingCompact !== '') $proposalDisplay .= ' · '.$proposalWeightingCompact;
+  $subjectStatusCompact = (string)$subjectContext['status_label'];
+  if(($subjectContext['status'] ?? '') === 'yes') $subjectStatusCompact .= ' · gesondert berücksichtigen';
   $rowValues = array_merge($rowValues, [
     report_eval_data_basis_level_label($summary['data_basis']),
     $summary['positive_neutral_negative'],
     (string)$summary['documented_day_count'],
     $summary['oral_text'],
     $summary['written_text'],
-    $subjectContext['short_note'],
-    $proposal['label'],
+    $subjectStatusCompact,
+    $proposalDisplay,
     $existing ? final_assessment_grade_label($existing['final_grade'] !== null ? (int)$existing['final_grade'] : null) : 'noch nicht festgelegt',
     $existing ? report_eval_clip((string)($existing['teacher_comment'] ?? ''), 120) : '-',
     $existing ? final_assessment_status_label((string)$existing['status']) : 'offen',

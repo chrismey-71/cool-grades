@@ -163,7 +163,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
       'comments' => $bulkCommentsRaw,
       'change_note' => $bulkChangeNote,
     ];
-    $rowsData = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope);
+    $rowsData = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope, (int)$u['id']);
     $rowsByStudent = [];
     foreach(($rowsData['rows'] ?? []) as $row){
       $rowsByStudent[(int)$row['student_id']] = $row;
@@ -244,7 +244,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     if($saveStudentId <= 0){
       $error = 'Bitte eine Schüler:in korrekt auswählen.';
     } else {
-      $rowsData = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope);
+      $rowsData = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope, (int)$u['id']);
       $targetRow = null;
       foreach(($rowsData['rows'] ?? []) as $row){
         if((int)$row['student_id'] === $saveStudentId){
@@ -312,7 +312,7 @@ if($class_id && $subject_id && $school_period_set_id > 0){
   require_teacher_assignment($u, $class_id, $subject_id);
   $periodSet = app_school_period_find($school_period_set_id, true);
   if($periodSet){
-    $rowsData = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope);
+    $rowsData = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope, (int)$u['id']);
   }
 }
 
@@ -537,6 +537,18 @@ render_header('Abschlussbeurteilung', $u);
           $classArchiveContext = class_context($pdo,$class_id);
           $summary = $selectedRow['summary'];
           $proposal = $selectedRow['proposal'];
+          $proposalWeighting = (array)($proposal['weighting'] ?? []);
+          $proposalYearWeighting = (array)($proposal['year_weighting'] ?? []);
+          $proposalAreas = (array)($proposal['areas'] ?? ($proposal['current_year_proposal']['areas'] ?? []));
+          $proposalWarnings = array_values(array_unique(array_merge(
+            (array)($proposalWeighting['warnings'] ?? []),
+            (array)($proposalYearWeighting['warnings'] ?? [])
+          )));
+          $weightManageQuery = http_build_query([
+            'school_period_set_id' => $school_period_set_id,
+            'class_id' => $class_id,
+            'subject_id' => $subject_id,
+          ]);
           $existing = $selectedRow['existing'];
           $semesterContext = $selectedRow['semester_context'] ?? [];
           $yearTrend = $selectedRow['year_trend'] ?? [];
@@ -739,6 +751,41 @@ render_header('Abschlussbeurteilung', $u);
             <span class="report-chip <?php echo h($proposal['tone']); ?>"><?php echo h($proposal['label']); ?></span>
             <span class="muted" style="margin-left:8px"><?php echo h((string)$proposal['explanation']); ?></span>
           </div>
+          <?php if($proposalWeighting || $proposalYearWeighting): ?>
+            <div class="final-weight-breakdown" style="margin-top:12px">
+              <div class="final-weight-breakdown-head">
+                <strong>So entsteht der Notenvorschlag</strong>
+                <a class="small" href="<?php echo h($bp); ?>/teacher/manage.php?<?php echo h($weightManageQuery); ?>">Gewichtung bearbeiten</a>
+              </div>
+              <?php if(!empty($proposalWeighting['configured_label'])): ?>
+                <div class="small muted"><strong>Eingestellt:</strong> <?php echo h((string)$proposalWeighting['configured_label']); ?></div>
+              <?php endif; ?>
+              <?php if(!empty($proposalWeighting['effective_label'])): ?>
+                <div class="small"><strong>Tatsächlich verwendet:</strong> <?php echo h((string)$proposalWeighting['effective_label']); ?></div>
+              <?php endif; ?>
+              <?php if($proposalAreas): ?>
+                <div class="final-weight-area-grid">
+                  <?php foreach(assessment_weight_area_labels() as $areaKey => $areaLabel): ?>
+                    <?php $area = (array)($proposalAreas[$areaKey] ?? []); ?>
+                    <div class="final-weight-area <?php echo !empty($area['available']) ? 'is-used' : 'is-missing'; ?>">
+                      <span><?php echo h($areaLabel); ?></span>
+                      <strong><?php echo !empty($area['available']) ? h(assessment_weight_grade_format((float)$area['value'])) : 'nicht berücksichtigt'; ?></strong>
+                      <small><?php echo h((string)($area['basis'] ?? 'keine verwertbaren Daten')); ?></small>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+              <?php if(!empty($proposalYearWeighting['effective_label'])): ?>
+                <div class="final-weight-year-row">
+                  <strong>Jahresmodell:</strong> <?php echo h((string)$proposalYearWeighting['effective_label']); ?>
+                </div>
+              <?php endif; ?>
+              <?php foreach($proposalWarnings as $proposalWarning): ?>
+                <div class="final-weight-warning"><?php echo h((string)$proposalWarning); ?></div>
+              <?php endforeach; ?>
+              <div class="small muted">Die Gewichtung ist eine Berechnungshilfe. Die finale Note wird ausschließlich von der Lehrkraft festgelegt.</div>
+            </div>
+          <?php endif; ?>
           <div class="final-decision-participation-summary">
             <strong>Mitarbeitstendenz:</strong>
             <span class="final-count-chip final-count-positive">positiv <?php echo (int)$summary['positive_count']; ?></span>

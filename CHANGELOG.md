@@ -16,6 +16,26 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.69] - 2026-06-19
+
+### Hinzugefügt
+
+- lehrkraftbezogene Gewichtung für Notenvorschläge je Schuljahr, Klasse und Fach
+- pädagogische Standardgewichtung von 60 % Mitarbeit, 20 % besondere mündliche und 20 % besondere schriftliche Leistungsfeststellungen
+- zusätzliche 40/60-Gewichtung von Schulnachricht und restlichem Schuljahr ausschließlich im Jahresmodell
+- transparente Anzeige von Bereichswerten, wirksamen Gewichten, herausgerechneten Bereichen und Warnhinweisen
+- rechtlich vorsichtiger Hinweisblock zur Gleichwertigkeit der Leistungsformen und zur alleinigen Verantwortung der Lehrkraft
+- idempotente Datenbankmigration und automatisierte Prüffälle für die Gewichtungslogik
+
+### Geändert
+
+- zentrale Notenvorschlagslogik berücksichtigt qualitative Werte bei Mitarbeit und besonderen mündlichen Leistungen sowie Noten bei besonderen schriftlichen Leistungen
+- fehlende Leistungsbereiche werden nicht als 0 gewertet; vorhandene Gewichte werden proportional normalisiert
+- ausschließlich schriftliche Leistungen erzeugen nur einen nicht ausreichend abgesicherten Zwischenwert
+- SOST und NOST bleiben semesterbezogen und erzeugen keinen regulären Jahresvorschlag aus beiden Semestern
+- PDF-Berichte und gespeicherte Vorschlags-Snapshots dokumentieren die verwendete Berechnungsgrundlage
+- Versionsnummer auf 1.69 erhöht
+
 ## [1.68] - 2026-06-19
 
 ### Hinzugefügt

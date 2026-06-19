@@ -363,6 +363,32 @@ html[data-theme="dark"] .final-overview-progress > span{color:#eef8f1}
 html[data-theme="dark"] .final-overview-table th{background:#294035}
 html[data-theme="dark"] .final-overview-row-draft{background:#342d1f}
 html[data-theme="dark"] .final-overview-row-open{background:#252a31}
+html[data-theme="dark"] .assessment-weight-panel{
+  background:linear-gradient(135deg,#182b1e,#20252c);
+  border-color:#477654;
+}
+html[data-theme="dark"] .assessment-weight-legal,
+html[data-theme="dark"] .assessment-semester-model-note{
+  background:#202d36;
+  border-color:#466273;
+  color:#dbe8f1;
+}
+html[data-theme="dark"] .assessment-weight-form,
+html[data-theme="dark"] .assessment-weight-model-row span,
+html[data-theme="dark"] .assessment-weight-field,
+html[data-theme="dark"] .final-weight-area{
+  background:#20252c;
+  border-color:#3d4652;
+}
+html[data-theme="dark"] .assessment-weight-field.participation{background:#1b3021}
+html[data-theme="dark"] .assessment-weight-field.oral,
+html[data-theme="dark"] .assessment-year-weighting{background:#352d1c;border-color:#6f5c32}
+html[data-theme="dark"] .assessment-weight-field.written{background:#1b2d37}
+html[data-theme="dark"] .assessment-weight-technical,
+html[data-theme="dark"] .final-weight-breakdown{background:#1b3021;color:#d7eadb;border-color:#466b50}
+html[data-theme="dark"] .final-weight-area.is-missing{background:#292f37;color:#aab4c0}
+html[data-theme="dark"] .final-weight-year-row{background:#20333d;color:#d9eaf2}
+html[data-theme="dark"] .final-weight-warning{background:#3a301a;color:#f3dba6;border-color:#c18a33}
 
 html[data-theme="dark"][data-entry-contrast="high"] .contrast-block,
 html[data-theme="dark"][data-entry-contrast="high"] .contrast-form,

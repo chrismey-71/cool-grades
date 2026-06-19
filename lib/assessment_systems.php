@@ -62,6 +62,14 @@ function final_assessment_scope_meta(?string $assessmentSystem = null): array {
     ];
   }
 
+  if($assessmentSystem === 'sost' || $assessmentSystem === 'nost'){
+    $modelLabel = strtoupper($assessmentSystem);
+    $all['year'] = [
+      'label' => 'Jahresübersicht (ohne automatischen Jahresvorschlag)',
+      'help' => $modelLabel.' wird semesterbezogen beurteilt. Diese Ansicht führt Winter- und Sommersemester nur zur Orientierung zusammen und berechnet daraus keine Jahresnote.',
+    ];
+  }
+
   return $all;
 }
 
