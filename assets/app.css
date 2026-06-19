@@ -896,6 +896,121 @@ html[data-entry-contrast="high"] .nav a.active{
   position:relative;
   border-left-width:7px;
 }
+
+/* Cross-class overview of saved final assessments */
+.final-overview-title-row h1{margin-top:0}
+.final-overview-help{
+  border-left:6px solid #2f6f8f;
+  background:linear-gradient(135deg,#f0f8fc,#fff);
+}
+.final-overview-filters{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(150px,1fr)) auto;
+  gap:10px;
+  align-items:end;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#f8fafc;
+}
+.final-overview-filters .input{width:100%}
+.final-overview-filter-action{display:flex;align-items:flex-end}
+.final-overview-stats{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(150px,1fr));
+  gap:10px;
+}
+.final-overview-stat{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-height:88px;
+  padding:13px 15px;
+  border:1px solid var(--border);
+  border-left:6px solid #8b98a8;
+  border-radius:14px;
+  background:#fff;
+}
+.final-overview-stat span{font-size:13px;color:var(--muted);font-weight:800}
+.final-overview-stat strong{font-size:27px;line-height:1}
+.final-overview-stat.final{border-left-color:#2f7a58;background:#eff9f3}
+.final-overview-stat.draft{border-left-color:#b77a18;background:#fff8e8}
+.final-overview-stat.open{border-left-color:#7a8797;background:#f4f6f8}
+.final-overview-progress{
+  position:relative;
+  height:30px;
+  margin-top:10px;
+  overflow:hidden;
+  border:1px solid #bdd7c8;
+  border-radius:999px;
+  background:#edf2ef;
+}
+.final-overview-progress > div{
+  width:var(--completion);
+  height:100%;
+  background:linear-gradient(90deg,#3a7f5c,#72aa82);
+}
+.final-overview-progress > span{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  font-weight:900;
+  color:#173e2b;
+}
+.final-overview-table-wrap{
+  overflow:auto;
+  border:1px solid var(--border);
+  border-radius:16px;
+}
+.final-overview-table{min-width:1120px;margin:0}
+.final-overview-table th{
+  position:sticky;
+  top:0;
+  z-index:1;
+  white-space:nowrap;
+  background:#e8f1ec;
+}
+.final-overview-table td{vertical-align:middle}
+.final-overview-row-draft{background:#fffaf0}
+.final-overview-row-open{background:#fafbfc}
+.final-overview-grade{
+  display:inline-flex;
+  width:34px;
+  height:34px;
+  margin-right:7px;
+  align-items:center;
+  justify-content:center;
+  border:2px solid transparent;
+  border-radius:50%;
+  font-size:17px;
+  font-weight:950;
+}
+.final-overview-grade.positive{color:#155d3f;background:#e5f6ec;border-color:#87c9a5}
+.final-overview-grade.neutral{color:#4f5968;background:#eef1f5;border-color:#c5ccd6}
+.final-overview-grade.critical{color:#982929;background:#fdeaea;border-color:#e9a3a3}
+.final-overview-status{
+  display:inline-flex;
+  padding:5px 9px;
+  border:1px solid transparent;
+  border-radius:999px;
+  white-space:nowrap;
+  font-size:12px;
+  font-weight:900;
+}
+.final-overview-status.final{color:#155d3f;background:#e5f6ec;border-color:#87c9a5}
+.final-overview-status.draft{color:#7a4d0a;background:#fff1c9;border-color:#e5bd63}
+.final-overview-status.open{color:#5a6472;background:#eef1f5;border-color:#c9d0d9}
+@media (max-width:1400px){
+  .final-overview-filters{grid-template-columns:repeat(3,minmax(150px,1fr))}
+}
+@media (max-width:720px){
+  .final-overview-filters{grid-template-columns:1fr}
+  .final-overview-filter-action .btn{width:100%}
+  .final-overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 .final-section-semester{
   border-left-color:#c9d4df;
   background:linear-gradient(135deg,#f8fafc,#fff);

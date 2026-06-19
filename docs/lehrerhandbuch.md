@@ -1433,6 +1433,50 @@ Die App bleibt dabei ausdrücklich **keine Notenmaschine**:
 
 Über **Lehrerbereich → Abschlussbeurteilung**.
 
+### Notenübersicht über alle Klassen und Fächer
+
+Über **Lehrerbereich → Abschlussbeurteilung → Notenübersicht öffnen** gelangen Sie zu einer Kontrollansicht über alle Ihre Klasse-Fach-Zuordnungen. Die Übersicht ist für die Abschlussphase gedacht, wenn Sie rasch erkennen möchten, welche Beurteilungen bereits final gespeichert sind, welche noch als Entwurf vorliegen und wo noch keine Beurteilung gespeichert wurde.
+
+Die Übersicht zeigt je Schüler:in eine Zeile mit:
+
+- Klasse und Fach,
+- dem fachlich passenden Beurteilungszeitraum,
+- dem beim Speichern festgehaltenen Notenvorschlag,
+- der gespeicherten Note,
+- dem Bearbeitungsstand `noch offen`, `Entwurf` oder `final gespeichert`,
+- dem Zeitpunkt der letzten Änderung.
+
+`Noch offen` bedeutet nicht, dass Leistungsdaten fehlen. Es bedeutet ausschließlich, dass für diese Schüler:in, Klasse, dieses Fach und den gewählten Beurteilungszeitraum noch keine Abschlussbeurteilung gespeichert wurde.
+
+#### Filter und ihre Wirkung
+
+**Schuljahr** bestimmt, aus welchem schuljahresbezogenen Klassenbestand die Beurteilungen geladen werden. Standardmäßig ist das aktuelle Schuljahr ausgewählt. Ein archiviertes Schuljahr kann weiterhin gelesen und als PDF ausgegeben werden; durch die Übersicht werden historische Daten nicht verändert.
+
+**Zeitraum** bestimmt, welche gespeicherte Abschlussbeurteilung je Klasse gesucht wird:
+
+- `Aktueller Beurteilungszeitraum` verwendet bei SOST/NOST das laufende Semester. Im Jahresmodell wird im Winter die Schulnachricht und danach die Jahresbeurteilung verwendet.
+- `1. Semester / Schulnachricht` zeigt bei SOST/NOST die erste Semesterbeurteilung und im Jahresmodell die Schulnachricht.
+- `2. Semester (SOST / NOST)` gilt nur für semestrierte Klassen. Jahresmodell-Klassen werden dabei fachlich korrekt ausgelassen.
+- `Jahresbeurteilung` zeigt die gespeicherten Jahresbeurteilungen.
+
+**Klasse** und **Fach** schränken die Anzeige ein. Diese Filter verändern keine gespeicherten Daten.
+
+**Bearbeitungsstand** erlaubt die gezielte Kontrolle von offenen Beurteilungen, Entwürfen oder final gespeicherten Noten. Die Kennzahlen oberhalb der Tabelle beziehen sich weiterhin auf den gesamten gewählten Klassen-/Fachbereich, damit der Gesamtfortschritt erkennbar bleibt.
+
+Mit **Öffnen** wechseln Sie direkt zur Abschlussbeurteilung der betreffenden Schüler:in. Dort kann die Note geprüft, als Entwurf gespeichert oder final festgelegt werden.
+
+#### PDF-Gesamtübersicht
+
+Über **PDF herunterladen** wird ein A4-Querformat-Bericht mit denselben Filtern erzeugt. Der Bericht enthält:
+
+- Schuljahr, Zeitraum, Lehrkraft und Erstellungsdatum,
+- Gesamtzahlen zu finalen, als Entwurf gespeicherten und offenen Beurteilungen,
+- eine Verteilung der bereits gespeicherten Noten,
+- getrennte Abschnitte je Klasse und Fach,
+- je Schüler:in Notenvorschlag, gespeicherte Note, Status, Kommentar und Änderungsdatum.
+
+Webansicht und PDF verwenden dieselbe Datenquelle. Die Übersicht berechnet keine neue Note und verändert keine Abschlussbeurteilung. Der Notenvorschlag bleibt eine pädagogische Entscheidungshilfe; die finale Note wird in der Abschlussbeurteilung bewusst durch die Lehrkraft festgelegt.
+
 ### Welche Auswahlfelder gibt es?
 
 ### Klasse

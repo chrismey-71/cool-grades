@@ -96,7 +96,10 @@ render_header('Lehrerbereich',$u);
               Die App zeigt einen Notenvorschlag und dokumentiert die Entscheidungsgrundlage. Die finale Note wird bewusst durch die Lehrkraft festgelegt und gespeichert.
             </div>
             <div style="height:10px"></div>
-            <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments.php">Semester- und Jahresbeurteilung festlegen</a>
+            <div class="row" style="gap:8px;flex-wrap:wrap">
+              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments.php">Semester- und Jahresbeurteilung festlegen</a>
+              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments_overview.php">Notenübersicht öffnen</a>
+            </div>
           </div>
         </div>
 

@@ -89,6 +89,20 @@ fa_smoke_assert_same(5, final_assessment_default_period_set_id([
   ['id' => 5, 'semester1_from' => '2024-09-01', 'semester2_to' => '2025-08-31'],
 ], '2030-01-01'), 'Wenn kein Zeitraum zum Datum passt, soll das neueste aktive Schuljahr als Fallback dienen.');
 fa_smoke_assert_same(0, final_assessment_default_period_set_id([], '2026-05-14'), 'Ohne Schuljahre soll keine Vorauswahl erzwungen werden.');
+$overviewPeriodSet = [
+  'id' => 4,
+  'label' => '2025/26',
+  'semester1_from' => '2025-09-01',
+  'semester1_to' => '2026-01-31',
+  'semester2_from' => '2026-02-01',
+  'semester2_to' => '2026-08-31',
+];
+fa_smoke_assert_same('semester2', final_assessment_overview_scope_for_system('current', $overviewPeriodSet, 'sost', '2026-05-14'), 'Die Gesamtübersicht muss im SOST-Modell im Mai das 2. Semester verwenden.');
+fa_smoke_assert_same('year', final_assessment_overview_scope_for_system('current', $overviewPeriodSet, 'yearly', '2026-05-14'), 'Die Gesamtübersicht muss im Jahresmodell im Mai die Jahresbeurteilung verwenden.');
+fa_smoke_assert_same('semester1', final_assessment_overview_scope_for_system('current', $overviewPeriodSet, 'yearly', '2025-11-14'), 'Die Gesamtübersicht muss im Jahresmodell im Winter die Schulnachricht verwenden.');
+fa_smoke_assert_same(null, final_assessment_overview_scope_for_system('semester2', $overviewPeriodSet, 'yearly'), 'Eine explizite 2. Semesterübersicht darf Jahresmodell-Klassen nicht als eigenständige Semesterbeurteilung behandeln.');
+fa_smoke_assert_same('draft', final_assessment_overview_status_normalize('draft'), 'Der Statusfilter Entwurf muss erhalten bleiben.');
+fa_smoke_assert_same('all', final_assessment_overview_status_normalize('invalid'), 'Ungültige Statusfilter müssen sicher auf alle Bearbeitungsstände zurückfallen.');
 fa_smoke_assert_same(12, final_assessment_next_student_id([
   ['student_id' => 10],
   ['student_id' => 12],

@@ -16,6 +16,22 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.68] - 2026-06-19
+
+### Hinzugefügt
+
+- lehrkraftbezogene Notenübersicht über alle zugeordneten Klassen und Fächer eines Schuljahres
+- Filter nach Schuljahr, Beurteilungszeitraum, Klasse, Fach und Bearbeitungsstand
+- Gesamtfortschritt für finale Beurteilungen, Entwürfe und noch offene Beurteilungen
+- direkter Wechsel von der Übersicht zur Abschlussbeurteilung einer einzelnen Schüler:in
+- PDF-Gesamtbericht im A4-Querformat, gruppiert nach Klasse und Fach
+
+### Geändert
+
+- Jahresmodell und semestrierte Modelle verwenden in der Gesamtübersicht jeweils den fachlich passenden aktuellen Beurteilungszeitraum
+- Lehrer:innen-Handbuch um die neue Notenübersicht und ihre Filterwirkung ergänzt
+- Versionsnummer auf 1.68 erhöht
+
 ## [1.67] - 2026-06-17
 
 ### Hinzugefügt

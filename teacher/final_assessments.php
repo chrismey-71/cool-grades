@@ -350,7 +350,10 @@ render_header('Abschlussbeurteilung', $u);
 <div class="grid">
   <div class="col-12">
     <div class="card">
-      <h1>Abschlussbeurteilung</h1>
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+        <h1>Abschlussbeurteilung</h1>
+        <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments_overview.php?school_period_set_id=<?php echo (int)$school_period_set_id; ?>">Notenübersicht aller Klassen und Fächer</a>
+      </div>
       <p class="muted">
         Hier führen Sie dokumentierte Mitarbeit, besondere mündliche und besondere schriftliche Leistungsfeststellungen zu einer pädagogischen Entscheidung zusammen.
         Der Notenvorschlag ist nicht verbindlich, die finale Semester- oder Jahresbeurteilung wird bewusst von Ihnen festgelegt.

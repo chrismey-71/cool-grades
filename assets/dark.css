@@ -345,6 +345,25 @@ html[data-theme="dark"] .final-assessment-decision{
   border-color:#3d6d49;
 }
 
+html[data-theme="dark"] .final-overview-help{
+  background:linear-gradient(135deg,#173242,#20252c);
+  border-color:#4f8eae;
+}
+html[data-theme="dark"] .final-overview-filters,
+html[data-theme="dark"] .final-overview-stat,
+html[data-theme="dark"] .final-overview-table-wrap{
+  background:#20252c;
+  border-color:#3d4652;
+}
+html[data-theme="dark"] .final-overview-stat.final{background:#183629}
+html[data-theme="dark"] .final-overview-stat.draft{background:#3d3118}
+html[data-theme="dark"] .final-overview-stat.open{background:#292f37}
+html[data-theme="dark"] .final-overview-progress{background:#29332e;border-color:#456b55}
+html[data-theme="dark"] .final-overview-progress > span{color:#eef8f1}
+html[data-theme="dark"] .final-overview-table th{background:#294035}
+html[data-theme="dark"] .final-overview-row-draft{background:#342d1f}
+html[data-theme="dark"] .final-overview-row-open{background:#252a31}
+
 html[data-theme="dark"][data-entry-contrast="high"] .contrast-block,
 html[data-theme="dark"][data-entry-contrast="high"] .contrast-form,
 html[data-theme="dark"][data-entry-contrast="high"] .multi-field.contrast-panel,

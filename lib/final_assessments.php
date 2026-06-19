@@ -63,6 +63,235 @@ function final_assessment_default_period_set_id(array $periodSets, ?string $date
   return (int)($periodSets[0]['id'] ?? 0);
 }
 
+function final_assessment_overview_period_options(): array {
+  return [
+    'current' => 'Aktueller Beurteilungszeitraum',
+    'semester1' => '1. Semester / Schulnachricht',
+    'semester2' => '2. Semester (SOST / NOST)',
+    'year' => 'Jahresbeurteilung',
+  ];
+}
+
+function final_assessment_overview_period_normalize(string $period): string {
+  return isset(final_assessment_overview_period_options()[$period]) ? $period : 'current';
+}
+
+function final_assessment_overview_scope_for_system(
+  string $period,
+  array $periodSet,
+  ?string $assessmentSystem,
+  ?string $date = null
+): ?string {
+  $period = final_assessment_overview_period_normalize($period);
+  if($period === 'current'){
+    return final_assessment_default_scope($periodSet, $date, $assessmentSystem);
+  }
+  if($period === 'semester2' && $assessmentSystem === 'yearly'){
+    return null;
+  }
+  return final_assessment_scope_normalize($period, $assessmentSystem);
+}
+
+function final_assessment_overview_status_options(): array {
+  return [
+    'all' => 'Alle Bearbeitungsstände',
+    'open' => 'Noch offen',
+    'draft' => 'Entwürfe',
+    'final' => 'Final gespeichert',
+  ];
+}
+
+function final_assessment_overview_status_normalize(string $status): string {
+  return isset(final_assessment_overview_status_options()[$status]) ? $status : 'all';
+}
+
+function final_assessment_overview_status_label(?array $assessment): string {
+  if(!$assessment) return 'noch offen';
+  return ((string)($assessment['status'] ?? 'draft') === 'final') ? 'final gespeichert' : 'Entwurf';
+}
+
+/**
+ * Builds the cross-class overview from one shared data source for web and PDF.
+ * Saved proposals are snapshots; open rows deliberately do not receive a newly calculated grade.
+ */
+function final_assessment_teacher_overview(
+  PDO $pdo,
+  int $teacherId,
+  array $periodSet,
+  string $period = 'current',
+  int $classId = 0,
+  int $subjectId = 0,
+  string $statusFilter = 'all',
+  ?string $date = null
+): array {
+  $periodSetId = (int)($periodSet['id'] ?? 0);
+  $period = final_assessment_overview_period_normalize($period);
+  $statusFilter = final_assessment_overview_status_normalize($statusFilter);
+  if($teacherId <= 0 || $periodSetId <= 0){
+    return [
+      'period' => $period,
+      'status_filter' => $statusFilter,
+      'combinations' => [],
+      'rows' => [],
+      'groups' => [],
+      'stats' => ['total'=>0,'open'=>0,'draft'=>0,'final'=>0,'saved_grades'=>0,'grade_counts'=>[1=>0,2=>0,3=>0,4=>0,5=>0]],
+      'skipped_combinations' => 0,
+    ];
+  }
+
+  $comboSql = "SELECT DISTINCT c.id AS class_id,c.name AS class_name,c.assessment_system,c.is_archived,
+                              s.id AS subject_id,s.code AS subject_code,s.name AS subject_name
+               FROM teacher_assignments ta
+               JOIN classes c ON c.id=ta.class_id
+               JOIN subjects s ON s.id=ta.subject_id
+               WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0";
+  $comboParams = [$teacherId, $periodSetId];
+  if($classId > 0){ $comboSql .= " AND c.id=?"; $comboParams[] = $classId; }
+  if($subjectId > 0){ $comboSql .= " AND s.id=?"; $comboParams[] = $subjectId; }
+  $comboSql .= " ORDER BY c.name,s.code,s.name";
+  $st = $pdo->prepare($comboSql);
+  $st->execute($comboParams);
+  $combinations = [];
+  $scopeByCombination = [];
+  $skippedCombinations = 0;
+  foreach($st->fetchAll() as $combo){
+    $system = class_assessment_system_is_valid((string)($combo['assessment_system'] ?? ''))
+      ? (string)$combo['assessment_system']
+      : null;
+    $scope = final_assessment_overview_scope_for_system($period, $periodSet, $system, $date);
+    $key = (int)$combo['class_id'].':'.(int)$combo['subject_id'];
+    $combo['assessment_system'] = $system;
+    $combo['assessment_system_label'] = class_assessment_system_label($system);
+    $combo['scope'] = $scope;
+    if($scope === null){
+      $skippedCombinations++;
+      continue;
+    }
+    $periodMeta = final_assessment_period_meta($periodSet, $scope, $system);
+    $combo['scope_label'] = (string)$periodMeta['scope_label'];
+    $combo['assessment_label'] = (string)$periodMeta['assessment_label'];
+    $combinations[$key] = $combo;
+    $scopeByCombination[$key] = $scope;
+  }
+
+  if(!$combinations){
+    return [
+      'period' => $period,
+      'status_filter' => $statusFilter,
+      'combinations' => [],
+      'rows' => [],
+      'groups' => [],
+      'stats' => ['total'=>0,'open'=>0,'draft'=>0,'final'=>0,'saved_grades'=>0,'grade_counts'=>[1=>0,2=>0,3=>0,4=>0,5=>0]],
+      'skipped_combinations' => $skippedCombinations,
+    ];
+  }
+
+  $studentSql = "SELECT DISTINCT c.id AS class_id,su.id AS subject_id,st.id AS student_id,
+                                 st.last_name,st.first_name
+                 FROM teacher_assignments ta
+                 JOIN classes c ON c.id=ta.class_id
+                 JOIN subjects su ON su.id=ta.subject_id
+                 JOIN class_enrollments ce ON ce.class_id=c.id AND ce.school_period_set_id=c.school_period_set_id
+                 JOIN students st ON st.id=ce.student_id
+                 WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0
+                   AND ce.status IN ('active','repeated','transferred')
+                   AND (c.is_archived=1 OR st.is_active=1)";
+  $studentParams = [$teacherId, $periodSetId];
+  if($classId > 0){ $studentSql .= " AND c.id=?"; $studentParams[] = $classId; }
+  if($subjectId > 0){ $studentSql .= " AND su.id=?"; $studentParams[] = $subjectId; }
+  $studentSql .= " ORDER BY c.name,su.code,st.last_name,st.first_name,st.id";
+  $st = $pdo->prepare($studentSql);
+  $st->execute($studentParams);
+  $studentRows = $st->fetchAll();
+
+  $assessmentSql = "SELECT fa.*
+                    FROM final_assessments fa
+                    JOIN teacher_assignments ta ON ta.class_id=fa.class_id AND ta.subject_id=fa.subject_id
+                    JOIN classes c ON c.id=fa.class_id
+                    WHERE ta.teacher_id=? AND fa.school_period_set_id=? AND c.school_period_set_id=? AND c.is_departed=0";
+  $assessmentParams = [$teacherId, $periodSetId, $periodSetId];
+  if($classId > 0){ $assessmentSql .= " AND fa.class_id=?"; $assessmentParams[] = $classId; }
+  if($subjectId > 0){ $assessmentSql .= " AND fa.subject_id=?"; $assessmentParams[] = $subjectId; }
+  $st = $pdo->prepare($assessmentSql);
+  $st->execute($assessmentParams);
+  $assessmentMap = [];
+  foreach($st->fetchAll() as $assessment){
+    $assessmentKey = (int)$assessment['class_id'].':'.(int)$assessment['subject_id'].':'.(int)$assessment['student_id'].':'.(string)$assessment['assessment_scope'];
+    $assessmentMap[$assessmentKey] = $assessment;
+  }
+
+  $allRows = [];
+  $stats = ['total'=>0,'open'=>0,'draft'=>0,'final'=>0,'saved_grades'=>0,'grade_counts'=>[1=>0,2=>0,3=>0,4=>0,5=>0]];
+  foreach($studentRows as $student){
+    $comboKey = (int)$student['class_id'].':'.(int)$student['subject_id'];
+    if(!isset($combinations[$comboKey])) continue;
+    $scope = $scopeByCombination[$comboKey];
+    $assessmentKey = $comboKey.':'.(int)$student['student_id'].':'.$scope;
+    $assessment = $assessmentMap[$assessmentKey] ?? null;
+    $rowStatus = $assessment ? (((string)($assessment['status'] ?? 'draft') === 'final') ? 'final' : 'draft') : 'open';
+    $grade = ($assessment && $assessment['final_grade'] !== null) ? (int)$assessment['final_grade'] : null;
+    $stats['total']++;
+    $stats[$rowStatus]++;
+    if($grade !== null && isset($stats['grade_counts'][$grade])){
+      $stats['saved_grades']++;
+      $stats['grade_counts'][$grade]++;
+    }
+    $combo = $combinations[$comboKey];
+    $allRows[] = [
+      'class_id' => (int)$student['class_id'],
+      'class_name' => (string)$combo['class_name'],
+      'subject_id' => (int)$student['subject_id'],
+      'subject_code' => (string)$combo['subject_code'],
+      'subject_name' => (string)$combo['subject_name'],
+      'student_id' => (int)$student['student_id'],
+      'student_name' => (string)$student['last_name'].', '.(string)$student['first_name'],
+      'assessment_system' => $combo['assessment_system'],
+      'assessment_system_label' => (string)$combo['assessment_system_label'],
+      'scope' => $scope,
+      'scope_label' => (string)$combo['scope_label'],
+      'assessment_label' => (string)$combo['assessment_label'],
+      'row_status' => $rowStatus,
+      'status_label' => final_assessment_overview_status_label($assessment),
+      'assessment' => $assessment,
+    ];
+  }
+
+  $rows = array_values(array_filter($allRows, static function(array $row) use ($statusFilter): bool {
+    return $statusFilter === 'all' || (string)$row['row_status'] === $statusFilter;
+  }));
+  $groups = [];
+  foreach($rows as $row){
+    $key = (int)$row['class_id'].':'.(int)$row['subject_id'];
+    if(!isset($groups[$key])){
+      $groups[$key] = [
+        'class_id' => (int)$row['class_id'],
+        'class_name' => (string)$row['class_name'],
+        'subject_id' => (int)$row['subject_id'],
+        'subject_code' => (string)$row['subject_code'],
+        'subject_name' => (string)$row['subject_name'],
+        'scope' => (string)$row['scope'],
+        'scope_label' => (string)$row['scope_label'],
+        'assessment_system_label' => (string)$row['assessment_system_label'],
+        'rows' => [],
+        'stats' => ['total'=>0,'open'=>0,'draft'=>0,'final'=>0],
+      ];
+    }
+    $groups[$key]['rows'][] = $row;
+    $groups[$key]['stats']['total']++;
+    $groups[$key]['stats'][(string)$row['row_status']]++;
+  }
+
+  return [
+    'period' => $period,
+    'status_filter' => $statusFilter,
+    'combinations' => array_values($combinations),
+    'rows' => $rows,
+    'groups' => array_values($groups),
+    'stats' => $stats,
+    'skipped_combinations' => $skippedCombinations,
+  ];
+}
+
 function final_assessment_next_student_id(array $rows, int $studentId): ?int {
   $ids = array_map(static fn(array $row): int => (int)$row['student_id'], $rows);
   $idx = array_search($studentId, $ids, true);
