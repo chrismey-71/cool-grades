@@ -544,10 +544,17 @@ render_header('Abschlussbeurteilung', $u);
             (array)($proposalWeighting['warnings'] ?? []),
             (array)($proposalYearWeighting['warnings'] ?? [])
           )));
+          $proposalPriorityWarnings = array_values(array_filter($proposalWarnings, static function(string $warning): bool {
+            return str_contains($warning, 'dürfen nicht alleinige Grundlage')
+              || str_contains($warning, 'Schulnachricht / 1. Semester konnte nicht berücksichtigt')
+              || str_contains($warning, 'aktuelle Leistungsstand konnte nicht berücksichtigt')
+              || str_contains($warning, '0 % Gewicht');
+          }));
           $weightManageQuery = http_build_query([
             'school_period_set_id' => $school_period_set_id,
             'class_id' => $class_id,
             'subject_id' => $subject_id,
+            'open_weights' => 1,
           ]);
           $existing = $selectedRow['existing'];
           $semesterContext = $selectedRow['semester_context'] ?? [];
@@ -578,6 +585,13 @@ render_header('Abschlussbeurteilung', $u);
           if($scope === 'year'){
             $sem2ForCurrent = $isYearlyModel ? null : ($semesterContext['semester2_saved'] ?? null);
           }
+          $sem1GradeDisplay = ($sem1ForCurrent && $sem1ForCurrent['final_grade'] !== null) ? (int)$sem1ForCurrent['final_grade'] : null;
+          $participationProposalArea = (array)($proposalAreas['participation'] ?? []);
+          $oralProposalArea = (array)($proposalAreas['oral'] ?? []);
+          $writtenProposalArea = (array)($proposalAreas['written'] ?? []);
+          $proposalAreaDisplay = static function(array $area): string {
+            return !empty($area['available']) ? assessment_weight_grade_format((float)$area['value']) : '–';
+          };
         ?>
 
         <div class="report-focus-block final-context-compact" style="margin-top:14px">
@@ -631,7 +645,6 @@ render_header('Abschlussbeurteilung', $u);
           </div>
           <div class="final-student-status-row" style="margin-top:12px">
             <span class="report-chip <?php echo h($summary['data_basis']['tone']); ?>"><?php echo h(report_eval_data_basis_display($summary['data_basis'])); ?></span>
-            <span class="report-chip <?php echo h($proposal['tone']); ?>"><?php echo h($proposal['label']); ?></span>
             <span class="report-chip <?php echo h($statusTone); ?>"><?php echo h($existing ? final_assessment_status_label((string)$existing['status']) : 'noch nicht gespeichert'); ?></span>
             <span class="report-chip <?php echo h($subjectContext['tone']); ?>">Schularbeitsfach: <?php echo h((string)$subjectContext['status_label']); ?></span>
             <?php if($existing && $existing['final_grade'] !== null): ?>
@@ -644,13 +657,17 @@ render_header('Abschlussbeurteilung', $u);
         <div class="grid final-assessment-box-grid" style="margin-top:14px">
           <div class="col-12">
             <div class="report-focus-block final-assessment-section final-section-semester">
-              <strong>1. <?php echo $isYearlyModel ? 'Überblick Schulnachricht' : ($scope === 'year' ? 'Semesterüberblick' : 'Überblick 1. Semester'); ?></strong>
+              <div class="final-section-topline">
+                <strong>1. <?php echo $isYearlyModel ? 'Überblick Schulnachricht' : ($scope === 'year' ? 'Semesterüberblick' : 'Überblick 1. Semester'); ?></strong>
+                <div class="final-section-result final-grade-card">
+                  <span class="label">gespeicherte Note</span>
+                  <strong class="final-signal-value <?php echo h(_fa_grade_tone($sem1GradeDisplay)); ?>"><?php echo $sem1GradeDisplay !== null ? h(final_assessment_grade_label($sem1GradeDisplay)) : '–'; ?></strong>
+                </div>
+              </div>
               <?php if($sem1ForCurrent): ?>
                 <div class="report-kv" style="margin-top:10px">
-                  <?php $sem1GradeDisplay = $sem1ForCurrent['final_grade'] !== null ? (int)$sem1ForCurrent['final_grade'] : null; ?>
-                  <div class="item final-signal-card final-grade-card"><span class="label">gespeicherte Note</span><strong class="final-signal-value <?php echo h(_fa_grade_tone($sem1GradeDisplay)); ?>"><?php echo h(final_assessment_grade_label($sem1GradeDisplay)); ?></strong></div>
                   <div class="item"><span class="label">Status</span><strong><?php echo h(final_assessment_status_label((string)$sem1ForCurrent['status'])); ?></strong></div>
-                  <div class="item"><span class="label">Notenvorschlag</span><strong><?php echo h((string)($sem1ForCurrent['suggestion_label'] ?? '')); ?></strong></div>
+                  <div class="item"><span class="label">Notenvorschlag zum Speicherzeitpunkt</span><strong><?php echo h((string)($sem1ForCurrent['suggestion_label'] ?? '')); ?></strong></div>
                   <div class="item"><span class="label">gespeichert am</span><strong><?php echo h((string)($sem1ForCurrent['updated_at'] ?? $sem1ForCurrent['created_at'] ?? '')); ?></strong></div>
                 </div>
                 <?php if(trim((string)($sem1ForCurrent['teacher_comment'] ?? '')) !== ''): ?>
@@ -721,14 +738,20 @@ render_header('Abschlussbeurteilung', $u);
 
           <div class="col-12">
             <div class="report-focus-block final-assessment-section final-section-participation">
-              <strong>3. Mitarbeit</strong>
+              <div class="final-section-topline">
+                <strong>3. Mitarbeit</strong>
+                <div class="final-section-result final-trend-card">
+                  <span class="label">Tendenz</span>
+                  <strong class="final-signal-value <?php echo h($summary['quality']['tone']); ?>"><?php echo h($summary['quality']['label']); ?></strong>
+                  <?php if($lowParticipationCount): ?><span class="final-low-data-badge">zu wenige Einträge</span><?php endif; ?>
+                </div>
+              </div>
               <div class="report-kv" style="margin-top:10px">
                 <div class="item"><span class="label">Mitarbeitseinträge</span><strong><?php echo $participationCount; ?></strong></div>
                 <div class="item"><span class="label">dokumentierte Tage</span><strong><?php echo (int)$summary['documented_day_count']; ?></strong></div>
                 <div class="item final-count-item final-count-positive"><span class="label">positiv</span><strong><?php echo (int)$summary['positive_count']; ?></strong></div>
                 <div class="item final-count-item final-count-neutral"><span class="label">neutral</span><strong><?php echo (int)$summary['neutral_count']; ?></strong></div>
                 <div class="item final-count-item final-count-negative"><span class="label">negativ</span><strong><?php echo (int)$summary['negative_count']; ?></strong></div>
-                <div class="item final-signal-card final-trend-card"><span class="label">Tendenz</span><strong class="final-signal-value <?php echo h($summary['quality']['tone']); ?>"><?php echo h($summary['quality']['label']); ?></strong><?php if($lowParticipationCount): ?><span class="final-low-data-badge">zu wenige Einträge</span><?php endif; ?></div>
               </div>
               <div class="muted" style="margin-top:10px"><strong>Datenbasis:</strong> <?php echo h(report_eval_data_basis_level_label($summary['data_basis'])); ?> - <?php echo h((string)$summary['data_basis']['explanation']); ?></div>
               <div class="muted" style="margin-top:8px"><strong>Wichtige Kriterien:</strong> <?php echo h($summary['top_criteria']); ?></div>
@@ -738,25 +761,53 @@ render_header('Abschlussbeurteilung', $u);
         </div>
 
         <div class="report-focus-block report-recommendation final-assessment-decision final-assessment-section final-section-decision" style="margin-top:16px">
-          <strong>4. Finale Abschlussbeurteilung festlegen</strong>
+          <div class="final-section-topline final-decision-topline">
+            <strong>4. Finale Abschlussbeurteilung festlegen</strong>
+            <div class="final-section-result final-proposal-result <?php echo h((string)$proposal['tone']); ?>">
+              <span class="label">Notenvorschlag der App</span>
+              <strong class="final-signal-value"><?php echo h((string)$proposal['label']); ?></strong>
+            </div>
+          </div>
           <div class="final-decision-context" style="margin-top:10px">
             <span><strong><?php echo h($selectedRow['student_name']); ?></strong></span>
             <span><?php echo h($subjectDisplay ?: ('Fach #'.$subject_id)); ?></span>
             <span><?php echo h((string)$periodMeta['assessment_label']); ?></span>
           </div>
           <div class="muted" style="margin-top:8px">
-            Der Notenvorschlag ist eine Entscheidungshilfe. Die finale Beurteilung wird von der Lehrkraft festgelegt.
+            Die drei Leistungsbereiche werden als Entscheidungsgrundlage zusammengeführt. Die finale Beurteilung legen Sie als Lehrkraft fest.
           </div>
-          <div style="margin-top:10px">
-            <span class="report-chip <?php echo h($proposal['tone']); ?>"><?php echo h($proposal['label']); ?></span>
-            <span class="muted" style="margin-left:8px"><?php echo h((string)$proposal['explanation']); ?></span>
+
+          <div class="final-decision-evidence-grid" style="margin-top:12px">
+            <div class="final-decision-evidence participation">
+              <div class="final-decision-evidence-head"><span>Mitarbeit</span><strong><?php echo h($proposalAreaDisplay($participationProposalArea)); ?></strong></div>
+              <div class="small"><strong><?php echo h((string)$summary['note_proposal']['label']); ?></strong></div>
+              <div class="muted small"><?php echo h((string)$summary['quality']['label']); ?> · positiv <?php echo (int)$summary['positive_count']; ?> / neutral <?php echo (int)$summary['neutral_count']; ?> / negativ <?php echo (int)$summary['negative_count']; ?></div>
+            </div>
+            <div class="final-decision-evidence oral">
+              <div class="final-decision-evidence-head"><span>Bes. mündl. Leistungsfeststellung</span><strong><?php echo h($proposalAreaDisplay($oralProposalArea)); ?></strong></div>
+              <div class="small"><strong>Beurteilung:</strong> <?php echo h($oralAssessmentDisplay['label']); ?></div>
+              <div class="muted small"><?php echo (int)$summary['oral_count']; ?> Eintrag/Einträge · <?php echo h((string)$summary['oral_text']); ?></div>
+            </div>
+            <div class="final-decision-evidence written">
+              <div class="final-decision-evidence-head"><span>Bes. schriftl. Leistungsfeststellung</span><strong><?php echo h($proposalAreaDisplay($writtenProposalArea)); ?></strong></div>
+              <div class="small"><strong>Noten:</strong> <?php echo h($writtenAssessmentDisplay['grades']); ?></div>
+              <div class="muted small"><?php echo (int)$summary['written_count']; ?> Eintrag/Einträge · Ø <?php echo $summary['written_avg'] !== null ? h(number_format((float)$summary['written_avg'], 2, ',', '.')) : '–'; ?></div>
+            </div>
           </div>
+
+          <?php foreach($proposalPriorityWarnings as $proposalWarning): ?>
+            <div class="final-weight-warning"><?php echo h((string)$proposalWarning); ?></div>
+          <?php endforeach; ?>
+
           <?php if($proposalWeighting || $proposalYearWeighting): ?>
-            <div class="final-weight-breakdown" style="margin-top:12px">
-              <div class="final-weight-breakdown-head">
-                <strong>So entsteht der Notenvorschlag</strong>
-                <a class="small" href="<?php echo h($bp); ?>/teacher/manage.php?<?php echo h($weightManageQuery); ?>">Gewichtung bearbeiten</a>
-              </div>
+            <details class="accordion final-proposal-details" style="margin-top:12px">
+              <summary><span class="acc-title">Berechnung und Gewichtung des Notenvorschlags anzeigen</span></summary>
+              <div class="acc-body final-weight-breakdown">
+                <div class="final-weight-breakdown-head">
+                  <strong>Rechnerische Grundlage</strong>
+                  <a class="small" href="<?php echo h($bp); ?>/teacher/manage.php?<?php echo h($weightManageQuery); ?>">Gewichtung bearbeiten</a>
+                </div>
+                <div class="small muted"><?php echo h((string)$proposal['explanation']); ?></div>
               <?php if(!empty($proposalWeighting['configured_label'])): ?>
                 <div class="small muted"><strong>Eingestellt:</strong> <?php echo h((string)$proposalWeighting['configured_label']); ?></div>
               <?php endif; ?>
@@ -784,16 +835,9 @@ render_header('Abschlussbeurteilung', $u);
                 <div class="final-weight-warning"><?php echo h((string)$proposalWarning); ?></div>
               <?php endforeach; ?>
               <div class="small muted">Die Gewichtung ist eine Berechnungshilfe. Die finale Note wird ausschließlich von der Lehrkraft festgelegt.</div>
-            </div>
+              </div>
+            </details>
           <?php endif; ?>
-          <div class="final-decision-participation-summary">
-            <strong>Mitarbeitstendenz:</strong>
-            <span class="final-count-chip final-count-positive">positiv <?php echo (int)$summary['positive_count']; ?></span>
-            <span class="final-count-chip final-count-neutral">neutral <?php echo (int)$summary['neutral_count']; ?></span>
-            <span class="final-count-chip final-count-negative">negativ <?php echo (int)$summary['negative_count']; ?></span>
-            <span class="final-trend-inline <?php echo h($summary['quality']['tone']); ?>"><?php echo h($summary['quality']['label']); ?></span>
-            <?php if($lowParticipationCount): ?><span class="final-low-data-badge">zu wenige Einträge</span><?php endif; ?>
-          </div>
           <?php if(legal_hints_enabled($u)): ?>
             <details class="accordion final-legal-hints" style="margin-top:12px">
               <summary><span class="acc-title">Gesetzeshinweise</span></summary>

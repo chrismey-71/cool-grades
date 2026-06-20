@@ -42,7 +42,7 @@ Wichtig ist vor allem:
 
 **Besondere mündliche Leistungsfeststellungen** und **besondere schriftliche Leistungsfeststellungen** bilden formellere Leistungssituationen ab. Sie werden getrennt geführt, damit im Rückblick erkennbar bleibt, worauf sich eine Beobachtung oder Bewertung bezieht.
 
-**Auswertungen** fassen die gespeicherten Einträge später pro Schüler:in zusammen. Sie zeigen Datenlage, Tendenzen, besondere Leistungen und einen transparenten Notenvorschlag für die Mitarbeit. Die Auswertung unterstützt die Beurteilung, legt sie aber nicht endgültig fest.
+**Auswertungen** fassen die gespeicherten Einträge später pro Schüler:in zusammen. Sie zeigen Datenlage, Tendenzen, besondere Leistungen und einen transparenten Mitarbeitsnotenvorschlag. Die Auswertung unterstützt die Beurteilung, legt sie aber nicht endgültig fest.
 
 ## 2. Erste Orientierung in der App
 
@@ -1192,7 +1192,7 @@ Wirkung:
 
 ### 8.5 Gewichtung für Notenvorschläge
 
-Unter **Verwaltung → Gewichtung für Notenvorschläge** wählen Sie zuerst Schuljahr sowie Klasse und Fach. Die Einstellung gehört damit zu Ihrer konkreten Unterrichtszuordnung; sie verändert weder Gewichtungen anderer Lehrkräfte noch historische Abschlussnoten.
+Unter **Verwaltung → Gewichtung für Notenvorschläge** öffnen Sie zunächst das gleichnamige Accordion und wählen danach Schuljahr sowie Klasse und Fach. Der Bereich ist standardmäßig geschlossen, damit die häufig verwendeten Verwaltungsfunktionen im Vordergrund bleiben. Die Einstellung gehört zu Ihrer konkreten Unterrichtszuordnung; sie verändert weder Gewichtungen anderer Lehrkräfte noch historische Abschlussnoten.
 
 Für alle Beurteilungsmodelle können Sie drei Bereiche gewichten:
 
@@ -1338,7 +1338,7 @@ Die Haupttabelle zeigt pro Schüler:in unter anderem:
 - besondere mündliche Leistungen
 - besondere schriftliche Leistungen
 - Kommentare / Auffälligkeiten
-- Notenvorschlag Mitarbeit
+- Mitarbeitsnotenvorschlag
 - pädagogischen Hinweis
 
 ### Wie wird die Datenlage gelesen?
@@ -1397,9 +1397,9 @@ Wirkung:
 - Mitarbeit bleibt als eigener Bereich lesbar
 - besondere Leistungen ergänzen das Bild, ohne in die reine Mitarbeitsliste „hineinzurutschen“
 
-### Was bedeutet der Notenvorschlag Mitarbeit?
+### Was bedeutet der Mitarbeitsnotenvorschlag?
 
-Der Notenvorschlag bezieht sich ausdrücklich auf die **dokumentierte Mitarbeit** im gewählten Zeitraum. Er ist eine transparente Entscheidungshilfe.
+Der Mitarbeitsnotenvorschlag bezieht sich ausdrücklich auf die **dokumentierte Mitarbeit** im gewählten Zeitraum. Er ist eine transparente Entscheidungshilfe. Davon zu unterscheiden ist der gewichtete **Notenvorschlag** in der Abschlussbeurteilung, der zusätzlich besondere mündliche und schriftliche Leistungsfeststellungen berücksichtigt.
 
 Wirkung:
 
@@ -1465,7 +1465,7 @@ Die Übersicht zeigt je Schüler:in eine Zeile mit:
 
 - Klasse und Fach,
 - dem fachlich passenden Beurteilungszeitraum,
-- dem beim Speichern festgehaltenen Notenvorschlag,
+- dem aktuell aus den vorhandenen Leistungsbereichen berechneten Notenvorschlag,
 - der gespeicherten Note,
 - dem Bearbeitungsstand `noch offen`, `Entwurf` oder `final gespeichert`,
 - dem Zeitpunkt der letzten Änderung.
@@ -1487,7 +1487,9 @@ Die Übersicht zeigt je Schüler:in eine Zeile mit:
 
 **Bearbeitungsstand** erlaubt die gezielte Kontrolle von offenen Beurteilungen, Entwürfen oder final gespeicherten Noten. Die Kennzahlen oberhalb der Tabelle beziehen sich weiterhin auf den gesamten gewählten Klassen-/Fachbereich, damit der Gesamtfortschritt erkennbar bleibt.
 
-Mit **Öffnen** wechseln Sie direkt zur Abschlussbeurteilung der betreffenden Schüler:in. Dort kann die Note geprüft, als Entwurf gespeichert oder final festgelegt werden.
+Die vier Kennzahlen `Beurteilungen gesamt`, `Final gespeichert`, `Entwürfe` und `Noch offen` sind direkt anklickbar. Ein Klick setzt denselben Bearbeitungsstand-Filter wie das Auswahlfeld.
+
+Mit einem Klick auf den **Schüler:innennamen** oder auf **Öffnen** wechseln Sie direkt zur Abschlussbeurteilung mit bereits ausgewählter Klasse, Fach, Zeitraum und Schüler:in. Dort kann die Note geprüft, als Entwurf gespeichert oder final festgelegt werden.
 
 #### PDF-Gesamtübersicht
 
@@ -1497,9 +1499,9 @@ Mit **Öffnen** wechseln Sie direkt zur Abschlussbeurteilung der betreffenden Sc
 - Gesamtzahlen zu finalen, als Entwurf gespeicherten und offenen Beurteilungen,
 - eine Verteilung der bereits gespeicherten Noten,
 - getrennte Abschnitte je Klasse und Fach,
-- je Schüler:in Notenvorschlag, gespeicherte Note, Status, Kommentar und Änderungsdatum.
+- je Schüler:in zuerst Status und Änderungsdatum, danach deutlich hervorgehoben die gespeicherte Note, den zurückhaltender dargestellten Notenvorschlag und den Kommentar.
 
-Webansicht und PDF verwenden dieselbe Datenquelle. Die Übersicht berechnet keine neue Note und verändert keine Abschlussbeurteilung. Der Notenvorschlag bleibt eine pädagogische Entscheidungshilfe; die finale Note wird in der Abschlussbeurteilung bewusst durch die Lehrkraft festgelegt.
+Webansicht und PDF verwenden dieselbe gewichtete Berechnungslogik wie die einzelne Abschlussbeurteilung. Der aktuelle Notenvorschlag wird für die Anzeige neu aus Mitarbeit, besonderen mündlichen und schriftlichen Leistungsfeststellungen gebildet. Diese Berechnung verändert keine gespeicherte Abschlussbeurteilung. Die finale Note wird weiterhin ausschließlich in der Abschlussbeurteilung bewusst durch die Lehrkraft festgelegt.
 
 ### Welche Auswahlfelder gibt es?
 
@@ -1607,6 +1609,7 @@ Wirkung:
 
 - Die Lehrkraft sieht zuerst die Vorinformationen und erst danach den Entscheidungsbereich.
 - Die finale Entscheidung basiert auf einer klaren, nachvollziehbaren Reihenfolge.
+- Gespeicherte Note, mündliche bzw. schriftliche Beurteilung, Mitarbeitstendenz und Notenvorschlag stehen in jedem Abschnitt an derselben Position rechts oben.
 
 ### Was bedeutet die Datenlage hier?
 
@@ -1632,7 +1635,7 @@ Der **Notenvorschlag** ist eine transparente, gewichtete Entscheidungshilfe. Zun
 
 Für die gemeinsame Berechnung werden qualitative Eindrücke auf eine interne Vorschlagsskala übertragen. Stark positive, positive, neutrale bzw. `unauffällig (~)`, negative und stark negative Eindrücke bilden abgestufte Bereichswerte. `Unauffällig (~)` wirkt dabei neutral und wird nicht als negativ behandelt. Diese internen Bereichswerte sind keine gespeicherten Einzelnoten.
 
-Danach werden die Bereichswerte mit den unter **Verwaltung → Gewichtung für Notenvorschläge** gespeicherten Prozentwerten verbunden. Direkt beim Vorschlag sehen Sie die eingestellte Gewichtung, die wegen fehlender Bereiche tatsächlich verwendete Gewichtung, die Bereichswerte und mögliche Warnhinweise.
+Danach werden die Bereichswerte mit den unter **Verwaltung → Gewichtung für Notenvorschläge** gespeicherten Prozentwerten verbunden. Im Entscheidungsbereich sehen Sie zuerst den Notenvorschlag und eine kompakte Gegenüberstellung von Mitarbeit, besonderer mündlicher und besonderer schriftlicher Leistungsfeststellung. Die genaue Gewichtung, herausgerechnete Bereiche und die Rechenbegründung können bei Bedarf über **Berechnung und Gewichtung des Notenvorschlags anzeigen** aufgeklappt werden.
 
 Im Jahresmodell wird ein Jahresvorschlag zusätzlich aus dem Stand der Schulnachricht und dem restlichen Schuljahr gebildet. Eine final gespeicherte Schulnachricht wird als dokumentierter erster Teilwert verwendet; andernfalls berechnet die App den Stand des ersten Semesters aus dessen Leistungsdaten. SOST und NOST bleiben semesterbezogen und erhalten keine automatisch aus beiden Semestern gebildete Jahresnote.
 

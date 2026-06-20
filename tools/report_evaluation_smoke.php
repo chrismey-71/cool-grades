@@ -46,6 +46,7 @@ smoke_assert_same('none', $basisNone['level'], '0 Einträge müssen als keine Da
 
 $proposalStrong = report_eval_note_proposal(8, 7, array_fill(0, 8, 1), 8, 0, 0, 0);
 smoke_assert_true($proposalStrong['value'] !== null, '8 positive Einträge an 7 Tagen dürfen nicht als "zu wenig Daten" enden.');
+smoke_assert_true(stripos($proposalStrong['label'], 'Mitarbeitsnotenvorschlag') !== false, 'Der reine Mitarbeit-Vorschlag muss eindeutig als Mitarbeitsnotenvorschlag bezeichnet werden.');
 
 $proposalEnough = report_eval_note_proposal(3, 3, [1, 1, 1], 3, 0, 0, 0);
 smoke_assert_true($proposalEnough['value'] !== null, '3 positive Einträge an 3 Tagen müssen einen Vorschlag erlauben.');

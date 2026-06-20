@@ -188,6 +188,21 @@ html[data-theme="dark"] .final-section-decision{
   background:#142419;
   border-left-color:#68a875;
 }
+html[data-theme="dark"] .final-section-result,
+html[data-theme="dark"] .final-decision-evidence{
+  background:#171c23;
+  border-color:#4c556a;
+}
+html[data-theme="dark"] .final-proposal-result{
+  background:linear-gradient(135deg,#17301e,#171c23);
+  border-color:#568f66 !important;
+}
+html[data-theme="dark"] .final-proposal-result .final-signal-value{color:#a9e3ba}
+html[data-theme="dark"] .final-decision-evidence.participation{background:#19291c}
+html[data-theme="dark"] .final-decision-evidence.oral{background:#2d271b}
+html[data-theme="dark"] .final-decision-evidence.written{background:#192832}
+html[data-theme="dark"] .final-decision-evidence-head strong{background:#10151c}
+html[data-theme="dark"] .final-proposal-details > summary{background:#202b23}
 html[data-theme="dark"] .final-signal-card{
   background:linear-gradient(135deg,#171c23,#10151c) !important;
   box-shadow:0 8px 20px rgba(0,0,0,.3);
@@ -365,6 +380,10 @@ html[data-theme="dark"] .final-overview-row-draft{background:#342d1f}
 html[data-theme="dark"] .final-overview-row-open{background:#252a31}
 html[data-theme="dark"] .assessment-weight-panel{
   background:linear-gradient(135deg,#182b1e,#20252c);
+}
+html[data-theme="dark"] .assessment-weight-accordion,
+html[data-theme="dark"] .assessment-weight-accordion > summary{
+  background:#20252c;
   border-color:#477654;
 }
 html[data-theme="dark"] .assessment-weight-legal,

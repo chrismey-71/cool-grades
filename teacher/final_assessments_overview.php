@@ -56,6 +56,9 @@ $query = [
   'subject_id' => $subjectId,
   'status' => $statusFilter,
 ];
+$statusFilterUrl = static function(string $status) use ($bp, $query): string {
+  return $bp.'/teacher/final_assessments_overview.php?'.http_build_query(array_replace($query, ['status'=>$status]));
+};
 
 render_header('Notenübersicht', $u);
 ?>
@@ -146,10 +149,10 @@ render_header('Notenübersicht', $u);
         <?php endif; ?>
 
         <div class="final-overview-stats" style="margin-top:16px">
-          <div class="final-overview-stat total"><span>Beurteilungen gesamt</span><strong><?php echo (int)$stats['total']; ?></strong></div>
-          <div class="final-overview-stat final"><span>Final gespeichert</span><strong><?php echo (int)$stats['final']; ?></strong></div>
-          <div class="final-overview-stat draft"><span>Entwürfe</span><strong><?php echo (int)$stats['draft']; ?></strong></div>
-          <div class="final-overview-stat open"><span>Noch offen</span><strong><?php echo (int)$stats['open']; ?></strong></div>
+          <a class="final-overview-stat final-overview-stat-link total <?php echo $statusFilter==='all'?'is-active':''; ?>" href="<?php echo h($statusFilterUrl('all')); ?>" <?php echo $statusFilter==='all'?'aria-current="page"':''; ?>><span>Beurteilungen gesamt</span><strong><?php echo (int)$stats['total']; ?></strong><small>Alle anzeigen</small></a>
+          <a class="final-overview-stat final-overview-stat-link final <?php echo $statusFilter==='final'?'is-active':''; ?>" href="<?php echo h($statusFilterUrl('final')); ?>" <?php echo $statusFilter==='final'?'aria-current="page"':''; ?>><span>Final gespeichert</span><strong><?php echo (int)$stats['final']; ?></strong><small>Danach filtern</small></a>
+          <a class="final-overview-stat final-overview-stat-link draft <?php echo $statusFilter==='draft'?'is-active':''; ?>" href="<?php echo h($statusFilterUrl('draft')); ?>" <?php echo $statusFilter==='draft'?'aria-current="page"':''; ?>><span>Entwürfe</span><strong><?php echo (int)$stats['draft']; ?></strong><small>Danach filtern</small></a>
+          <a class="final-overview-stat final-overview-stat-link open <?php echo $statusFilter==='open'?'is-active':''; ?>" href="<?php echo h($statusFilterUrl('open')); ?>" <?php echo $statusFilter==='open'?'aria-current="page"':''; ?>><span>Noch offen</span><strong><?php echo (int)$stats['open']; ?></strong><small>Danach filtern</small></a>
         </div>
         <div class="final-overview-progress" aria-label="<?php echo $completion; ?> Prozent final gespeichert" style="--completion:<?php echo $completion; ?>%">
           <div></div>
@@ -170,8 +173,8 @@ render_header('Notenübersicht', $u);
                   <th>Fach</th>
                   <th>Zeitraum</th>
                   <th>Schüler:in</th>
-                  <th>Notenvorschlag</th>
                   <th>Gespeicherte Note</th>
+                  <th>Notenvorschlag</th>
                   <th>Status</th>
                   <th>Aktualisiert</th>
                   <th></th>
@@ -182,8 +185,10 @@ render_header('Notenübersicht', $u);
                   <?php
                     $assessment = $row['assessment'];
                     $grade = ($assessment && $assessment['final_grade'] !== null) ? (int)$assessment['final_grade'] : null;
-                    $proposal = ($assessment && trim((string)($assessment['suggestion_label'] ?? '')) !== '') ? (string)$assessment['suggestion_label'] : '–';
-                    $proposalExplanation = $assessment ? trim((string)($assessment['suggestion_explanation'] ?? '')) : '';
+                    $proposalData = (array)($row['proposal'] ?? []);
+                    $proposal = trim((string)($proposalData['label'] ?? '')) ?: '–';
+                    $proposalExplanation = trim((string)($proposalData['explanation'] ?? ''));
+                    $proposalTone = (string)($proposalData['tone'] ?? 'neutral');
                     $updatedAt = $assessment ? trim((string)($assessment['updated_at'] ?? '')) : '';
                     $editQuery = http_build_query([
                       'school_period_set_id' => $schoolPeriodSetId,
@@ -197,16 +202,15 @@ render_header('Notenübersicht', $u);
                     <td><strong><?php echo h((string)$row['class_name']); ?></strong></td>
                     <td><strong><?php echo h((string)$row['subject_code']); ?></strong><div class="muted small"><?php echo h((string)$row['subject_name']); ?></div></td>
                     <td><?php echo h((string)$row['scope_label']); ?><div class="muted small"><?php echo h((string)$row['assessment_system_label']); ?></div></td>
-                    <td><strong><?php echo h((string)$row['student_name']); ?></strong></td>
-                    <td title="<?php echo h($proposalExplanation); ?>"><?php echo h($proposal); ?><?php if($proposalExplanation !== ''): ?><div class="muted small">Berechnungsgrundlage im gespeicherten Snapshot</div><?php endif; ?></td>
+                    <td><a class="final-overview-student-link" href="<?php echo h($bp); ?>/teacher/final_assessments.php?<?php echo h($editQuery); ?>"><strong><?php echo h((string)$row['student_name']); ?></strong></a></td>
                     <td>
                       <?php if($grade !== null): ?>
-                        <span class="final-overview-grade <?php echo h($gradeTone($grade)); ?>"><?php echo $grade; ?></span>
-                        <span class="small"><?php echo h(final_assessment_grade_label($grade)); ?></span>
+                        <span class="final-overview-grade <?php echo h($gradeTone($grade)); ?>" title="<?php echo h(final_assessment_grade_label($grade)); ?>" aria-label="Gespeicherte Note: <?php echo h(final_assessment_grade_label($grade)); ?>"><?php echo $grade; ?></span>
                       <?php else: ?>
                         <span class="muted">noch nicht festgelegt</span>
                       <?php endif; ?>
                     </td>
+                    <td title="<?php echo h($proposalExplanation); ?>"><span class="final-overview-proposal <?php echo h($proposalTone); ?>"><?php echo h($proposal); ?></span></td>
                     <td><span class="final-overview-status <?php echo h((string)$row['row_status']); ?>"><?php echo h((string)$row['status_label']); ?></span></td>
                     <td><?php echo $updatedAt !== '' ? h(date('d.m.Y H:i', strtotime($updatedAt))) : '<span class="muted">–</span>'; ?></td>
                     <td><a class="btn secondary small" href="<?php echo h($bp); ?>/teacher/final_assessments.php?<?php echo h($editQuery); ?>">Öffnen</a></td>

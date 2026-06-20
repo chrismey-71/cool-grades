@@ -68,6 +68,26 @@ fa_overview_assert_same(1, $overview['stats']['draft'], 'Ein Entwurf muss gezäh
 fa_overview_assert_same(1, $overview['stats']['open'], 'Die Jahresbeurteilung ohne Datensatz muss als offen erscheinen.');
 fa_overview_assert_same('year', $overview['rows'][2]['scope'], 'Im Jahresmodell muss der aktuelle Sommerzeitraum die Jahresbeurteilung verwenden.');
 
+$liveOverview = final_assessment_teacher_overview(
+  $pdo,
+  7,
+  $periodSet,
+  'current',
+  0,
+  0,
+  'all',
+  '2026-05-14',
+  static function(PDO $pdo, int $teacherId, array $periodSet, array $combo): array {
+    $studentId = (int)$combo['class_id'] === 10 ? 1000 : 1002;
+    return ['rows'=>[[
+      'student_id'=>$studentId,
+      'proposal'=>['value'=>1,'label'=>'Notenvorschlag 1','explanation'=>'Live-Gesamtvorschlag','tone'=>'positive'],
+    ]]];
+  }
+);
+fa_overview_assert_same('Notenvorschlag 1', $liveOverview['rows'][0]['proposal']['label'], 'Die Übersicht muss den live berechneten Gesamtnotenvorschlag verwenden.');
+fa_overview_assert_same('live', $liveOverview['rows'][0]['proposal']['source'], 'Ein live berechneter Vorschlag muss als solcher gekennzeichnet sein.');
+
 $finalOnly = final_assessment_teacher_overview($pdo, 7, $periodSet, 'current', 0, 0, 'final', '2026-05-14');
 fa_overview_assert_same(1, count($finalOnly['rows']), 'Der Statusfilter final muss nur finale Zeilen anzeigen.');
 fa_overview_assert_same(3, $finalOnly['stats']['total'], 'Die Fortschrittszahlen müssen trotz Statusfilter den gesamten Bereich abbilden.');

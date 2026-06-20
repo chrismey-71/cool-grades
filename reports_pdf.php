@@ -99,11 +99,11 @@ $pdf->boxedSection(
   [207,214,223]
 );
 $pdf->boxedSection(
-  'Methodik des Mitarbeitsvorschlags',
+  'Methodik des Mitarbeitsnotenvorschlags',
   [
     'Grundlage sind ausschließlich die dokumentierten Mitarbeitseinträge im gewählten Zeitraum.',
     'Ab 3 dokumentierten Tagen oder 3 verwertbaren Einträgen ist eine erste Einschätzung möglich; ab 6 dokumentierten Tagen gilt die Datenbasis in der Regel als gut.',
-    'Bei positiver Tendenz ergibt sich eher ein Vorschlag 1 oder 2, bei gemischter Datenlage eher 3, bei kritischer Tendenz eher 4 oder 5.',
+    'Bei positiver Tendenz ergibt sich eher ein Mitarbeitsnotenvorschlag 1 oder 2, bei gemischter Datenlage eher 3, bei kritischer Tendenz eher 4 oder 5.',
   ],
   [248,250,252],
   [207,214,223]
@@ -143,7 +143,7 @@ foreach($summaries as $summary){
     (int)$summary['participation_count'].' Eintr. · '.(int)($summary['documented_day_count'] ?? count($summary['distinct_dates'])).' Tg. · pos '.$summary['positive_count'].' / neutral '.$summary['neutral_count'].' / neg '.$summary['negative_count'].' · '.$qualityCell.' · '.report_eval_data_basis_level_label($summary['data_basis']),
     $summary['oral_text'],
     $summary['written_text'],
-    'Mitarbeit: '.$summary['note_proposal']['label'].' · Abschluss: '.$finalSuggestion,
+    $summary['note_proposal']['label'].' · Notenvorschlag: '.$finalSuggestion,
     $finalGrade.' · '.$finalStatus,
     $summary['semester_hint'].' · Kriterien: '.$summary['top_criteria'].' · Kommentare: '.$summary['comments_text'],
   ];
@@ -164,7 +164,7 @@ if($student_id && $selectedSummary){
   $proposal = $selectedSummary['note_proposal'];
   $recommendationLines = [
     'Datenbasis: '.report_eval_data_basis_level_label($selectedSummary['data_basis']),
-    'Notenvorschlag Mitarbeit: '.$proposal['label'],
+    $proposal['label'],
     $proposal['explanation'],
     'Hinweis für die Semesterbeurteilung: '.$selectedSummary['semester_hint'],
     'Wichtige Kriterien / Anlässe: '.$selectedSummary['top_criteria'],

@@ -896,6 +896,33 @@ html[data-entry-contrast="high"] .nav a.active{
   position:relative;
   border-left-width:7px;
 }
+.final-section-topline{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:flex-start;
+}
+.final-section-topline > strong{
+  padding-top:7px;
+  font-size:17px;
+}
+.final-section-result{
+  flex:0 0 min(260px,42%);
+  border:2px solid #cbd5df;
+  border-radius:14px;
+  padding:9px 11px;
+  background:#fff;
+  text-align:right;
+}
+.final-section-result .label{
+  display:block;
+  margin-bottom:3px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
 
 /* Cross-class overview of saved final assessments */
 .final-overview-title-row h1{margin-top:0}
@@ -933,6 +960,21 @@ html[data-entry-contrast="high"] .nav a.active{
 }
 .final-overview-stat span{font-size:13px;color:var(--muted);font-weight:800}
 .final-overview-stat strong{font-size:27px;line-height:1}
+.final-overview-stat small{color:var(--muted);font-size:11px;font-weight:800}
+.final-overview-stat-link{
+  color:inherit;
+  text-decoration:none;
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+.final-overview-stat-link:hover,
+.final-overview-stat-link:focus-visible{
+  transform:translateY(-2px);
+  box-shadow:0 9px 22px rgba(31,49,66,.1);
+}
+.final-overview-stat-link.is-active{
+  outline:3px solid rgba(47,111,143,.22);
+  outline-offset:2px;
+}
 .final-overview-stat.final{border-left-color:#2f7a58;background:#eff9f3}
 .final-overview-stat.draft{border-left-color:#b77a18;background:#fff8e8}
 .final-overview-stat.open{border-left-color:#7a8797;background:#f4f6f8}
@@ -974,6 +1016,10 @@ html[data-entry-contrast="high"] .nav a.active{
   background:#e8f1ec;
 }
 .final-overview-table td{vertical-align:middle}
+.final-overview-student-link{color:#245e78;text-decoration-thickness:1px;text-underline-offset:3px}
+.final-overview-proposal{font-size:13px;font-weight:850;color:#5f6978}
+.final-overview-proposal.positive{color:#2f6f4e}
+.final-overview-proposal.critical{color:#944040}
 .final-overview-row-draft{background:#fffaf0}
 .final-overview-row-open{background:#fafbfc}
 .final-overview-grade{
@@ -1006,12 +1052,25 @@ html[data-entry-contrast="high"] .nav a.active{
 
 /* Configurable, teacher-owned weighting for grade suggestions */
 .assessment-weight-panel{
-  border:2px solid #9abfa6;
-  border-left:7px solid #2f6f3a;
-  border-radius:18px;
   padding:16px;
   background:linear-gradient(135deg,#f3faf5,#fff);
-  box-shadow:0 10px 28px rgba(47,111,58,.08);
+}
+.assessment-weight-accordion{
+  border-color:#b9c9be;
+  background:#fbfdfb;
+}
+.assessment-weight-accordion > summary{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  background:#f3f7f4;
+}
+.assessment-weight-accordion[open] > summary{
+  border-bottom:1px solid #cbd8cf;
+}
+.assessment-weight-accordion > .acc-body{
+  padding:0;
 }
 .assessment-weight-heading{
   display:flex;
@@ -1233,6 +1292,57 @@ html[data-entry-contrast="high"] .nav a.active{
   border-left-color:#2f6f3a;
   background:linear-gradient(135deg,#edf8ef,#fff);
 }
+.final-proposal-result{
+  border-color:#5c9670 !important;
+  background:linear-gradient(135deg,#f2fbf4,#fff);
+  box-shadow:0 8px 20px rgba(35,91,51,.1);
+}
+.final-proposal-result .final-signal-value{font-size:23px;color:#1f6436}
+.final-proposal-result.neutral .final-signal-value{color:#4f5968}
+.final-proposal-result.critical .final-signal-value{color:#982929}
+.final-decision-evidence-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.final-decision-evidence{
+  min-width:0;
+  border:1px solid var(--border);
+  border-top:5px solid #708090;
+  border-radius:14px;
+  padding:11px;
+  background:#fff;
+}
+.final-decision-evidence.participation{border-top-color:#4f7d35;background:#f6fbf3}
+.final-decision-evidence.oral{border-top-color:#a87924;background:#fffaf0}
+.final-decision-evidence.written{border-top-color:#2f6f8f;background:#f3f9fc}
+.final-decision-evidence-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:9px;
+  margin-bottom:8px;
+}
+.final-decision-evidence-head span{font-size:12px;font-weight:900;color:#4f5968}
+.final-decision-evidence-head strong{
+  flex:0 0 auto;
+  min-width:42px;
+  padding:4px 8px;
+  border-radius:10px;
+  background:#fff;
+  border:1px solid currentColor;
+  font-size:19px;
+  line-height:1;
+  text-align:center;
+}
+.final-proposal-details > summary{background:#f4f7f5}
+.final-proposal-details .final-weight-breakdown{
+  margin:0;
+  border:0;
+  border-radius:0;
+  padding:0;
+  background:transparent;
+}
 .final-signal-card{
   border-width:2px !important;
   background:linear-gradient(135deg,#fff,#f8fbff) !important;
@@ -1354,4 +1464,9 @@ html[data-entry-contrast="high"] .nav a.active{
   color:#224f2d;
   font-size:13px;
   font-weight:800;
+}
+@media (max-width:840px){
+  .final-section-topline{flex-direction:column}
+  .final-section-result{width:100%;flex-basis:auto;text-align:left}
+  .final-decision-evidence-grid{grid-template-columns:1fr}
 }

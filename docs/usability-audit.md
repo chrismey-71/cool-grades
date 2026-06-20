@@ -189,7 +189,7 @@ Gut gelöst:
 | Die Auswertung enthält pro Schüler:in eine zusammenfassende Tabelle statt reiner Ereignisliste. | Sehr guter Schritt für Semesterentscheidungen. |
 | Datenlage, dokumentierte Tage, positiv/neutral/negativ, Qualität, Kriterien, besondere Leistungen und Hinweise werden gemeinsam sichtbar. | Fachlich aussagekräftig. |
 | Schularbeitsfachstatus wird als Kontext angezeigt. | Korrekt, weil er die Interpretation beeinflusst. |
-| „So entsteht der Notenvorschlag Mitarbeit“ ist einklappbar. | Transparenz ohne dauerhafte Überladung. |
+| „So entsteht der Mitarbeitsnotenvorschlag“ ist einklappbar. | Transparenz ohne dauerhafte Überladung. |
 | Einzelne Schüler:innen können für Details gefiltert werden. | Unterstützt gezielte Nachprüfung. |
 | Druckansicht und echter PDF-Download existieren. | Praktisch für Dokumentation. |
 
@@ -199,7 +199,7 @@ Unklar oder verbesserbar:
 |---|---|---|
 | Die Haupttabelle ist horizontal sehr breit. | Auf Laptop oder Tablet schwer lesbar. | In Webansicht Karten/Accordion je Schüler:in prüfen; PDF kann tabellarisch bleiben. |
 | „Noch dünn“, „ausreichend“ und „gute Datenbasis“ wirken wie Bewertungslabels. | Könnte als Aussage über Schüler:in statt Datenbasis verstanden werden. | Label klarer: „Datenbasis: dünn“, „Datenbasis: ausreichend“, „Datenbasis: gut“. |
-| Die Spalte „Notenvorschlag Mitarbeit“ kann mit finaler Note verwechselt werden. | Risiko falscher Interpretation. | Spaltenkopf: „Mitarbeits-Tendenz / Vorschlag“. |
+| Die Spalte „Mitarbeitsnotenvorschlag“ kann mit finaler Note verwechselt werden. | Risiko falscher Interpretation. | Klare Trennung zwischen „Mitarbeitsnotenvorschlag“ und gewichtetem „Notenvorschlag“. |
 | „Drucken / PDF (A4)“ und „PDF herunterladen“ stehen nebeneinander. | Unterschied unklar. | Umbenennen in „Druckansicht öffnen“ und „PDF-Datei herunterladen“. |
 
 Fehlerquellen:
@@ -315,7 +315,7 @@ Fehlerquellen:
 | Bei finaler Note direkt Hilfetext ergänzen: „Für Entwurf optional, für final verpflichtend.“ | niedrig | niedrig | Reduziert Speicherfehler. |
 | Konto-Einstellungen mit Wirkungschips ergänzen: „nur Ansicht“, „Erfassung“, „Auswertung“. | niedrig | niedrig | Lehrkräfte verstehen Folgen schneller. |
 | In der Mitarbeitserfassung unter „Leistungsart“ ergänzen: „Mehrfachauswahl erscheint später in Auswertung/PDF.“ | niedrig | niedrig | Bessere Bedeutung der Auswahl. |
-| In der Auswertung den Accordion-Titel „So entsteht der Notenvorschlag Mitarbeit“ ändern in „Schwellenwerte und Datenlage erklären“. | niedrig | niedrig | Bessere Auffindbarkeit der Erklärung. |
+| In der Auswertung den Accordion-Titel „So entsteht der Mitarbeitsnotenvorschlag“ verwenden. | niedrig | niedrig | Bessere Auffindbarkeit und eindeutige Abgrenzung. |
 | In Abschlussbeurteilung bei Jahresmodus Abschnitt „1. Überblick 1. Semester“ zu „Semesterüberblick“ ändern. | niedrig | niedrig | Verhindert Irritation bei Jahresbeurteilung. |
 | In besonderer schriftlicher Leistung erklären: „Leere Note = keine Bewertung für diese Schüler:in speichern.“ | niedrig | niedrig | Weniger Eingabefehler. |
 | Bei Presets „Preset wählen“ in „Preset anwenden“ oder mit Button absichern. | mittel | niedrig | Weniger überraschende Formularänderungen. |
@@ -487,4 +487,3 @@ Fehlerquellen:
 | Lösch- und Archivierungslogik bei Kriterien/Picklisten | Alte Einträge müssen nachvollziehbar bleiben. |
 | Vereinfachte Eingabe als Standard | UX-seitig sinnvoll, aber pädagogisch und organisatorisch vorher bestätigen. |
 | Preset-Anwendung per Auto-Submit | Eine Änderung verbessert Kontrolle, kann aber bestehenden schnellen Workflow verändern. |
-

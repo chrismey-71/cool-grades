@@ -22,7 +22,7 @@ $rows = [
     'oral' => '2: positiv (+), positiv (+)',
     'written' => '3: SA 2, Test 2+, Auftrag 1',
     'comments' => 'arbeitet verlässlich mit | starke Sicherungsphase',
-    'proposal' => 'Vorschlag 1',
+    'proposal' => 'Mitarbeitsnotenvorschlag 1',
     'semester' => 'stabile positive Mitarbeit · Schularbeitsleistungen gesondert berücksichtigen',
     'row_class' => '',
     'basis_tone' => 'positive',
@@ -41,7 +41,7 @@ $rows = [
     'oral' => '1: neutral',
     'written' => '1: Wdh. 3',
     'comments' => 'kurze Unsicherheit bei Transfer',
-    'proposal' => 'Vorschlag 2',
+    'proposal' => 'Mitarbeitsnotenvorschlag 2',
     'semester' => 'Gesamtbild pädagogisch würdigen',
     'row_class' => '',
     'basis_tone' => 'positive',
@@ -79,7 +79,7 @@ $rows = [
     'oral' => '1: negativ (-)',
     'written' => '2: Test 4, Sonst. 4-',
     'comments' => 'mehrere Lücken in Sicherungsphasen',
-    'proposal' => 'Vorschlag 4',
+    'proposal' => 'Mitarbeitsnotenvorschlag 4',
     'semester' => 'kritische Mitarbeitslage · schriftliche Sonderleistung schwach',
     'row_class' => 'report-row-critical',
     'basis_tone' => 'positive',
@@ -101,7 +101,7 @@ $html .= '<div class="card"><h1>Auswertungen</h1><div class="muted"><b>Filter:</
 $html .= '<div class="report-focus-block"><strong>Fachstatus</strong><div class="muted" style="margin-top:6px">Fach: <b>RWCO – Rechnungswesen und Controlling</b> · Schularbeitsfach: <span class="report-chip neutral">Ja</span></div><div class="muted" style="margin-top:8px">Hinweis: Dieses Fach ist als Schularbeitsfach gekennzeichnet. Schularbeitsleistungen sind bei der abschließenden Beurteilung gesondert zu berücksichtigen.</div></div>';
 $html .= '<div class="report-focus-block"><strong>LBV-orientierte Entscheidungshilfe</strong><div class="muted" style="margin-top:6px">Die Auswertung unterstützt die Beurteilung auf Basis der erfassten Mitarbeit und besonderer Leistungsfeststellungen. Die endgültige Note wird nicht automatisch festgelegt, sondern bleibt eine pädagogische Entscheidung der Lehrkraft gemäß LBV.</div></div>';
 $html .= '<div style="height:14px"></div><h2>Zusammenfassende Auswertung pro Schüler:in</h2><div class="muted">Die Haupttabelle bündelt Mitarbeit, besondere mündliche und besondere schriftliche Leistungsfeststellungen zu einer kompakten Entscheidungsgrundlage.</div>';
-$html .= '<table class="table report-summary-table" style="margin-top:12px"><thead><tr><th>Schüler:in</th><th>Anzahl Mitarbeit</th><th>positiv / neutral / negativ</th><th>Qualität der Mitarbeit</th><th>Wichtige Kriterien</th><th>Bes. mündlich</th><th>Bes. schriftlich</th><th>Kommentare / Auffälligkeiten</th><th>Notenvorschlag Mitarbeit</th><th>Hinweis Semesterbeurteilung</th></tr></thead><tbody>';
+$html .= '<table class="table report-summary-table" style="margin-top:12px"><thead><tr><th>Schüler:in</th><th>Anzahl Mitarbeit</th><th>positiv / neutral / negativ</th><th>Qualität der Mitarbeit</th><th>Wichtige Kriterien</th><th>Bes. mündlich</th><th>Bes. schriftlich</th><th>Kommentare / Auffälligkeiten</th><th>Mitarbeitsnotenvorschlag</th><th>Hinweis Semesterbeurteilung</th></tr></thead><tbody>';
 foreach($rows as $row){
   $html .= '<tr class="'.h($row['row_class']).'">';
   $html .= '<td><strong>'.h($row['student']).'</strong></td>';
@@ -117,7 +117,7 @@ foreach($rows as $row){
   $html .= '</tr>';
 }
 $html .= '</tbody></table>';
-$html .= '<div class="report-focus-block report-recommendation"><h2 style="margin-top:0">Kurz-Auswertung &amp; Empfehlung</h2><div class="muted">Datenlage: <b>gute Datenbasis</b>. 8 Einträge an 7 Tagen · positiv 8 / neutral 0 / negativ 0 · Durchschnitt 1,25. Notenvorschlag Mitarbeit: <b>Vorschlag 1</b>. Hinweis für die Semesterbeurteilung: <b>stabile positive Mitarbeit · Schularbeitsleistungen gesondert berücksichtigen</b>.</div></div>';
+$html .= '<div class="report-focus-block report-recommendation"><h2 style="margin-top:0">Kurz-Auswertung &amp; Empfehlung</h2><div class="muted">Datenlage: <b>gute Datenbasis</b>. 8 Einträge an 7 Tagen · positiv 8 / neutral 0 / negativ 0 · Durchschnitt 1,25. Mitarbeitsnotenvorschlag: <b>Mitarbeitsnotenvorschlag 1</b>. Hinweis für die Semesterbeurteilung: <b>stabile positive Mitarbeit · Schularbeitsleistungen gesondert berücksichtigen</b>.</div></div>';
 $html .= '</div></body></html>';
 
 $htmlPath = $outputDir . '/cool-grades-report-preview-v1.54.html';
@@ -135,7 +135,7 @@ $pdf->kvGrid([
 ]);
 $pdf->boxedSection('Fachstatus', ['Hinweis: Dieses Fach ist als Schularbeitsfach gekennzeichnet. Schularbeitsleistungen sind bei der abschließenden Beurteilung gesondert zu berücksichtigen.'], [248,250,252], [207,214,223]);
 $pdf->heading('Haupttabelle', 14);
-$headers = ['Schüler:in','Mitarb.','+ / = / -','Qualität','Kriterien','Bes. mündl.','Bes. schriftl.','Kommentare / Auffälligkeiten','Vorschlag','Semesterhilfe'];
+$headers = ['Schüler:in','Mitarb.','+ / = / -','Qualität','Kriterien','Bes. mündl.','Bes. schriftl.','Kommentare / Auffälligkeiten','Mitarbeitsvorschlag','Semesterhilfe'];
 $widths = [95,42,50,70,90,72,72,110,60,112];
 $pdfRows = [];
 foreach($rows as $row){

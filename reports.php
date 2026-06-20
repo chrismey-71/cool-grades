@@ -252,12 +252,12 @@ else render_header('Auswertungen',$u);
 
 <?php if(!$is_print): ?>
   <details class="accordion" style="margin-top:12px">
-    <summary><span class="acc-title">So entsteht der Notenvorschlag Mitarbeit</span></summary>
+    <summary><span class="acc-title">So entsteht der Mitarbeitsnotenvorschlag</span></summary>
     <div class="acc-body">
       <div class="muted">
         Der Vorschlag berücksichtigt nur die dokumentierte Mitarbeit im gewählten Zeitraum: Anzahl der Einträge, Verteilung positiv/neutral/negativ, zeitliche Streuung sowie die zusammengefasste Eindruckstendenz.
         <br>Ab 3 dokumentierten Tagen oder 3 verwertbaren Einträgen ist eine erste Einschätzung möglich; ab 6 dokumentierten Tagen gilt die Datenbasis in der Regel als gut.
-        <br>Schwellen für den Mitarbeitsvorschlag: sehr stark positiv = eher 1, überwiegend positiv = eher 2, gemischt = eher 3, kritisch = eher 4, deutlich kritisch = eher 5.
+        <br>Schwellen für den Mitarbeitsnotenvorschlag: sehr stark positiv = eher 1, überwiegend positiv = eher 2, gemischt = eher 3, kritisch = eher 4, deutlich kritisch = eher 5.
         <br>Besondere mündliche und schriftliche Leistungen werden getrennt ausgewiesen und nur als Entscheidungshilfe für das Gesamtbild herangezogen.
       </div>
     </div>
@@ -287,7 +287,7 @@ else render_header('Auswertungen',$u);
 <div style="height:14px"></div>
 <h2>Zusammenfassende Auswertung pro Schüler:in</h2>
 <div class="muted">
-  Die Haupttabelle bündelt Mitarbeit, besondere mündliche und besondere schriftliche Leistungsfeststellungen zu einer kompakten Entscheidungsgrundlage. Der Notenvorschlag ist bewusst nur ein transparenter Hinweis und ersetzt keine pädagogische Endentscheidung.
+  Die Haupttabelle bündelt Mitarbeit, besondere mündliche und besondere schriftliche Leistungsfeststellungen zu einer kompakten Entscheidungsgrundlage. Mitarbeitsnotenvorschlag und gewichteter Notenvorschlag sind transparente Entscheidungshilfen und ersetzen keine pädagogische Endentscheidung.
 </div>
 
 <?php if(!$studentSummaries): ?>
@@ -338,8 +338,8 @@ else render_header('Auswertungen',$u);
             <td><?php echo h($summary['oral_text']); ?></td>
             <td><?php echo h($summary['written_text']); ?></td>
             <td>
-              Mitarbeit: <?php echo h($summary['note_proposal']['label']); ?><br>
-              Abschluss: <?php echo h($finalSuggestionText); ?>
+              <?php echo h($summary['note_proposal']['label']); ?><br>
+              Notenvorschlag: <?php echo h($finalSuggestionText); ?>
             </td>
             <td><?php echo h($finalGradeText); ?><br><span class="muted"><?php echo h($finalStatusText); ?></span></td>
             <td><?php echo h($summary['semester_hint']); ?></td>
@@ -386,8 +386,8 @@ else render_header('Auswertungen',$u);
             </span>
             <span class="report-row-cell">
               <span class="report-row-label">Vorschläge</span>
-              <span class="report-chip <?php echo h($summary['note_proposal']['tone']); ?>">Mitarbeit: <?php echo h($summary['note_proposal']['label']); ?></span>
-              <span class="report-mini-note">Abschluss: <?php echo h($finalSuggestionText); ?></span>
+              <span class="report-chip <?php echo h($summary['note_proposal']['tone']); ?>"><?php echo h($summary['note_proposal']['label']); ?></span>
+              <span class="report-mini-note">Notenvorschlag: <?php echo h($finalSuggestionText); ?></span>
             </span>
             <span class="report-row-cell">
               <span class="report-row-label">Endnote</span>
@@ -402,8 +402,8 @@ else render_header('Auswertungen',$u);
               <div class="item"><span class="label">Wichtige Kriterien</span><strong><?php echo h($summary['top_criteria']); ?></strong></div>
               <div class="item"><span class="label">Besondere mündliche Leistungen</span><strong><?php echo h($summary['oral_text']); ?></strong></div>
               <div class="item"><span class="label">Besondere schriftliche Leistungen</span><strong><?php echo h($summary['written_text']); ?></strong></div>
-              <div class="item"><span class="label">Notenvorschlag Mitarbeit</span><strong><?php echo h($summary['note_proposal']['label']); ?></strong><div class="muted"><?php echo h($summary['note_proposal']['explanation']); ?></div></div>
-              <div class="item"><span class="label">Abschlussvorschlag / Endnote</span><strong><?php echo h($finalSuggestionText); ?> · <?php echo h($finalGradeText); ?></strong><div class="muted"><?php echo h($finalStatusText); ?></div></div>
+              <div class="item"><span class="label">Mitarbeitsnotenvorschlag</span><strong><?php echo h($summary['note_proposal']['label']); ?></strong><div class="muted"><?php echo h($summary['note_proposal']['explanation']); ?></div></div>
+              <div class="item"><span class="label">Notenvorschlag / gespeicherte Note</span><strong><?php echo h($finalSuggestionText); ?> · <?php echo h($finalGradeText); ?></strong><div class="muted"><?php echo h($finalStatusText); ?></div></div>
               <div class="item"><span class="label">Kommentare / Auffälligkeiten</span><strong><?php echo h($summary['comments_text']); ?></strong></div>
             </div>
             <div class="muted" style="margin-top:10px"><strong>Entscheidungshilfe:</strong> <?php echo h($summary['semester_hint']); ?> · <?php echo h($summary['note_proposal']['explanation']); ?></div>
@@ -901,7 +901,7 @@ else render_header('Auswertungen',$u);
           <?php
             echo 'Datenbasis: <b>'.h(report_eval_data_basis_level_label($selectedStudentSummary['data_basis'])).'</b>. ';
             echo h($selectedStudentSummary['note_proposal']['explanation']).'. ';
-            echo 'Notenvorschlag Mitarbeit: <b>'.h($selectedStudentSummary['note_proposal']['label']).'</b>. ';
+            echo '<b>'.h($selectedStudentSummary['note_proposal']['label']).'</b>. ';
             echo 'Wichtige Kriterien: <b>'.h($selectedStudentSummary['top_criteria']).'</b>. ';
             echo 'Hinweis für die Semesterbeurteilung: <b>'.h($selectedStudentSummary['semester_hint']).'</b>.';
           ?>

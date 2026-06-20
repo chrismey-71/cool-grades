@@ -293,12 +293,7 @@ function report_eval_note_proposal(int $count, int $distinctDates, array $scores
   }
 
   $tone = $value <= 2 ? 'positive' : ($value >= 4 ? 'critical' : 'neutral');
-  $label = 'Vorschlag '.(string)$value;
-  if($value === 1) $label = 'Vorschlag 1';
-  elseif($value === 2) $label = 'Vorschlag 2';
-  elseif($value === 3) $label = 'Vorschlag 3';
-  elseif($value === 4) $label = 'Vorschlag 4';
-  elseif($value === 5) $label = 'Vorschlag 5';
+  $label = 'Mitarbeitsnotenvorschlag '.(string)$value;
 
   $explanation = sprintf(
     '%d Einträge an %d Tagen · positiv %d / neutral %d / negativ %d · Durchschnitt %s',

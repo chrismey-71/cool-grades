@@ -96,24 +96,23 @@ if(empty($overview['groups'])){
     foreach($group['rows'] as $row){
       $assessment = $row['assessment'];
       $grade = ($assessment && $assessment['final_grade'] !== null) ? (int)$assessment['final_grade'] : null;
-      $proposal = ($assessment && trim((string)($assessment['suggestion_label'] ?? '')) !== '')
-        ? (string)$assessment['suggestion_label']
-        : '–';
+      $proposalData = (array)($row['proposal'] ?? []);
+      $proposal = trim((string)($proposalData['label'] ?? '')) ?: '–';
       $comment = $assessment ? report_eval_clip((string)($assessment['teacher_comment'] ?? ''), 95) : '';
       $updated = $assessment ? trim((string)($assessment['updated_at'] ?? '')) : '';
       $tableRows[] = [
         (string)$row['student_name'],
-        $proposal,
-        $grade !== null ? final_assessment_grade_label($grade) : 'noch nicht festgelegt',
         (string)$row['status_label'],
-        $comment !== '' ? $comment : '–',
         $updated !== '' ? date('d.m.Y', strtotime($updated)) : '–',
+        $grade !== null ? 'NOTE '.$grade.' · '.final_assessment_grade_label($grade) : 'noch nicht festgelegt',
+        $proposal,
+        $comment !== '' ? $comment : '–',
       ];
     }
     $pdf->table(
-      ['Schüler:in','Notenvorschlag','Gespeicherte Note','Status','Begründung / Kommentar','Aktualisiert'],
+      ['Schüler:in','Status','Aktualisiert','GESPEICHERTE NOTE','Notenvorschlag (Hilfe)','Begründung / Kommentar'],
       $tableRows,
-      [145,105,115,85,245,70],
+      [150,85,72,120,105,233],
       [
         'header_size' => 8,
         'body_size' => 8,

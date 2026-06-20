@@ -112,6 +112,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && $weightError!==''){
   }
 }
 $displayWeight=static fn($value): string => number_format((float)$value,abs((float)$value-round((float)$value))<0.001?0:1,'.','');
+$weightAccordionOpen = $weightMsg !== '' || $weightError !== '' || !empty($_GET['open_weights']) || $_SERVER['REQUEST_METHOD']==='POST';
 
 render_header('Verwaltung',$u);
 ?>
@@ -121,14 +122,16 @@ render_header('Verwaltung',$u);
       <h1>Verwaltung</h1>
       <p class="muted">Hier verwalten Sie Ihre Kriterien, Picklisten, Presets, Gruppen und die Berechnungshilfe für Notenvorschläge getrennt von der eigentlichen Eingabe.</p>
 
-      <div class="assessment-weight-panel" style="margin-top:14px">
-        <div class="assessment-weight-heading">
-          <div>
-            <h2 style="margin:0">Gewichtung für Notenvorschläge</h2>
-            <div class="muted" style="margin-top:5px">Die Einstellung gilt für Ihre ausgewählte Klasse-Fach-Zuordnung im gewählten Schuljahr.</div>
+      <details class="accordion assessment-weight-accordion" style="margin-top:14px" <?php echo $weightAccordionOpen?'open':''; ?>>
+        <summary>
+          <span class="acc-title">Gewichtung für Notenvorschläge</span>
+          <span class="small muted">Optionale Berechnungshilfe je Klasse und Fach</span>
+        </summary>
+        <div class="acc-body assessment-weight-panel">
+          <div class="assessment-weight-heading">
+            <div class="muted">Die Einstellung gilt für Ihre ausgewählte Klasse-Fach-Zuordnung im gewählten Schuljahr.</div>
+            <span class="report-chip neutral">Berechnungshilfe</span>
           </div>
-          <span class="report-chip neutral">Berechnungshilfe</span>
-        </div>
 
         <div class="assessment-weight-legal" style="margin-top:12px">
           <strong>Hinweis zur Gewichtung</strong>
@@ -239,7 +242,8 @@ render_header('Verwaltung',$u);
         <?php else: ?>
           <div class="flash" style="margin-top:12px">Für das gewählte Schuljahr ist keine Klasse-Fach-Zuordnung vorhanden.</div>
         <?php endif; ?>
-      </div>
+        </div>
+      </details>
 
       <div class="grid" style="margin-top:14px">
         <div class="col-12 col-md-3">

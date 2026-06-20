@@ -223,7 +223,7 @@ function assessment_weight_area_values(array $summary): array {
       'count' => (int)($summary['participation_count'] ?? 0),
       'kind' => 'Eindruck/Relevanz',
       'basis' => $participationValue !== null
-        ? 'qualitativ verdichteter Mitarbeit-Vorschlag '.assessment_weight_grade_format($participationValue)
+        ? 'qualitativ verdichteter Mitarbeitsnotenvorschlag '.assessment_weight_grade_format($participationValue)
         : 'keine ausreichend belastbare Mitarbeitstendenz',
     ],
     'oral' => [

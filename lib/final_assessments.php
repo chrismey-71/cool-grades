@@ -113,7 +113,8 @@ function final_assessment_overview_status_label(?array $assessment): string {
 
 /**
  * Builds the cross-class overview from one shared data source for web and PDF.
- * Saved proposals are snapshots; open rows deliberately do not receive a newly calculated grade.
+ * The displayed proposal is calculated live with the same weighted logic as the
+ * single-student workflow. Saved snapshots remain a resilient fallback only.
  */
 function final_assessment_teacher_overview(
   PDO $pdo,
@@ -123,7 +124,8 @@ function final_assessment_teacher_overview(
   int $classId = 0,
   int $subjectId = 0,
   string $statusFilter = 'all',
-  ?string $date = null
+  ?string $date = null,
+  ?callable $proposalLoader = null
 ): array {
   $periodSetId = (int)($periodSet['id'] ?? 0);
   $period = final_assessment_overview_period_normalize($period);
@@ -221,6 +223,30 @@ function final_assessment_teacher_overview(
     $assessmentMap[$assessmentKey] = $assessment;
   }
 
+  $proposalMap = [];
+  foreach($combinations as $comboKey => $combo){
+    try{
+      $proposalData = $proposalLoader
+        ? $proposalLoader($pdo, $teacherId, $periodSet, $combo)
+        : final_assessment_build_rows(
+            $pdo,
+            (int)$combo['class_id'],
+            (int)$combo['subject_id'],
+            $periodSet,
+            (string)$combo['scope'],
+            $teacherId
+          );
+      $proposalRows = isset($proposalData['rows']) ? (array)$proposalData['rows'] : (array)$proposalData;
+      foreach($proposalRows as $proposalRow){
+        $studentId = (int)($proposalRow['student_id'] ?? 0);
+        if($studentId <= 0) continue;
+        $proposalMap[$comboKey.':'.$studentId.':'.(string)$combo['scope']] = (array)($proposalRow['proposal'] ?? []);
+      }
+    }catch(Throwable $e){
+      // Older or partially migrated installations still show saved snapshots.
+    }
+  }
+
   $allRows = [];
   $stats = ['total'=>0,'open'=>0,'draft'=>0,'final'=>0,'saved_grades'=>0,'grade_counts'=>[1=>0,2=>0,3=>0,4=>0,5=>0]];
   foreach($studentRows as $student){
@@ -229,6 +255,20 @@ function final_assessment_teacher_overview(
     $scope = $scopeByCombination[$comboKey];
     $assessmentKey = $comboKey.':'.(int)$student['student_id'].':'.$scope;
     $assessment = $assessmentMap[$assessmentKey] ?? null;
+    $proposal = $proposalMap[$assessmentKey] ?? null;
+    if(!$proposal && $assessment && trim((string)($assessment['suggestion_label'] ?? '')) !== ''){
+      $proposal = [
+        'value' => $assessment['suggestion_value'] ?? null,
+        'label' => (string)$assessment['suggestion_label'],
+        'explanation' => (string)($assessment['suggestion_explanation'] ?? ''),
+        'tone' => (($assessment['suggestion_value'] ?? null) !== null && (int)$assessment['suggestion_value'] <= 2)
+          ? 'positive'
+          : ((($assessment['suggestion_value'] ?? null) !== null && (int)$assessment['suggestion_value'] >= 4) ? 'critical' : 'neutral'),
+        'source' => 'snapshot',
+      ];
+    } elseif($proposal){
+      $proposal['source'] = 'live';
+    }
     $rowStatus = $assessment ? (((string)($assessment['status'] ?? 'draft') === 'final') ? 'final' : 'draft') : 'open';
     $grade = ($assessment && $assessment['final_grade'] !== null) ? (int)$assessment['final_grade'] : null;
     $stats['total']++;
@@ -254,6 +294,7 @@ function final_assessment_teacher_overview(
       'row_status' => $rowStatus,
       'status_label' => final_assessment_overview_status_label($assessment),
       'assessment' => $assessment,
+      'proposal' => $proposal,
     ];
   }
 

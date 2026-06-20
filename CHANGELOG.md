@@ -16,6 +16,21 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.70] - 2026-06-20
+
+### Geändert
+
+- Gewichtung für Notenvorschläge in der Lehrer:innen-Verwaltung als standardmäßig geschlossenes Accordion dargestellt
+- Statuskennzahlen der Notenübersicht als direkt anklickbare Filter umgesetzt
+- Schüler:innennamen in der Notenübersicht direkt mit der passenden Einzelbeurteilung verknüpft
+- doppelte ausgeschriebene Darstellung gespeicherter Noten entfernt; die Zahl im Notenkreis bleibt maßgeblich
+- Notenübersicht verwendet nun den aktuellen gewichteten Gesamtnotenvorschlag statt eines veralteten oder missverständlichen Mitarbeit-Vorschlags
+- Begriffe appweit in `Mitarbeitsnotenvorschlag` und gewichteten `Notenvorschlag` getrennt
+- PDF-Notenübersicht priorisiert Status, Aktualisierung und gespeicherte Note vor dem abgeschwächten Notenvorschlag
+- Beurteilungen und Vorschläge in der Einzelansicht einheitlich rechts oben positioniert
+- Entscheidungsbereich der Abschlussbeurteilung auf eine kompakte Gegenüberstellung der drei Leistungsbereiche reduziert; Rechendetails sind aufklappbar
+- Versionsnummer auf 1.70 erhöht
+
 ## [1.69] - 2026-06-19
 
 ### Hinzugefügt
