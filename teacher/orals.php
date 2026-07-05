@@ -16,7 +16,7 @@ $oral_type=strtoupper(trim((string)($_GET['oral_type'] ?? 'ALL')));
 if(!in_array($oral_type,['ALL','ORAL_EXAM','ORAL_EXERCISE'],true)) $oral_type='ALL';
 
 $schoolYears=load_school_years($pdo,true);
-$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,false);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true);
 
 $st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? ORDER BY s.code");
 $st->execute([(int)$u['id']]);

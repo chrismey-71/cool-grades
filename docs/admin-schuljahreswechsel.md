@@ -14,11 +14,18 @@ Das aktuelle Schuljahr steuert, welche Klassen Lehrer:innen standardmäßig sehe
 
 Eine Klasse ist immer eine Klasse eines konkreten Schuljahres. Eine `2FSB` im Schuljahr `2025/26` ist daher eine andere Klasseninstanz als eine `3FSB` im Schuljahr `2026/27`.
 
-Alte Klassen können als `archiviert` markiert werden. Archivierte Klassen bleiben für Berichte sichtbar, sind aber für neue Erfassungen gesperrt. Abschlussklassen können zusätzlich als `ausgeschieden` markiert werden; sie erscheinen Lehrer:innen standardmäßig nicht mehr.
+Alte Klassen können als `archiviert` markiert werden. Archivierte Klassen bleiben für Berichte sichtbar, sind aber für neue Erfassungen gesperrt. Abschlussklassen können zusätzlich als `ausgeschieden` markiert werden. Auch ausgeschiedene Klassen bleiben für berechtigte Lehrer:innen in Vorjahres-Auswertungen, Eintragslisten, Notenübersichten und PDF-Berichten sichtbar.
+
+Neue Klassen werden manuell nur dann angelegt, wenn es keine Vorgängerklasse gibt, zum Beispiel bei neuen Einstiegsklassen. Gibt es eine Vorjahresklasse, wird die neue Klasseninstanz über den Schuljahreswechsel-Assistenten erzeugt.
 
 ## Schuljahreswechsel durchführen
 
-Der Assistent `Adminbereich -> Schuljahreswechsel` führt durch folgende Schritte:
+Der Assistent `Adminbereich -> Schuljahreswechsel` kennt zwei Modi:
+
+- `Klasse fortführen`: für normale Fortführungen wie `1FSB -> 2FSB`.
+- `Abschlussklasse ohne Zielklasse`: für Klassen, die nicht mehr in eine nächste Klasse übergehen.
+
+Bei einer normalen Fortführung führt der Assistent durch folgende Schritte:
 
 1. Ausgangsschuljahr wählen.
 2. Ausgangsklasse wählen.
@@ -31,9 +38,13 @@ Der Assistent `Adminbereich -> Schuljahreswechsel` führt durch folgende Schritt
 9. Vorschau prüfen.
 10. Schuljahreswechsel durchführen.
 
+Bei `Abschlussklasse ohne Zielklasse` wird keine Zielklasse angelegt. Die Ausgangsklasse wird als `ausgeschieden` markiert. Schüler:innen werden standardmäßig als Abgang behandelt; Sonderfälle wie Wiederholung, Klassenwechsel oder noch offene Zuordnung können pro Schüler:in abweichend markiert werden.
+
 ## Was gespeichert wird
 
-Beim Durchführen wird eine neue Zielklasse angelegt, falls sie noch nicht existiert. Für übernommene Schüler:innen wird eine neue Klassenzuordnung im Zielschuljahr angelegt. Die Schüler:innen selbst werden nicht dupliziert.
+Beim Durchführen einer normalen Fortführung wird eine neue Zielklasse angelegt, falls sie noch nicht existiert. Für übernommene Schüler:innen wird eine neue Klassenzuordnung im Zielschuljahr angelegt. Die Schüler:innen selbst werden nicht dupliziert.
+
+Beim Abschlussmodus wird keine Zielklasse angelegt. Die bisherige Klasse bleibt als historische Klasseninstanz erhalten und wird für neue Erfassungen gesperrt.
 
 Bestehende Mitarbeitseinträge, besondere mündliche Leistungen, besondere schriftliche Leistungen und Abschlussbeurteilungen bleiben bei der ursprünglichen Klasse und beim ursprünglichen Schuljahr.
 
@@ -49,10 +60,18 @@ Der Status einer Klasse wird im Bereich `Schuljahreswechsel` gepflegt. Dort kann
 
 Wenn eine alte Klasse gelöscht wird, greifen die vorhandenen Datenbankbeziehungen. Dadurch werden auch die daran hängenden archivierten Leistungsdaten gelöscht. Das Löschen alter Klassen sollte daher nur bewusst erfolgen.
 
+## Datensicherung
+
+Vor einem größeren Schuljahreswechsel sollte im Adminbereich unter `Einstellungen -> Datenbanksicherung` eine Gesamtsicherung erstellt werden. Die Admin-Sicherung wird als ZIP-Datei erzeugt und enthält einen vollständigen SQL-Dump der Datenbank.
+
+Optional kann die ZIP-Datei mit einem Kennwort verschlüsselt werden. Das Kennwort muss außerhalb der App sicher aufbewahrt werden.
+
 ## Prüffälle
 
 - Nach dem Wechsel bleibt die alte Klasse im alten Schuljahr auswertbar.
 - Die neue Klasse enthält die übernommenen Schüler:innen.
 - Eine Schüler:in existiert weiterhin einmalig und hat mehrere Klassenzuordnungen.
 - Vorjahresdaten sind für berechtigte Lehrer:innen lesbar.
+- Eine Abschlussklasse ohne Zielklasse erzeugt keine künstliche Zielklasse.
+- Ausgeschiedene Klassen bleiben in Vorjahres-Auswertungen für berechtigte Lehrer:innen sichtbar.
 - In archivierten Klassen können keine neuen Einträge angelegt werden.

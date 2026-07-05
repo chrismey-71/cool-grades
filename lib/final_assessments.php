@@ -147,7 +147,7 @@ function final_assessment_teacher_overview(
                FROM teacher_assignments ta
                JOIN classes c ON c.id=ta.class_id
                JOIN subjects s ON s.id=ta.subject_id
-               WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0";
+               WHERE ta.teacher_id=? AND c.school_period_set_id=?";
   $comboParams = [$teacherId, $periodSetId];
   if($classId > 0){ $comboSql .= " AND c.id=?"; $comboParams[] = $classId; }
   if($subjectId > 0){ $comboSql .= " AND s.id=?"; $comboParams[] = $subjectId; }
@@ -196,8 +196,8 @@ function final_assessment_teacher_overview(
                  JOIN subjects su ON su.id=ta.subject_id
                  JOIN class_enrollments ce ON ce.class_id=c.id AND ce.school_period_set_id=c.school_period_set_id
                  JOIN students st ON st.id=ce.student_id
-                 WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0
-                   AND ce.status IN ('active','repeated','transferred')
+                 WHERE ta.teacher_id=? AND c.school_period_set_id=?
+                   AND ce.status IN ('active','repeated','transferred','left','archived')
                    AND (c.is_archived=1 OR st.is_active=1)";
   $studentParams = [$teacherId, $periodSetId];
   if($classId > 0){ $studentSql .= " AND c.id=?"; $studentParams[] = $classId; }
@@ -211,7 +211,7 @@ function final_assessment_teacher_overview(
                     FROM final_assessments fa
                     JOIN teacher_assignments ta ON ta.class_id=fa.class_id AND ta.subject_id=fa.subject_id
                     JOIN classes c ON c.id=fa.class_id
-                    WHERE ta.teacher_id=? AND fa.school_period_set_id=? AND c.school_period_set_id=? AND c.is_departed=0";
+                    WHERE ta.teacher_id=? AND fa.school_period_set_id=? AND c.school_period_set_id=?";
   $assessmentParams = [$teacherId, $periodSetId, $periodSetId];
   if($classId > 0){ $assessmentSql .= " AND fa.class_id=?"; $assessmentParams[] = $classId; }
   if($subjectId > 0){ $assessmentSql .= " AND fa.subject_id=?"; $assessmentParams[] = $subjectId; }

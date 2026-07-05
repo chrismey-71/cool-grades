@@ -200,7 +200,7 @@ render_header('Konto',$u);
             <span>Buttons</span>
           </label>
         </div>
-        <div class="small muted settings-panel-note">Steuert nur, ob Klasse/Fach im Lehrerbereich als Buttons oder Dropdown angezeigt werden. Bewertungen und Auswertungen bleiben unverändert.</div>
+        <div class="small muted settings-panel-note">Steuert nur, ob Klasse/Fach im Dashboard als Buttons oder Dropdown angezeigt werden. Bewertungen und Auswertungen bleiben unverändert.</div>
       </div>
     </div>
 

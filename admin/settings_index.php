@@ -43,9 +43,9 @@ render_header('Einstellungen', $u);
         <div class="col-12 col-md-6">
           <div class="card" style="padding:14px">
             <h2 style="margin:0 0 8px 0">Datenbanksicherung</h2>
-            <div class="muted" style="font-size:13px">Eine vollständige SQL-Sicherung der App herunterladen.</div>
+            <div class="muted" style="font-size:13px">Eine vollständige gepackte SQL-Sicherung der App herunterladen, optional mit Kennwortschutz.</div>
             <div style="height:10px"></div>
-            <a class="btn secondary" href="<?php echo h($bp); ?>/admin/backup.php">Sicherung herunterladen</a>
+            <a class="btn secondary" href="<?php echo h($bp); ?>/admin/backup.php">Sicherung öffnen</a>
           </div>
         </div>
 

@@ -3,7 +3,7 @@ require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/backup.php';
 
-$u = require_role('admin');
+$u = require_role('teacher');
 $pdo = db();
 $bp = cfg()['base_path'] ?? '';
 
@@ -19,45 +19,55 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   } else {
     try{
       $stamp = date('Y-m-d_H-i-s');
-      $filename = 'cool-grades-gesamtsicherung-' . $stamp . '.zip';
-      $sqlFilename = 'cool-grades-backup-' . $stamp . '.sql';
-      $readme = "COOL-Grades Gesamtsicherung\n"
-        ."Erstellt am: ".date('Y-m-d H:i:s')."\n"
-        ."Inhalt: Vollständiger SQL-Dump der Datenbank mit Tabellenstruktur und Daten.\n"
-        ."Kennwortschutz: ".($password !== '' ? 'aktiviert' : 'nicht aktiviert')."\n\n"
-        ."Hinweis: Diese Sicherung enthält personenbezogene und leistungsbezogene Daten. Bitte sicher speichern und nur berechtigt weitergeben.\n";
+      $filename = 'cool-grades-lehrkraft-sicherung-' . $stamp . '.zip';
+      $export = backup_teacher_export($pdo, $u);
+      $json = json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+      if($json === false) throw new RuntimeException('JSON-Export konnte nicht erzeugt werden.');
 
-      emit_event('admin_database_backup_downloaded', [
+      $readme = "COOL-Grades Lehrkraft-Sicherung\n"
+        ."Erstellt am: ".date('Y-m-d H:i:s')."\n"
+        ."Lehrkraft: ".trim((string)($u['first_name'] ?? '').' '.(string)($u['last_name'] ?? ''))."\n"
+        ."Inhalt: Strukturierter JSON-Export der zugewiesenen Klassen, Fächer, Schuljahre und dazugehörigen Leistungsdaten dieser Lehrkraft.\n"
+        ."Kennwortschutz: ".($password !== '' ? 'aktiviert' : 'nicht aktiviert')."\n\n"
+        ."Hinweis: Diese Sicherung enthält personenbezogene und leistungsbezogene Daten. Bitte sicher speichern und nur berechtigt weitergeben.\n"
+        ."Dieser Export ist eine Datensicherung/Dokumentation, kein automatischer Wiederherstellungsimport.\n";
+
+      emit_event('teacher_backup_downloaded', [
         'filename' => $filename,
-        'format' => 'zip_sql',
+        'format' => 'zip_json',
         'encrypted' => $password !== '',
       ]);
 
       backup_send_zip($filename, [
-        $sqlFilename => backup_sql_dump($pdo),
+        'teacher-backup.json' => $json,
         'README.txt' => $readme,
       ], $password);
       exit;
     }catch(Throwable $e){
-      app_log('error', 'admin backup failed', ['error'=>$e->getMessage()]);
+      app_log('error', 'teacher backup failed', ['error'=>$e->getMessage(), 'teacher_id'=>(int)$u['id']]);
       $err = 'Die Sicherung konnte nicht erstellt werden: '.$e->getMessage();
     }
   }
 }
 
-render_header('Datenbanksicherung', $u);
+render_header('Datensicherung', $u);
 ?>
 <div class="grid">
   <div class="col-12 col-8">
     <div class="card">
-      <h1>Datenbanksicherung</h1>
-      <p class="muted">Hier kannst du eine vollständige, gepackte Sicherung der aktuellen COOL-Grades-Datenbank herunterladen. Optional kann die ZIP-Datei mit einem Kennwort verschlüsselt werden.</p>
+      <h1>Datensicherung</h1>
+      <p class="muted">Hier können Sie eine gepackte Sicherung Ihrer zugewiesenen Klassen, Fächer, Schuljahre und dazugehörigen Leistungsdaten herunterladen. Optional kann die ZIP-Datei mit einem Kennwort verschlüsselt werden.</p>
 
       <?php if($err): ?><div class="flash error"><?php echo h($err); ?></div><?php endif; ?>
 
       <div class="card" style="padding:14px;background:rgba(71,142,79,.06);border-style:dashed">
         <div><b>Inhalt der Sicherung</b></div>
-        <div class="muted" style="margin-top:6px">Die Sicherung enthält Tabellenstruktur und Daten der Anwendung im SQL-Format, verpackt in einer ZIP-Datei.</div>
+        <div class="muted" style="margin-top:6px">
+          Enthalten sind Ihre Klasse-Fach-Zuordnungen, zugehörige Schuljahre, Klassen, Schüler:innen dieser Klassen, eigene Mitarbeitseinträge, besondere mündliche und schriftliche Leistungsfeststellungen, Gruppen, Presets, Gewichtungen und eigene Abschlussbeurteilungen.
+        </div>
+        <div class="muted" style="margin-top:6px">
+          Nicht enthalten sind globale Admin-Daten oder Daten anderer Lehrkräfte außerhalb Ihrer Zuordnungen.
+        </div>
       </div>
 
       <form method="post" style="margin-top:14px">
@@ -74,8 +84,8 @@ render_header('Datenbanksicherung', $u);
           </div>
         </div>
         <div style="height:14px"></div>
-        <button class="btn">Gepackte Gesamtsicherung herunterladen</button>
-        <a class="btn secondary" href="<?php echo h($bp); ?>/admin/settings_index.php">Zurück</a>
+        <button class="btn">Gepackte Sicherung herunterladen</button>
+        <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/manage.php">Zurück zur Verwaltung</a>
       </form>
     </div>
   </div>

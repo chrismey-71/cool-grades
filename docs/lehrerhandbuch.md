@@ -50,18 +50,19 @@ Wichtig ist vor allem:
 
 ### Dashboard und Hauptnavigation
 
-Nach dem Login landen Lehrkräfte im Regelfall auf dem **Dashboard**. Von dort führen die wichtigsten Wege in vier Bereiche:
+Nach dem Login landen Lehrkräfte im Regelfall auf dem **Dashboard**. Dort sind die wichtigsten Arbeitsbereiche für den Unterrichtsalltag gebündelt:
 
-- **Lehrerbereich**
-- **Auswertungen**
+- **Mitarbeit und besondere Leistungsfeststellungen erfassen**
+- **Abschlussbeurteilung und Notenübersicht**
+- **Berichte & Auswertungen**
 - **Verwaltung**
 - **Konto**
 
 ### Wozu dient welcher Bereich?
 
-### Lehrerbereich
+### Dashboard
 
-Der **Lehrerbereich** ist der Arbeitsbereich für den Unterrichtsalltag. Hier werden Einträge erstellt, Stunden angelegt, besondere Leistungen erfasst und bestehende Mitarbeitseinträge bearbeitet.
+Das **Dashboard** ist der Arbeitsbereich für den Unterrichtsalltag. Hier werden Einträge erstellt, Stunden angelegt, besondere Leistungen erfasst, bestehende Einträge bearbeitet, Abschlussbeurteilungen geöffnet und Berichte erzeugt.
 
 Typische Nutzung:
 
@@ -73,9 +74,9 @@ Auswirkung auf Daten:
 
 - In diesem Bereich entstehen und ändern sich die eigentlichen Leistungsdokumentationen.
 
-### Auswertungen
+### Berichte & Auswertungen
 
-Der Bereich **Auswertungen** bündelt bereits gespeicherte Daten. Hier werden keine Leistungen neu erfasst, sondern vorhandene Daten gefiltert, gelesen, interpretiert und als PDF ausgegeben.
+Der Bereich **Berichte & Auswertungen** ist als Kachel im Dashboard erreichbar. Hier werden keine Leistungen neu erfasst, sondern vorhandene Daten gefiltert, gelesen, interpretiert und als PDF ausgegeben.
 
 Typische Nutzung:
 
@@ -119,9 +120,9 @@ Im Schulalltag sieht ein realistischer Ablauf meist so aus:
 
 1. Im **Konto** die persönliche Darstellung kurz passend einstellen.
 2. Unter **Verwaltung** bei Bedarf Kriterien, Picklisten, Presets oder Gruppen vorbereiten.
-3. Im **Lehrerbereich** Stunden anlegen oder direkt Mitarbeit erfassen.
+3. Im **Dashboard** Stunden anlegen oder direkt Mitarbeit erfassen.
 4. Besondere mündliche oder schriftliche Leistungen separat dokumentieren.
-5. Vor Semesterende im Bereich **Auswertungen** die Tendenzen pro Schüler:in prüfen und als PDF nutzen.
+5. Vor Semesterende im Bereich **Berichte & Auswertungen** die Tendenzen pro Schüler:in prüfen und als PDF nutzen.
 
 ## 3. Kontoeinstellungen und persönliche Startkonfiguration
 
@@ -245,7 +246,7 @@ Die Kontoeinstellungen betreffen die **persönliche Arbeitsumgebung**. Sie könn
 - **Welche Auswahlmöglichkeiten gibt es?**
   `Dropdown` oder `Buttons`.
 - **Was bewirkt die Einstellung?**
-  Sie verändert im Lehrerbereich die Auswahl von Klasse und Fach für die Schnell-Mitarbeitserfassung.
+  Sie verändert im Dashboard die Auswahl von Klasse und Fach für die Schnell-Mitarbeitserfassung.
   `Buttons` ist schneller, wenn es nur wenige Klasse-Fach-Kombinationen gibt.
   `Dropdown` ist platzsparender und meist besser, wenn viele Kombinationen vorhanden sind.
 - **Betrifft sie nur meine persönliche Ansicht oder auch gespeicherte Daten?**
@@ -307,7 +308,7 @@ Sie ist **nicht** für Schularbeiten, Tests oder formellere Sonderleistungen ged
 
 ### Typischer Ablauf
 
-1. Klasse und Fach im Lehrerbereich auswählen
+1. Klasse und Fach im Dashboard auswählen
 2. falls gewünscht eine Stunde anlegen oder übernehmen
 3. Datum prüfen
 4. Grund/Anlass wählen
@@ -319,7 +320,7 @@ Sie ist **nicht** für Schularbeiten, Tests oder formellere Sonderleistungen ged
 
 ### Klasse und Fach auswählen
 
-Die Auswahl von Klasse und Fach passiert meist schon vor dem Öffnen der Seite im Lehrerbereich.
+Die Auswahl von Klasse und Fach passiert meist schon vor dem Öffnen der Erfassungsseite im Dashboard.
 
 Wirkung:
 
@@ -868,7 +869,7 @@ Auch wenn Schularbeiten oder Tests dokumentiert werden, ersetzt die App nicht di
 
 ### Wo finde ich bestehende Einträge?
 
-Im Lehrerbereich über **Einträge bearbeiten**.
+Im Dashboard über **Einträge bearbeiten**.
 
 Diese Seite zeigt die bereits gespeicherten Mitarbeitseinträge eines gewählten Fachs und einer gewählten Klasse. Von dort aus kann ein Eintrag geöffnet, angepasst oder gelöscht werden.
 
@@ -1000,6 +1001,14 @@ Wichtig:
 ## 8. Verwaltung der eigenen Benutzerumgebung
 
 Dieser Abschnitt betrifft nur Funktionen, die Lehrkräfte in ihrer **eigenen Arbeitsumgebung** nutzen können.
+
+### Datensicherung
+
+Über **Verwaltung → Datensicherung** können Lehrkräfte eine gepackte Sicherung ihrer zugewiesenen Klassen, Fächer, Schuljahre und dazugehörigen Leistungsdaten herunterladen.
+
+Die Sicherung enthält nur Daten im eigenen Berechtigungsbereich, zum Beispiel eigene Mitarbeitseinträge, besondere mündliche und schriftliche Leistungsfeststellungen, Gruppen, Presets, Gewichtungen und eigene Abschlussbeurteilungen. Sie ist als Dokumentations- und Sicherungsdatei gedacht und ersetzt keine Admin-Gesamtsicherung.
+
+Optional kann die ZIP-Datei mit einem Kennwort geschützt werden. Dieses Kennwort sollte sicher aufbewahrt werden, da eine verschlüsselte Sicherung ohne Kennwort nicht sinnvoll nutzbar ist.
 
 ### 8.1 Kriterien verwalten
 
@@ -1455,11 +1464,11 @@ Die App bleibt dabei ausdrücklich **keine Notenmaschine**:
 
 ### Wo finde ich den Bereich?
 
-Über **Lehrerbereich → Abschlussbeurteilung**.
+Über **Dashboard → Abschlussbeurteilung**.
 
 ### Notenübersicht über alle Klassen und Fächer
 
-Über **Lehrerbereich → Abschlussbeurteilung → Notenübersicht öffnen** gelangen Sie zu einer Kontrollansicht über alle Ihre Klasse-Fach-Zuordnungen. Die Übersicht ist für die Abschlussphase gedacht, wenn Sie rasch erkennen möchten, welche Beurteilungen bereits final gespeichert sind, welche noch als Entwurf vorliegen und wo noch keine Beurteilung gespeichert wurde.
+Über **Dashboard → Abschlussbeurteilung → Notenübersicht öffnen** gelangen Sie zu einer Kontrollansicht über alle Ihre Klasse-Fach-Zuordnungen. Die Übersicht ist für die Abschlussphase gedacht, wenn Sie rasch erkennen möchten, welche Beurteilungen bereits final gespeichert sind, welche noch als Entwurf vorliegen und wo noch keine Beurteilung gespeichert wurde.
 
 Die Übersicht zeigt je Schüler:in eine Zeile mit:
 
@@ -2142,13 +2151,13 @@ Wenn
 
 1. Einloggen
 2. Im Bereich `Konto` die persönliche Darstellung kurz prüfen
-3. Im Lehrerbereich Klasse und Fach auswählen
+3. Im Dashboard Klasse und Fach auswählen
 4. Bei Bedarf Kriterien, Picklisten oder Presets vorbereiten
 5. Mitarbeit schnell erfassen
 6. Besondere mündliche oder schriftliche Leistungen separat erfassen
 7. Einträge bei Bedarf über `Einträge bearbeiten` kontrollieren
 8. Gruppen oder Presets für wiederkehrende Situationen nachschärfen
-9. Auswertung mit passendem Zeitraum öffnen
+9. Berichte & Auswertungen mit passendem Zeitraum öffnen
 10. Ergebnis pädagogisch interpretieren und nicht als Automatismus lesen
 
 ## 17. Screenshots in dieser Fassung

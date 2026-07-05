@@ -12,6 +12,19 @@ render_header('Admin',$u);
     <div class="card" style="padding:14px">
       <h2 style="margin:0 0 8px 0">Stammdaten</h2>
       <div class="muted" style="font-size:13px">Zuerst Schuljahr/Semester anlegen, danach Klassen, Fächer, Zuweisungen sowie Personen verwalten.</div>
+      <details class="accordion" style="margin-top:10px">
+        <summary><span class="acc-title">Hinweis empfohlene Reihenfolge</span></summary>
+        <div class="acc-body">
+          <ol class="muted" style="margin-top:0;padding-left:20px">
+            <li>Neues Schuljahr mit beiden Semestern unter <b>Schuljahre/Semester</b> anlegen, aber erst später als aktuell setzen.</li>
+            <li>Unter <b>Klassen</b> nur echte neue Einstiegsklassen anlegen, also Klassen ohne Vorgängerklasse.</li>
+            <li>Fortgeführte Klassen immer über <b>Schuljahreswechsel</b> erzeugen, damit Vorjahresdaten erhalten bleiben.</li>
+            <li>Abschlussklassen im Schuljahreswechsel als <b>Abschlussklasse ohne Zielklasse</b> abschließen.</li>
+            <li>Lehrer:innen-/Fachzuordnungen und Schüler:innenlisten prüfen.</li>
+            <li>Erst danach das neue Schuljahr unter <b>Schuljahre/Semester</b> als aktuell setzen.</li>
+          </ol>
+        </div>
+      </details>
       <div style="height:10px"></div>
       <div class="row">
         <a class="btn" href="<?php echo h($bp); ?>/admin/school_years.php">Schuljahre/Semester</a>

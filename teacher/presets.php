@@ -132,7 +132,7 @@ render_header('Preset-Verwaltung',$u);
 
       <?php if(!$presets): ?>
         <div class="flash info">Noch keine Presets vorhanden. Lege ein Preset zuerst in der Mitarbeit-Erfassung an.</div>
-        <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/index.php">Zurück zum Lehrerbereich</a>
+        <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/index.php">Zurück zum Dashboard</a>
       <?php else: ?>
         <h2>Alle Presets</h2>
         <table class="table">
@@ -291,7 +291,7 @@ render_header('Preset-Verwaltung',$u);
             <div class="row" style="gap:10px;flex-wrap:wrap">
               <button class="btn" name="action" value="save">Änderungen speichern</button>
               <button class="btn danger" name="action" value="delete" formnovalidate onclick="return confirm('Dieses Preset wirklich löschen?');">Preset löschen</button>
-              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/index.php">Zurück zum Lehrerbereich</a>
+              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/index.php">Zurück zum Dashboard</a>
             </div>
           </form>
         <?php endif; ?>

@@ -15,11 +15,14 @@ $targetYearId=(int)($_REQUEST['target_school_period_set_id'] ?? 0);
 $sourceClassId=(int)($_REQUEST['source_class_id'] ?? 0);
 $targetClassName=trim((string)($_REQUEST['target_class_name'] ?? ''));
 $targetClassId=0;
+$transitionMode=trim((string)($_REQUEST['transition_mode'] ?? 'promote'));
+if(!in_array($transitionMode, ['promote','graduate'], true)) $transitionMode='promote';
 $assessmentSystem=trim((string)($_REQUEST['assessment_system'] ?? 'yearly'));
 if(!class_assessment_system_is_valid($assessmentSystem)) $assessmentSystem='yearly';
 $copyAssignments=(int)($_REQUEST['copy_assignments'] ?? 1) === 1;
 $sourceStatusAfter=trim((string)($_REQUEST['source_status_after'] ?? 'archived'));
 if(!in_array($sourceStatusAfter, ['active','archived','departed'], true)) $sourceStatusAfter='archived';
+if($transitionMode === 'graduate') $sourceStatusAfter='departed';
 
 $msg='';
 $err='';
@@ -81,7 +84,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $sourceClass=class_context($pdo,$sourceClassId);
   $targetYear=null;
   foreach($schoolYears as $sy){ if((int)$sy['id']===$targetYearId){ $targetYear=$sy; break; } }
-  if(!$sourceClass || !$targetYear || $targetClassName===''){
+  if(!$sourceClass){
+    $err='Bitte eine Ausgangsklasse auswählen.';
+  } elseif($transitionMode === 'promote' && (!$targetYear || $targetClassName==='')) {
     $err='Bitte Ausgangsklasse, Zielschuljahr und Zielklasse vollständig auswählen.';
   } else {
     $sourceStudents=load_class_students($pdo,$sourceClassId,true);
@@ -90,7 +95,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $promote=[]; $repeat=[]; $left=[]; $transfer=[]; $unassigned=[];
     foreach($sourceStudents as $student){
       $sid=(int)$student['id'];
-      $choice=(string)($studentActions[$sid] ?? 'promote');
+      $choice=(string)($studentActions[$sid] ?? ($transitionMode === 'graduate' ? 'left' : 'promote'));
+      if($transitionMode === 'graduate' && $choice === 'promote') $choice='left';
       $label=(string)$student['last_name'].', '.(string)$student['first_name'];
       if($choice==='repeat') $repeat[]=['id'=>$sid,'name'=>$label];
       elseif($choice==='left') $left[]=['id'=>$sid,'name'=>$label];
@@ -99,12 +105,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       else $promote[]=['id'=>$sid,'name'=>$label];
     }
 
-    $existingTarget=_transition_target_exists($pdo,$targetYearId,$targetClassName);
+    $existingTarget=($transitionMode === 'promote' && $targetYearId > 0 && $targetClassName !== '') ? _transition_target_exists($pdo,$targetYearId,$targetClassName) : null;
     $preview=[
       'source_class'=>$sourceClass,
       'target_year'=>$targetYear,
       'target_name'=>$targetClassName,
       'existing_target'=>$existingTarget,
+      'transition_mode'=>$transitionMode,
       'promote'=>$promote,
       'repeat'=>$repeat,
       'left'=>$left,
@@ -118,7 +125,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $pdo->beginTransaction();
       try{
         $target=$existingTarget;
-        if(!$target){
+        if($transitionMode === 'promote' && !$target){
           $ins=$pdo->prepare("INSERT INTO classes(school_period_set_id,name,school_type,school_form_id,year,label,assessment_system,predecessor_class_id,is_archived,is_departed)
                               VALUES(?,?,?,?,?,?,?,?,?,0)");
           $ins->execute([
@@ -133,7 +140,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             0,
           ]);
           $targetClassId=(int)$pdo->lastInsertId();
-        } else {
+        } elseif($transitionMode === 'promote' && $target) {
           $targetClassId=(int)$target['id'];
         }
 
@@ -142,9 +149,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                                VALUES(?,?,?,?,CURDATE(),?,?)
                                ON DUPLICATE KEY UPDATE status=VALUES(status), updated_at=VALUES(updated_at)");
         $setCurrent=$pdo->prepare("UPDATE students SET class_id=? WHERE id=?");
-        foreach($promote as $student){
-          $enroll->execute([(int)$student['id'],$targetClassId,$targetYearId,'active',$now,$now]);
-          $setCurrent->execute([$targetClassId,(int)$student['id']]);
+        if($transitionMode === 'promote' && $targetClassId > 0){
+          foreach($promote as $student){
+            $enroll->execute([(int)$student['id'],$targetClassId,$targetYearId,'active',$now,$now]);
+            $setCurrent->execute([$targetClassId,(int)$student['id']]);
+          }
         }
         foreach($transfer as $student){
           $dest=(int)($student['class_id'] ?? 0);
@@ -161,7 +170,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         foreach($left as $student){ $markSource->execute(['left',$now,$sourceClassId,(int)$student['id']]); }
         foreach($unassigned as $student){ $markSource->execute(['archived',$now,$sourceClassId,(int)$student['id']]); }
 
-        if($copyAssignments){
+        if($copyAssignments && $transitionMode === 'promote' && $targetClassId > 0){
           $assignments=$pdo->prepare("SELECT teacher_id,subject_id FROM teacher_assignments WHERE class_id=?");
           $assignments->execute([$sourceClassId]);
           $insertAssignment=$pdo->prepare("INSERT IGNORE INTO teacher_assignments(teacher_id,class_id,subject_id) VALUES(?,?,?)");
@@ -180,6 +189,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           'source_class_id'=>$sourceClassId,
           'target_class_id'=>$targetClassId,
           'target_school_period_set_id'=>$targetYearId,
+          'transition_mode'=>$transitionMode,
           'promoted_count'=>count($promote),
           'left_count'=>count($left),
           'repeat_count'=>count($repeat),
@@ -215,7 +225,7 @@ $targetClasses=$targetYearId>0 ? _transition_classes_for_year($pdo,$targetYearId
 $statusClasses=load_classes_for_admin($pdo,0,true);
 $sourceStudents=$sourceClassId>0 ? load_class_students($pdo,$sourceClassId,true) : [];
 $selectedSourceClass=class_context($pdo,$sourceClassId);
-if($targetClassName==='' && $selectedSourceClass){
+if($targetClassName==='' && $selectedSourceClass && $transitionMode === 'promote'){
   $targetClassName=_transition_suggest_next_class_name((string)$selectedSourceClass['name']);
 }
 if($selectedSourceClass && !class_assessment_system_is_valid($assessmentSystem)){
@@ -232,17 +242,35 @@ render_header('Schuljahreswechsel',$u);
   <div class="muted" style="margin-top:8px">
     1. Neues Schuljahr vorher unter <a href="<?php echo h($bp); ?>/admin/school_years.php">Schuljahre und Semester</a> anlegen.
     2. Hier die aktuelle Ausgangsklasse wählen.
-    3. Zielklasse benennen. Die App schlägt aus der ersten Zahl automatisch die nächste Klassenstufe vor, z. B. 2FSB → 3FSB.
-    4. Danach nur noch Sonderfälle bei Schüler:innen markieren.
+    3. Bei normalen Fortführungen Zielklasse benennen. Die App schlägt aus der ersten Zahl automatisch die nächste Klassenstufe vor, z. B. 2FSB → 3FSB.
+    4. Bei Abschlussklassen ohne Nachfolgeklasse den Modus „Abschlussklasse ohne Zielklasse“ wählen.
+    5. Danach nur noch Sonderfälle bei Schüler:innen markieren.
   </div>
 </div>
 <?php if($msg): ?><div class="flash success"><?php echo h($msg); ?></div><?php endif; ?>
 <?php if($err): ?><div class="flash error"><?php echo h($err); ?></div><?php endif; ?>
 
-<form method="post" <?php echo dirty_form_attrs(); ?>>
+<form method="post">
 <?php echo csrf_input(); ?>
 <input type="hidden" name="action" value="preview">
 <div class="grid">
+  <div class="col-12">
+    <div class="settings-panel">
+      <div class="settings-panel-title">0. Art des Wechsels</div>
+      <div class="row" style="gap:12px;align-items:stretch">
+        <label class="choice-card" style="flex:1 1 280px">
+          <input type="radio" name="transition_mode" value="promote" <?php echo $transitionMode==='promote'?'checked':''; ?> onchange="this.form.submit()">
+          <strong>Klasse fortführen</strong>
+          <span class="muted small">Für Fälle wie 1FSB → 2FSB. Es wird eine Zielklasse im neuen Schuljahr angelegt oder verwendet.</span>
+        </label>
+        <label class="choice-card" style="flex:1 1 280px">
+          <input type="radio" name="transition_mode" value="graduate" <?php echo $transitionMode==='graduate'?'checked':''; ?> onchange="this.form.submit()">
+          <strong>Abschlussklasse ohne Zielklasse</strong>
+          <span class="muted small">Für Klassen, die nicht fortgeführt werden. Es wird keine Zielklasse erzeugt; die Ausgangsklasse wird als ausgeschieden markiert.</span>
+        </label>
+      </div>
+    </div>
+  </div>
   <div class="col-12 col-md-6">
     <div class="settings-panel">
       <div class="settings-panel-title">1. Aktuelle Klasse auswählen</div>
@@ -264,7 +292,12 @@ render_header('Schuljahreswechsel',$u);
   </div>
   <div class="col-12 col-md-6">
     <div class="settings-panel">
-      <div class="settings-panel-title">2. Neue Klasse im Zielschuljahr</div>
+      <div class="settings-panel-title">2. <?php echo $transitionMode==='graduate' ? 'Abschluss / Sonderfälle' : 'Neue Klasse im Zielschuljahr'; ?></div>
+      <?php if($transitionMode==='graduate'): ?>
+        <div class="flash info" style="margin-bottom:10px">
+          In diesem Modus wird keine neue Zielklasse angelegt. Wählen Sie ein Zielschuljahr nur dann, wenn einzelne Schüler:innen in eine andere bestehende Klasse wechseln sollen.
+        </div>
+      <?php endif; ?>
       <label class="muted">Zielschuljahr</label>
       <select class="input" name="target_school_period_set_id">
         <option value="0">Bitte wählen…</option>
@@ -273,16 +306,22 @@ render_header('Schuljahreswechsel',$u);
         <?php endforeach; ?>
       </select>
       <div style="height:10px"></div>
-      <label class="muted">Neue Klassenbezeichnung</label>
-      <input class="input" name="target_class_name" value="<?php echo h($targetClassName); ?>" placeholder="z. B. 3FSB">
-      <div class="muted" style="margin-top:6px;font-size:13px">Vorschlag aus der Ausgangsklasse. Bitte bei Bedarf anpassen, z. B. bei Zusammenlegung oder Umbenennung.</div>
-      <div style="height:10px"></div>
-      <label class="muted">Beurteilungssystem</label>
-      <select class="input" name="assessment_system">
-        <?php foreach(class_assessment_system_options() as $value=>$label): ?>
-          <option value="<?php echo h($value); ?>" <?php echo $assessmentSystem===$value?'selected':''; ?>><?php echo h($label); ?></option>
-        <?php endforeach; ?>
-      </select>
+      <?php if($transitionMode==='promote'): ?>
+        <label class="muted">Neue Klassenbezeichnung</label>
+        <input class="input" name="target_class_name" value="<?php echo h($targetClassName); ?>" placeholder="z. B. 3FSB">
+        <div class="muted" style="margin-top:6px;font-size:13px">Vorschlag aus der Ausgangsklasse. Bitte bei Bedarf anpassen, z. B. bei Zusammenlegung oder Umbenennung.</div>
+        <div style="height:10px"></div>
+        <label class="muted">Beurteilungssystem</label>
+        <select class="input" name="assessment_system">
+          <?php foreach(class_assessment_system_options() as $value=>$label): ?>
+            <option value="<?php echo h($value); ?>" <?php echo $assessmentSystem===$value?'selected':''; ?>><?php echo h($label); ?></option>
+          <?php endforeach; ?>
+        </select>
+      <?php else: ?>
+        <input type="hidden" name="target_class_name" value="">
+        <input type="hidden" name="assessment_system" value="<?php echo h($assessmentSystem); ?>">
+        <div class="muted" style="font-size:13px">Die bisherige Klasse bleibt historisch erhalten. Leistungsdaten werden nicht kopiert und nicht verschoben.</div>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -291,7 +330,11 @@ render_header('Schuljahreswechsel',$u);
   <div style="height:14px"></div>
   <h2>3. Schüler:innen übernehmen</h2>
   <div class="muted" style="margin-bottom:10px">
-    Standard ist „in Zielklasse übernehmen“. Nur Sonderfälle müssen geändert werden: Wiederholung, Abgang, Wechsel in eine andere bestehende Klasse oder vorerst keine Zuordnung.
+    <?php if($transitionMode==='graduate'): ?>
+      Standard ist „verlässt Schule“. Nur Sonderfälle müssen geändert werden, z. B. Wiederholung, Klassenwechsel oder vorerst keine Zuordnung.
+    <?php else: ?>
+      Standard ist „in Zielklasse übernehmen“. Nur Sonderfälle müssen geändert werden: Wiederholung, Abgang, Wechsel in eine andere bestehende Klasse oder vorerst keine Zuordnung.
+    <?php endif; ?>
   </div>
   <table class="table">
     <thead><tr><th>Schüler:in</th><th>Aktion</th><th>Andere Zielklasse bei Klassenwechsel</th></tr></thead>
@@ -301,9 +344,9 @@ render_header('Schuljahreswechsel',$u);
         <td><?php echo h($student['last_name'].', '.$student['first_name']); ?></td>
         <td>
           <select class="input" name="student_action[<?php echo $sid; ?>]">
-            <option value="promote">in Zielklasse übernehmen</option>
+            <?php if($transitionMode==='promote'): ?><option value="promote">in Zielklasse übernehmen</option><?php endif; ?>
             <option value="repeat">bleibt / wiederholt</option>
-            <option value="left">verlässt Schule</option>
+            <option value="left" <?php echo $transitionMode==='graduate'?'selected':''; ?>>verlässt Schule</option>
             <option value="transfer">wechselt in andere Klasse</option>
             <option value="unassigned">noch nicht zuordnen</option>
           </select>
@@ -325,15 +368,25 @@ render_header('Schuljahreswechsel',$u);
 <div style="height:14px"></div>
 <div class="settings-panel">
   <div class="settings-panel-title">4. Optionen</div>
-  <label><input type="checkbox" name="copy_assignments" value="1" <?php echo $copyAssignments?'checked':''; ?>> Lehrer:innen-/Fachzuordnungen auf Zielklasse übernehmen</label>
+  <?php if($transitionMode==='promote'): ?>
+    <label><input type="checkbox" name="copy_assignments" value="1" <?php echo $copyAssignments?'checked':''; ?>> Lehrer:innen-/Fachzuordnungen auf Zielklasse übernehmen</label>
+  <?php else: ?>
+    <input type="hidden" name="copy_assignments" value="0">
+    <div class="muted">Es wird keine Zielklasse erzeugt; Lehrer:innen-/Fachzuordnungen bleiben an der ausgeschiedenen Klasse erhalten, damit Vorjahresdaten weiterhin einsehbar sind.</div>
+  <?php endif; ?>
   <div style="height:8px"></div>
   <label class="muted">Status der Ausgangsklasse nach Durchführung</label>
-  <select class="input" name="source_status_after">
-    <option value="archived" <?php echo $sourceStatusAfter==='archived'?'selected':''; ?>>archivieren / als Vorjahresklasse behalten</option>
-    <option value="departed" <?php echo $sourceStatusAfter==='departed'?'selected':''; ?>>als ausgeschieden markieren / nicht mehr bei Lehrer:innen anzeigen</option>
-    <option value="active" <?php echo $sourceStatusAfter==='active'?'selected':''; ?>>aktiv lassen / Sonderfall</option>
-  </select>
-  <div class="muted" style="margin-top:8px">Archivierte Klassen bleiben für Auswertungen und PDF-Berichte sichtbar, sind aber für neue Erfassungen gesperrt. Ausgeschiedene Klassen werden zusätzlich aus der normalen Lehrer:innenauswahl ausgeblendet.</div>
+  <?php if($transitionMode==='graduate'): ?>
+    <input type="hidden" name="source_status_after" value="departed">
+    <div class="input" style="background:#f8fafc">als ausgeschieden markieren / Abschlussklasse</div>
+  <?php else: ?>
+    <select class="input" name="source_status_after">
+      <option value="archived" <?php echo $sourceStatusAfter==='archived'?'selected':''; ?>>archivieren / als Vorjahresklasse behalten</option>
+      <option value="departed" <?php echo $sourceStatusAfter==='departed'?'selected':''; ?>>als ausgeschieden markieren / nicht mehr in aktueller Erfassung anzeigen</option>
+      <option value="active" <?php echo $sourceStatusAfter==='active'?'selected':''; ?>>aktiv lassen / Sonderfall</option>
+    </select>
+  <?php endif; ?>
+  <div class="muted" style="margin-top:8px">Archivierte und ausgeschiedene Klassen bleiben für berechtigte Lehrkräfte in Vorjahres-Auswertungen, Listen und PDF-Berichten sichtbar. Neue Erfassungen sind dort gesperrt.</div>
 </div>
 
 <div style="height:14px"></div>
@@ -350,7 +403,7 @@ render_header('Schuljahreswechsel',$u);
     <div class="muted" style="margin-bottom:10px">
       Verwenden Sie diesen Bereich nur für Korrekturen, z. B. wenn eine Vorjahresklasse wieder aktiviert oder eine Abschlussklasse nachträglich als ausgeschieden markiert werden soll.
     </div>
-    <form method="post" class="row" style="align-items:end" <?php echo dirty_form_attrs(); ?>>
+    <form method="post" class="row" style="align-items:end">
       <?php echo csrf_input(); ?>
       <input type="hidden" name="action" value="update_class_status">
       <div style="min-width:280px">
@@ -381,8 +434,12 @@ render_header('Schuljahreswechsel',$u);
   <div class="report-focus-block" style="margin-top:16px">
     <strong>Vorschau</strong>
     <div class="muted" style="margin-top:8px">
-      Ziel: <b><?php echo h($preview['target_name']); ?></b> im Schuljahr <b><?php echo h((string)$preview['target_year']['label']); ?></b>.
-      <?php if($preview['existing_target']): ?> Die Zielklasse existiert bereits; vorhandene Zuordnungen werden nicht verdoppelt.<?php endif; ?>
+      <?php if(($preview['transition_mode'] ?? 'promote') === 'graduate'): ?>
+        Abschlussklasse ohne Zielklasse: Es wird keine neue Klasse angelegt. Die Ausgangsklasse wird als ausgeschieden markiert und bleibt für berechtigte Lehrkräfte im Archiv lesbar.
+      <?php else: ?>
+        Ziel: <b><?php echo h($preview['target_name']); ?></b> im Schuljahr <b><?php echo h((string)($preview['target_year']['label'] ?? '')); ?></b>.
+        <?php if($preview['existing_target']): ?> Die Zielklasse existiert bereits; vorhandene Zuordnungen werden nicht verdoppelt.<?php endif; ?>
+      <?php endif; ?>
     </div>
     <div class="report-kv" style="margin-top:10px">
       <div class="item"><span class="label">Übernahme</span><strong><?php echo count($preview['promote']); ?></strong></div>

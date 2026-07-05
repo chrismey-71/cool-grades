@@ -66,7 +66,8 @@ render_header('Klassen',$u);
 <div class="acc-body">
 <?php if(!$edit): ?>
   <div class="flash info" style="margin-bottom:12px">
-    Diesen Bereich bitte nur für neue Einstiegsklassen verwenden, z. B. neue 1. Klassen. Für 2., 3., 4. oder 5. Klassen aus dem Vorjahr bitte den Schuljahreswechsel-Assistenten nutzen, damit Vorjahresdaten historisch korrekt bleiben.
+    Diesen Bereich bitte nur für neue Einstiegsklassen verwenden, z. B. neue 1. Klassen oder Klassen ohne Vorgängerklasse.
+    Wenn eine Vorjahresklasse existiert, legen Sie die neue Klasse bitte nicht manuell an, sondern verwenden Sie den Schuljahreswechsel-Assistenten. Nur so bleiben Vorjahresklasse, Schüler:innenzuordnung und Leistungsdaten historisch sauber getrennt.
   </div>
 <?php else: ?>
   <div class="flash info" style="margin-bottom:12px">
@@ -143,7 +144,17 @@ render_header('Klassen',$u);
 <td><?php echo h($c['name']); ?></td><td><?php echo h((string)($c['school_year_label'] ?? '')); ?></td><td><span class="badge"><?php $form=$schoolFormsById[(int)($c['school_form_id'] ?? 0)] ?? null; echo h($form ? (string)$form['code'] : (string)$c['school_type']); ?></span></td><td><?php echo h($c['year']); ?></td>
 <td><?php echo h(class_assessment_system_label($c['assessment_system'] ?? null)); ?></td>
 <td><?php echo class_archive_badge($c); ?></td>
-<td><?php echo (int)($c['student_count'] ?? 0); ?></td>
+<td>
+  <?php
+    $activeCount=(int)($c['student_count'] ?? 0);
+    $historicalCount=(int)($c['historical_student_count'] ?? $activeCount);
+  ?>
+  <?php if($historicalCount !== $activeCount): ?>
+    <span title="Aktive bzw. fortgeführte Zuordnungen / historische Zuordnungen"><?php echo $activeCount; ?> aktiv / <?php echo $historicalCount; ?> historisch</span>
+  <?php else: ?>
+    <?php echo $activeCount; ?>
+  <?php endif; ?>
+</td>
 <td><?php echo h((string)($c['predecessor_name'] ?? '')); ?></td>
 <td style="white-space:nowrap">
 <a class="btn small secondary" href="<?php echo h($bp); ?>/admin/classes.php?edit=<?php echo (int)$c['id']; ?>&school_period_set_id=<?php echo (int)$schoolYearFilter; ?>">Bearbeiten</a>

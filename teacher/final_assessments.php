@@ -11,7 +11,7 @@ $periodSets = app_school_period_sets(true);
 $school_period_set_id = array_key_exists('school_period_set_id', $_REQUEST)
   ? (int)$_REQUEST['school_period_set_id']
   : final_assessment_default_period_set_id($periodSets);
-$classes = load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,false);
+$classes = load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true);
 
 $st = $pdo->prepare("SELECT DISTINCT s.id,s.code,s.name
                      FROM teacher_assignments ta

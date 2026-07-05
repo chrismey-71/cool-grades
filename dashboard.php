@@ -1,8 +1,12 @@
 <?php
 require_once __DIR__.'/lib/layout.php';
 $u=require_login();
-render_header('Dashboard',$u);
 $bp=cfg()['base_path'];
+if(($u['role'] ?? '')==='teacher'){
+  header('Location: '.$bp.'/teacher/index.php');
+  exit;
+}
+render_header('Dashboard',$u);
 ?>
 <div class="grid"><div class="col-12"><div class="card">
 <h1>Dashboard</h1>
@@ -18,6 +22,19 @@ $bp=cfg()['base_path'];
     <div class="card" style="padding:14px">
       <h2 style="margin:0 0 8px 0">Stammdaten</h2>
       <div class="muted" style="font-size:13px">Zuerst Schuljahre und Semester anlegen, danach Klassen, Fächer, Zuweisungen sowie Personen verwalten.</div>
+      <details class="accordion" style="margin-top:10px">
+        <summary><span class="acc-title">Hinweis empfohlene Reihenfolge</span></summary>
+        <div class="acc-body">
+          <ol class="muted" style="margin-top:0;padding-left:20px">
+            <li>Neues Schuljahr mit beiden Semestern unter <b>Schuljahre/Semester</b> anlegen, aber erst später als aktuell setzen.</li>
+            <li>Unter <b>Klassen</b> nur echte neue Einstiegsklassen anlegen, also Klassen ohne Vorgängerklasse.</li>
+            <li>Fortgeführte Klassen immer über <b>Schuljahreswechsel</b> erzeugen, damit Vorjahresdaten erhalten bleiben.</li>
+            <li>Abschlussklassen im Schuljahreswechsel als <b>Abschlussklasse ohne Zielklasse</b> abschließen.</li>
+            <li>Lehrer:innen-/Fachzuordnungen und Schüler:innenlisten prüfen.</li>
+            <li>Erst danach das neue Schuljahr unter <b>Schuljahre/Semester</b> als aktuell setzen.</li>
+          </ol>
+        </div>
+      </details>
       <div style="height:10px"></div>
       <div class="row">
         <a class="btn" href="<?php echo h($bp); ?>/admin/school_years.php">Schuljahre/Semester</a>
@@ -52,11 +69,6 @@ $bp=cfg()['base_path'];
       </div>
     </div>
   </div>
-</div>
-<?php else: ?>
-<div style="height:14px"></div><div class="row">
-<?php if($u['role']==='teacher'): ?><a class="btn" href="<?php echo h($bp); ?>/teacher/index.php">Lehrerbereich</a><?php endif; ?>
-<?php if($u['role']==='teacher'): ?><a class="btn secondary" href="<?php echo h($bp); ?>/reports.php">Auswertungen</a><?php endif; ?>
 </div>
 <?php endif; ?>
 </div></div></div>

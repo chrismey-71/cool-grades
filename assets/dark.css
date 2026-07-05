@@ -549,3 +549,14 @@ html[data-theme="dark"][data-entry-contrast="high"] .card-grid .set-card .meta,
 html[data-theme="dark"][data-entry-contrast="high"] .card-grid .set-card .muted{
   color:#C3CDDF;
 }
+
+html[data-theme="dark"] .choice-card{
+  border-color:#334155;
+  background:#111827;
+}
+
+html[data-theme="dark"] .choice-card:has(input:checked){
+  border-color:#79B568;
+  background:#16281B;
+  box-shadow:0 0 0 2px rgba(121,181,104,.2);
+}

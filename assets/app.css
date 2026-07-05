@@ -1465,6 +1465,24 @@ html[data-entry-contrast="high"] .nav a.active{
   font-size:13px;
   font-weight:800;
 }
+.choice-card{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:12px 14px;
+  border:1px solid #cfd6df;
+  border-radius:16px;
+  background:#f8fafc;
+  cursor:pointer;
+}
+.choice-card input{
+  align-self:flex-start;
+}
+.choice-card:has(input:checked){
+  border-color:#7aa87f;
+  background:#f1fbf3;
+  box-shadow:0 0 0 2px rgba(122,168,127,.18);
+}
 @media (max-width:840px){
   .final-section-topline{flex-direction:column}
   .final-section-result{width:100%;flex-basis:auto;text-align:left}

@@ -38,7 +38,8 @@
 
 <div class="topbar"><div class="wrap">
 
-  <a class="brandlink" href="<?php echo h($bp); ?>/dashboard.php">
+  <?php $homeHref = ($u && (($u['role'] ?? '') === 'teacher')) ? $bp.'/teacher/index.php' : $bp.'/dashboard.php'; ?>
+  <a class="brandlink" href="<?php echo h($homeHref); ?>">
     <img class="brandlogo" src="<?php echo h($bp); ?>/assets/icons/pwa-icon.svg?v=<?php echo h(_asset_v('assets/icons/pwa-icon.svg')); ?>" alt="COOL-Grades Logo">
     <div class="brandtext">
       <div class="brandtitle">COOL-Grades</div>
@@ -52,10 +53,9 @@
 
   <nav class="nav" id="mainNav">
     <?php if($u): ?>
-      <a href="<?php echo h($bp); ?>/dashboard.php">Dashboard</a>
+      <a href="<?php echo h($homeHref); ?>">Dashboard</a>
       <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/manage.php">Verwaltung</a><?php endif; ?>
       <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/settings_index.php">Einstellungen</a><?php endif; ?>
-      <?php if(($u['role'] ?? '')==='teacher'): ?><a href="<?php echo h($bp); ?>/teacher/index.php">Lehrerbereich</a><?php endif; ?>
       <?php if(($u['role'] ?? '')==='teacher'): ?><a href="<?php echo h($bp); ?>/teacher/manage.php">Verwaltung</a><?php endif; ?>
       <a href="<?php echo h($bp); ?>/account.php">Konto</a>
       <form method="post" action="<?php echo h($bp); ?>/logout.php" class="logout-stack">

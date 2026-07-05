@@ -281,10 +281,19 @@ render_header('Verwaltung',$u);
             <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/student_groups.php">Gruppen verwalten</a>
           </div>
         </div>
+
+        <div class="col-12 col-md-3">
+          <div class="card" style="padding:14px">
+            <h2 style="margin:0 0 8px 0">Datensicherung</h2>
+            <div class="muted" style="font-size:13px">Eigene zugewiesene Klassen, Fächer, Schuljahre und Leistungsdaten als gepackte Datei sichern.</div>
+            <div style="height:10px"></div>
+            <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/backup.php">Datensicherung öffnen</a>
+          </div>
+        </div>
       </div>
 
       <div style="height:12px"></div>
-      <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/index.php">Zurück zum Lehrerbereich</a>
+      <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/index.php">Zurück zum Dashboard</a>
     </div>
   </div>
 </div>

@@ -25,7 +25,7 @@ if($periodSchoolYearId<=0 && preg_match('/^period_(\d+)_/', $period, $m)) $perio
 if($periodSchoolYearId<=0) $periodSchoolYearId=school_year_current_id($pdo);
 $reportAssessmentContext=report_eval_assessment_context_from_period($resolvedPeriod,$period);
 
-$classes=load_teacher_classes($pdo,(int)$u['id'],$periodSchoolYearId,true,false);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$periodSchoolYearId,true,true);
 $subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
 
 // Print-friendly view (users can "Print to PDF" in the browser)
@@ -94,11 +94,11 @@ function _reports_final_suggestion_label(?array $final): string {
   return $label !== '' ? $label : '–';
 }
 
-if($is_print) _reports_print_header('Auswertungen – Druck');
-else render_header('Auswertungen',$u);
+if($is_print) _reports_print_header('Berichte & Auswertungen – Druck');
+else render_header('Berichte & Auswertungen',$u);
 ?>
 <div class="grid"><div class="col-12"><div class="card">
-<h1>Auswertungen</h1>
+<h1>Berichte &amp; Auswertungen</h1>
 <form method="get" class="row" style="align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
   <div><label class="muted">Klasse</label>
     <select class="input" name="class_id"><option value="0">–</option>

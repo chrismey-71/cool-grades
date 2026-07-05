@@ -23,7 +23,7 @@ Geprüfte Dateien und Bereiche:
 
 | Bereich | Geprüfte Datei(en) |
 |---|---|
-| Navigation und Lehrerbereich | `teacher/index.php` |
+| Navigation und Dashboard | `teacher/index.php` |
 | Schnelle Mitarbeitserfassung | `teacher/participation_new.php` |
 | Einträge suchen und bearbeiten | `teacher/participation_list.php`, stichprobenartig |
 | Besondere mündliche Leistungen | `teacher/oral_new.php`, `teacher/orals.php`, stichprobenartig |
@@ -76,7 +76,7 @@ Gut gelöst:
 
 | Beobachtung | Bewertung |
 |---|---|
-| Der Lehrerbereich trennt zentrale Aufgaben in Karten: Mitarbeit, besondere mündliche Leistungen, besondere schriftliche Leistungen und Abschlussbeurteilung. | Gute Orientierung für wiederkehrende Nutzung. |
+| Das Dashboard trennt zentrale Aufgaben in Karten: Mitarbeit, besondere mündliche Leistungen, besondere schriftliche Leistungen, Abschlussbeurteilung sowie Berichte & Auswertungen. | Gute Orientierung für wiederkehrende Nutzung. |
 | Die Abschlussbeurteilung ist links unterhalb der schnellen Mitarbeitserfassung sichtbar. | Passt zum gewünschten Workflow: erst erfassen, später zusammenführen. |
 | Direktlinks zu Einträge bearbeiten, Gruppen verwalten und Stundenerfassung sind vorhanden. | Praktisch für tägliche Arbeit. |
 

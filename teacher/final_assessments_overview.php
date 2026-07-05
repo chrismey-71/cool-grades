@@ -18,13 +18,13 @@ $subjectId = (int)($_GET['subject_id'] ?? 0);
 $statusFilter = final_assessment_overview_status_normalize((string)($_GET['status'] ?? 'all'));
 
 $classes = $schoolPeriodSetId > 0
-  ? load_teacher_classes($pdo, (int)$u['id'], $schoolPeriodSetId, true, false)
+  ? load_teacher_classes($pdo, (int)$u['id'], $schoolPeriodSetId, true, true)
   : [];
 $subjectSql = "SELECT DISTINCT s.id,s.code,s.name
                FROM teacher_assignments ta
                JOIN classes c ON c.id=ta.class_id
                JOIN subjects s ON s.id=ta.subject_id
-               WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0
+               WHERE ta.teacher_id=? AND c.school_period_set_id=?
                ORDER BY s.code,s.name";
 $st = $pdo->prepare($subjectSql);
 $st->execute([(int)$u['id'], $schoolPeriodSetId]);

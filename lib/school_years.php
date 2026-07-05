@@ -79,11 +79,12 @@ function load_school_years(PDO $pdo, bool $includeArchived = true): array {
 function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDeparted = true): array {
   $sql = "SELECT c.*, sp.label AS school_year_label,
                  pc.name AS predecessor_name,
-                 COUNT(DISTINCT ce.student_id) AS student_count
+                 COUNT(DISTINCT CASE WHEN ce.status IN ('active','repeated','transferred') THEN ce.student_id END) AS student_count,
+                 COUNT(DISTINCT ce.student_id) AS historical_student_count
           FROM classes c
           LEFT JOIN school_period_sets sp ON sp.id=c.school_period_set_id
           LEFT JOIN classes pc ON pc.id=c.predecessor_class_id
-          LEFT JOIN class_enrollments ce ON ce.class_id=c.id AND ce.status IN ('active','repeated','transferred')
+          LEFT JOIN class_enrollments ce ON ce.class_id=c.id
           WHERE 1=1";
   $params = [];
   if($schoolYearId > 0){ $sql .= " AND c.school_period_set_id=?"; $params[] = $schoolYearId; }

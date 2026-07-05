@@ -22,7 +22,7 @@ $msg=(string)($_GET['msg'] ?? '');
 $err=(string)($_GET['err'] ?? '');
 
 $schoolYears=load_school_years($pdo,true);
-$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,false);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true);
 $subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
 
 if($_SERVER['REQUEST_METHOD']==='POST'){

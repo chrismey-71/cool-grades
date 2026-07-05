@@ -16,6 +16,25 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.71] - 2026-07-05
+
+### Geändert
+
+- bisheriger Lehrerbereich in `Dashboard` umbenannt und als eindeutigen Startpunkt für Lehrkräfte geführt
+- separate Dashboard-Auswahl zwischen Lehrerbereich und Auswertung entfernt
+- allgemeine Auswertung als Kachel `Berichte & Auswertungen` in das Lehrer:innen-Dashboard integriert
+- Hauptnavigation für Lehrkräfte vereinfacht: `Dashboard`, `Verwaltung`, `Konto`
+- Schuljahreswechsel um den Modus `Abschlussklasse ohne Zielklasse` ergänzt
+- Admin-Dashboard im Bereich `Stammdaten` um eine aufklappbare empfohlene Reihenfolge für den Schuljahreswechsel erweitert
+- Klassenanlage deutlicher als Funktion für neue Einstiegsklassen ohne Vorgängerklasse beschrieben
+- archivierte und ausgeschiedene Vorjahresklassen bleiben für berechtigte Lehrkräfte in lesenden Auswertungs- und Übersichtsbereichen sichtbar
+- störende Verlassen-Warnung im Schuljahreswechsel-Assistenten entfernt
+- Admin-Gesamtsicherung als gepackte ZIP-Sicherung mit optionalem Kennwortschutz umgesetzt
+- Lehrkraft-Datensicherung für zugewiesene Klassen, Fächer, Schuljahre und Leistungsdaten als gepackten Export mit optionalem Kennwortschutz ergänzt
+- Klassenübersicht zeigt bei Abschluss- und Archivklassen aktive und historische Schüler:innen getrennt, z. B. `0 aktiv / 24 historisch`
+- Lehrer:innen-Handbuch an die neue Dashboard-Struktur angepasst
+- Versionsnummer auf 1.71 erhöht
+
 ## [1.70] - 2026-06-20
 
 ### Geändert

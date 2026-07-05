@@ -66,7 +66,7 @@ foreach($summaries as $summary){
 
 $pdf = new SimplePdfDocument('landscape');
 $pdf->setFooterText(report_eval_legal_note($hasSpecial), 8);
-$pdf->heading('COOL-Grades – Auswertung pro Schüler:in', 18);
+$pdf->heading('COOL-Grades – Bericht & Auswertung pro Schüler:in', 18);
 $pdf->paragraph(
   'Die Tabelle dient als transparente Entscheidungshilfe für die Semesterbeurteilung. Sie bündelt dokumentierte Mitarbeit, besondere mündliche Leistungsfeststellungen und besondere schriftliche Leistungsfeststellungen, ohne die pädagogische Endentscheidung vorwegzunehmen.',
   10,

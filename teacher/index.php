@@ -26,13 +26,13 @@ $prefMode=(string)($u['pref_quick_entry_ui'] ?? '');
 if($prefMode==='buttons' || $prefMode==='dropdown') $quickMode=$prefMode;
 else $quickMode = ($comboCount<=12 ? 'buttons' : 'dropdown');
 
-render_header('Lehrerbereich',$u);
+render_header('Dashboard',$u);
 ?>
 <div class="grid">
   <div class="col-12">
     <div class="card">
-      <h1>Lehrerbereich</h1>
-      <p class="muted">Wähle Klasse und Fach – danach kannst du Mitarbeit, Stundenerfassung sowie mündliche und schriftliche Leistungsfeststellungen schnell öffnen.</p>
+      <h1>Dashboard</h1>
+      <p class="muted">Wähle den passenden Arbeitsbereich: Leistungen erfassen, Einträge bearbeiten, Abschlussbeurteilungen festlegen oder Berichte und Auswertungen öffnen.</p>
 
       <div class="grid" style="margin-top:14px">
         <div class="col-12 col-md-6">
@@ -100,6 +100,19 @@ render_header('Lehrerbereich',$u);
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments.php">Semester- und Jahresbeurteilung festlegen</a>
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments_overview.php">Notenübersicht öffnen</a>
             </div>
+          </div>
+
+          <div class="card" style="padding:14px;margin-top:14px">
+            <h2 style="margin:0 0 8px 0">Berichte &amp; Auswertungen</h2>
+            <div class="muted" style="font-size:13px">
+              Gespeicherte Mitarbeit, besondere mündliche und schriftliche Leistungsfeststellungen pro Klasse, Fach und Zeitraum zusammenfassen.
+            </div>
+            <div style="height:10px"></div>
+            <div class="muted" style="font-size:13px">
+              Dieser Bereich verändert keine Einträge. Er dient der Kontrolle, pädagogischen Interpretation und dem PDF-Export.
+            </div>
+            <div style="height:10px"></div>
+            <a class="btn secondary" href="<?php echo h($bp); ?>/reports.php">Berichte &amp; Auswertungen öffnen</a>
           </div>
         </div>
 
