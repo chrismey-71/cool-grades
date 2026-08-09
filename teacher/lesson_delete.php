@@ -34,7 +34,8 @@ if(!$ls){
 
 $class_id=(int)$ls['class_id'];
 $subject_id=(int)$ls['subject_id'];
-require_teacher_assignment($u,$class_id,$subject_id);
+require_teacher_active_assignment($u,$class_id,$subject_id);
+require_class_writable($pdo,$class_id);
 
 $st=$pdo->prepare("SELECT COUNT(*) FROM participation_events WHERE lesson_id=?");
 $st->execute([$lesson_id]);

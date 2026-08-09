@@ -2,9 +2,15 @@
 require_once __DIR__.'/settings.php';
 require_once __DIR__.'/assessment_systems.php';
 
-function school_year_current_id(PDO $pdo): int {
+function school_year_current_id(PDO $pdo, int $schoolId = 0): int {
   try{
-    $st = $pdo->query("SELECT id FROM school_period_sets WHERE is_current=1 LIMIT 1");
+    if($schoolId>0){
+      $st=$pdo->prepare("SELECT id FROM school_period_sets WHERE is_current=1 AND school_id=? LIMIT 1");
+      $st->execute([$schoolId]);
+      $id=(int)($st->fetchColumn() ?: 0);
+      if($id>0) return $id;
+    }
+    $st = $pdo->query("SELECT id FROM school_period_sets WHERE is_current=1 AND school_id IS NULL LIMIT 1");
     $id = (int)($st->fetchColumn() ?: 0);
     if($id > 0) return $id;
   }catch(Exception $e){ /* ignore */ }
@@ -17,7 +23,12 @@ function school_year_set_current(PDO $pdo, int $periodId): void {
   if($periodId <= 0) return;
   $pdo->beginTransaction();
   try{
-    $pdo->exec("UPDATE school_period_sets SET is_current=0");
+    $lookup=$pdo->prepare("SELECT school_id FROM school_period_sets WHERE id=?");
+    $lookup->execute([$periodId]);
+    $schoolId=$lookup->fetchColumn();
+    if($schoolId===false) throw new RuntimeException('Schuljahr nicht gefunden.');
+    $scope=$schoolId===null ? "school_id IS NULL" : "school_id=".(int)$schoolId;
+    $pdo->exec("UPDATE school_period_sets SET is_current=0 WHERE ".$scope);
     $st = $pdo->prepare("UPDATE school_period_sets SET is_current=1, archived=0, updated_at=? WHERE id=?");
     $st->execute([now_iso(), $periodId]);
     $pdo->commit();
@@ -57,18 +68,21 @@ function class_display_name(array $class): string {
   return $year !== '' ? $name.' · '.$year : $name;
 }
 
-function load_school_years(PDO $pdo, bool $includeArchived = true): array {
-  $sql = "SELECT id,label,semester1_from,semester1_to,semester2_from,semester2_to,archived,is_current,created_at,updated_at
-          FROM school_period_sets";
-  if(!$includeArchived) $sql .= " WHERE archived=0";
-  $sql .= " ORDER BY semester1_from DESC, id DESC";
+function load_school_years(PDO $pdo, bool $includeArchived = true, int $schoolId = 0, bool $includeGlobal = true): array {
+  $sql = "SELECT id,school_id,label,semester1_from,semester1_to,semester2_from,semester2_to,archived,is_current,created_at,updated_at
+          FROM school_period_sets WHERE 1=1";
+  $params=[];
+  if(!$includeArchived) $sql .= " AND archived=0";
+  if($schoolId>0){ $sql.=$includeGlobal ? " AND (school_id=? OR school_id IS NULL)" : " AND school_id=?"; $params[]=$schoolId; }
+  $sql .= " ORDER BY school_id IS NULL DESC, semester1_from DESC, id DESC";
   try{
-    $rows = $pdo->query($sql)->fetchAll();
+    $st=$pdo->prepare($sql); $st->execute($params); $rows=$st->fetchAll();
   }catch(Exception $e){
-    $rows = app_school_period_sets($includeArchived);
+    $rows = app_school_period_sets($includeArchived,$schoolId,$includeGlobal);
   }
   foreach($rows as &$row){
     $row['id'] = (int)$row['id'];
+    $row['school_id'] = (int)($row['school_id'] ?? 0);
     $row['archived'] = (int)($row['archived'] ?? 0);
     $row['is_current'] = (int)($row['is_current'] ?? 0);
   }
@@ -76,18 +90,20 @@ function load_school_years(PDO $pdo, bool $includeArchived = true): array {
   return $rows;
 }
 
-function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDeparted = true): array {
+function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDeparted = true, int $schoolId = 0): array {
   $sql = "SELECT c.*, sp.label AS school_year_label,
                  pc.name AS predecessor_name,
                  COUNT(DISTINCT CASE WHEN ce.status IN ('active','repeated','transferred') THEN ce.student_id END) AS student_count,
                  COUNT(DISTINCT ce.student_id) AS historical_student_count
           FROM classes c
           LEFT JOIN school_period_sets sp ON sp.id=c.school_period_set_id
+          LEFT JOIN school_forms sf ON sf.id=c.school_form_id
           LEFT JOIN classes pc ON pc.id=c.predecessor_class_id
           LEFT JOIN class_enrollments ce ON ce.class_id=c.id
           WHERE 1=1";
   $params = [];
   if($schoolYearId > 0){ $sql .= " AND c.school_period_set_id=?"; $params[] = $schoolYearId; }
+  if($schoolId > 0){ $sql .= " AND sf.school_id=?"; $params[]=$schoolId; }
   if(!$includeDeparted){ $sql .= " AND c.is_departed=0"; }
   $sql .= " GROUP BY c.id ORDER BY sp.semester1_from DESC, c.school_type, c.year, c.name";
   $st = $pdo->prepare($sql);
@@ -95,7 +111,7 @@ function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDe
   return $st->fetchAll();
 }
 
-function load_teacher_classes(PDO $pdo, int $teacherId, int $schoolYearId = 0, bool $includeArchived = false, bool $includeDeparted = false): array {
+function load_teacher_classes(PDO $pdo, int $teacherId, int $schoolYearId = 0, bool $includeArchived = false, bool $includeDeparted = false, bool $includeEndedAssignments = true): array {
   $sql = "SELECT DISTINCT c.*, sp.label AS school_year_label, sp.archived AS school_year_archived
           FROM teacher_assignments ta
           JOIN classes c ON c.id=ta.class_id
@@ -105,6 +121,7 @@ function load_teacher_classes(PDO $pdo, int $teacherId, int $schoolYearId = 0, b
   if($schoolYearId > 0){ $sql .= " AND c.school_period_set_id=?"; $params[] = $schoolYearId; }
   if(!$includeArchived){ $sql .= " AND c.is_archived=0"; }
   if(!$includeDeparted){ $sql .= " AND c.is_departed=0"; }
+  if(!$includeEndedAssignments){ $sql .= " AND ta.status='active'"; }
   $sql .= " ORDER BY sp.semester1_from DESC, c.school_type, c.year, c.name";
   $st = $pdo->prepare($sql);
   $st->execute($params);

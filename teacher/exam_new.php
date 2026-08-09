@@ -12,7 +12,7 @@ $exam_type=written_assessment_normalize_type($exam_type);
 $st=$pdo->prepare("SELECT * FROM classes WHERE id=?");$st->execute([$class_id]);$class=$st->fetch();
 $st=$pdo->prepare("SELECT * FROM subjects WHERE id=?");$st->execute([$subject_id]);$subject=$st->fetch();
 if(!$class||!$subject){http_response_code(400);exit('Klasse/Fach ungültig.');}
-require_teacher_assignment($u,$class_id,$subject_id);
+require_teacher_active_assignment($u,$class_id,$subject_id);
 require_class_writable($pdo,$class_id);
 $students=load_class_students($pdo,$class_id,false);
 $studentGroups=load_teacher_student_groups($pdo,(int)$u['id'],$class_id,$subject_id);

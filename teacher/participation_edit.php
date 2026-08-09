@@ -25,7 +25,7 @@ $st->execute([$id,(int)$u['id']]);
 $e=$st->fetch();
 if(!$e){ http_response_code(404); exit('Eintrag nicht gefunden (oder nicht berechtigt).'); }
 require_teacher_assignment($u,(int)$e['class_id'],(int)$e['subject_id']);
-require_class_writable($pdo,(int)$e['class_id']);
+$assignmentReadOnly=!teacher_can_edit_assignment((int)$u['id'],(int)$e['class_id'],(int)$e['subject_id']) || class_is_readonly((array)(class_context($pdo,(int)$e['class_id']) ?? []));
 
 $class_id=(int)$e['class_id'];
 $subject_id=(int)$e['subject_id'];
@@ -111,6 +111,8 @@ $action='';
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
+  require_teacher_active_assignment($u,(int)$e['class_id'],(int)$e['subject_id']);
+  require_class_writable($pdo,(int)$e['class_id']);
   $action=$_POST['action'] ?? 'save';
 
   if($action==='save' || $action==='save_preset'){
@@ -360,6 +362,7 @@ render_header('Mitarbeit bearbeiten',$u);
 ?>
 <div class="grid"><div class="col-12"><div class="card">
   <h1>Mitarbeitseintrag bearbeiten</h1>
+  <?php if($assignmentReadOnly): ?><div class="notice">Historische Zuweisung: Dieser Eintrag ist nur lesbar. Neue Änderungen sind nicht möglich.</div><?php endif; ?>
   <div class="muted">
     <?php echo h($e['class_name']); ?> · <?php echo h($e['subject_code']); ?> · <?php echo h($form_event_date); ?><br>
     Schüler:in: <b><?php echo h($student_name); ?></b>

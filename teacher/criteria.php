@@ -94,25 +94,31 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $err='Set nicht gefunden oder keine Berechtigung.';
     } else {
 
-      // Determine relevant school types for this teacher+subject (FSB/HLS)
-      $types=[];
+      // Vorschläge sind an konkrete Schulformen gebunden; ohne Zuordnung gelten sie global.
+      $schoolFormIds=[];
       try{
-        $stt=$pdo->prepare("SELECT DISTINCT c.school_type FROM teacher_assignments ta JOIN classes c ON c.id=ta.class_id WHERE ta.teacher_id=? AND ta.subject_id=?");
+        $stt=$pdo->prepare("SELECT DISTINCT c.school_form_id FROM teacher_assignments ta JOIN classes c ON c.id=ta.class_id WHERE ta.teacher_id=? AND ta.subject_id=? AND c.school_form_id IS NOT NULL");
         $stt->execute([(int)$u['id'], (int)$row['subject_id']]);
-        $types=$stt->fetchAll(PDO::FETCH_COLUMN);
-      }catch(Exception $e){ $types=[]; }
-      $types=array_values(array_unique(array_filter($types)));
-      if(!$types) $types=['FSB','HLS']; // fallback: show both
+        $schoolFormIds=array_map('intval',$stt->fetchAll(PDO::FETCH_COLUMN));
+      }catch(Exception $e){ $schoolFormIds=[]; }
+      $schoolFormIds=array_values(array_unique(array_filter($schoolFormIds)));
 
-      // Fetch suggestions for this subject (and generic ALL) and for relevant school types + BOTH
-      $in = implode(',', array_fill(0, count($types), '?'));
+      // Passende Schulformen oder global gültige Vorschläge laden.
+      $params=[$row['code']];
+      $formFilterSql='';
+      if($schoolFormIds){
+        $formCondition="NOT EXISTS (SELECT 1 FROM criteria_suggestion_school_forms cssf0 WHERE cssf0.suggestion_id=cs.id)";
+        $in = implode(',', array_fill(0, count($schoolFormIds), '?'));
+        $formCondition.=" OR EXISTS (SELECT 1 FROM criteria_suggestion_school_forms cssf WHERE cssf.suggestion_id=cs.id AND cssf.school_form_id IN ($in))";
+        $params=array_merge($params,$schoolFormIds);
+        $formFilterSql=" AND ($formCondition)";
+      }
       $sql="SELECT subject_code, category, label
-            FROM criteria_suggestions
+            FROM criteria_suggestions cs
             WHERE archived=0 AND active=1
               AND (subject_code=? OR subject_code='ALL')
-              AND (school_type='BOTH' OR school_type IN ($in))
+              $formFilterSql
             ORDER BY subject_code DESC, category, sort, label";
-      $params=array_merge([$row['code']], $types);
       $sts=$pdo->prepare($sql);
       $sts->execute($params);
       $tpl=$sts->fetchAll();

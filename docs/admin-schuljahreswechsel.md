@@ -6,9 +6,9 @@ Der Schuljahreswechsel ist historisch ausgelegt. Bestehende Klassen werden nicht
 
 ## Schuljahre verwalten
 
-Schuljahre werden im Adminbereich unter `Stammdaten -> Schuljahre/Semester` angelegt. Ein Schuljahr enthält die Datumsbereiche für das 1. Semester, das 2. Semester und das gesamte Schuljahr. Genau ein Schuljahr kann als aktuelles Schuljahr markiert werden.
+Schuljahre werden im Adminbereich unter `Stammdaten -> Schuljahre/Semester` angelegt. Ein Schuljahr enthält die Datumsbereiche für das 1. Semester, das 2. Semester und das gesamte Schuljahr. Es kann entweder global für alle Schulen gelten oder einer konkreten Schule zugeordnet werden. Das ist sinnvoll, wenn Schulen unterschiedliche Semestertermine führen. Pro Schule bzw. im globalen Bereich kann ein Schuljahr als aktuell markiert werden.
 
-Das aktuelle Schuljahr steuert, welche Klassen Lehrer:innen standardmäßig sehen. Frühere Schuljahre bleiben für Auswertungen und PDF-Berichte erreichbar.
+Das aktuelle Schuljahr steuert, welche Klassen Lehrer:innen standardmäßig sehen. Frühere Schuljahre bleiben für Auswertungen und PDF-Berichte erreichbar. Globale Schuljahre stehen allen Schulen zur Verfügung; schulbezogene Schuljahre nur der jeweils gewählten Schule.
 
 ## Klassen pro Schuljahr
 
@@ -27,16 +27,17 @@ Der Assistent `Adminbereich -> Schuljahreswechsel` kennt zwei Modi:
 
 Bei einer normalen Fortführung führt der Assistent durch folgende Schritte:
 
-1. Ausgangsschuljahr wählen.
-2. Ausgangsklasse wählen.
-3. Zielschuljahr wählen.
-4. Zielklasse definieren.
-5. Beurteilungssystem übernehmen oder anpassen.
-6. Schüler:innen übernehmen, als Wiederholer:in markieren, als Abgang markieren, in eine andere Klasse wechseln oder zunächst nicht zuordnen.
-7. Lehrer:innen-/Fachzuordnungen optional übernehmen.
-8. Status der Ausgangsklasse festlegen: aktiv lassen, archivieren oder als ausgeschieden markieren.
-9. Vorschau prüfen.
-10. Schuljahreswechsel durchführen.
+1. Schule wählen.
+2. Ausgangsschuljahr wählen.
+3. Ausgangsklasse wählen.
+4. Zielschuljahr wählen.
+5. Zielklasse definieren.
+6. Beurteilungssystem übernehmen oder anpassen.
+7. Schüler:innen übernehmen, als Wiederholer:in markieren, als Abgang markieren, in eine andere Klasse wechseln oder zunächst nicht zuordnen.
+8. Lehrer:innen-/Fachzuordnungen optional übernehmen.
+9. Status der Ausgangsklasse festlegen: aktiv lassen, archivieren oder als ausgeschieden markieren.
+10. Vorschau prüfen.
+11. Schuljahreswechsel durchführen.
 
 Bei `Abschlussklasse ohne Zielklasse` wird keine Zielklasse angelegt. Die Ausgangsklasse wird als `ausgeschieden` markiert. Schüler:innen werden standardmäßig als Abgang behandelt; Sonderfälle wie Wiederholung, Klassenwechsel oder noch offene Zuordnung können pro Schüler:in abweichend markiert werden.
 
@@ -56,13 +57,19 @@ Der Assistent kopiert keine Leistungsdaten, verschiebt keine alten Einträge und
 
 Der Status einer Klasse wird im Bereich `Schuljahreswechsel` gepflegt. Dort kann eine Klasse bei Bedarf nachträglich auf `aktiv`, `archiviert` oder `ausgeschieden` gesetzt werden. Die Klassenverwaltung selbst dient nur der Stammdatenpflege einzelner Klasseninstanzen.
 
+## Lehrer:innen-Zuweisungen beenden
+
+Unter `Zuweisungen` werden Lehrkraft, Klasse und Fach gemeinsam verwaltet. Eine Zuweisung ohne gespeicherte Kontextdaten kann endgültig gelöscht werden.
+
+Sobald die Lehrkraft zu dieser Klasse-Fach-Kombination bereits Stunden, Mitarbeitseinträge, besondere mündliche oder schriftliche Leistungsfeststellungen, Abschlussbeurteilungen, Gruppen oder Gewichtungen gespeichert hat, wird die Zuweisung stattdessen **beendet**. Die bisherige Lehrkraft kann diese historischen Daten weiterhin lesen, auswerten und als PDF ausgeben; neue oder geänderte Einträge sind über diese beendete Zuweisung nicht mehr möglich. Bei einer versehentlichen Umteilung kann der Admin die Zuweisung jederzeit reaktivieren.
+
 ## Löschen alter Klassen
 
 Wenn eine alte Klasse gelöscht wird, greifen die vorhandenen Datenbankbeziehungen. Dadurch werden auch die daran hängenden archivierten Leistungsdaten gelöscht. Das Löschen alter Klassen sollte daher nur bewusst erfolgen.
 
 ## Datensicherung
 
-Vor einem größeren Schuljahreswechsel sollte im Adminbereich unter `Einstellungen -> Datenbanksicherung` eine Gesamtsicherung erstellt werden. Die Admin-Sicherung wird als ZIP-Datei erzeugt und enthält einen vollständigen SQL-Dump der Datenbank.
+Vor einem größeren Schuljahreswechsel sollte im Adminbereich unter `Einstellungen -> Datenbanksicherung` eine Gesamtsicherung erstellt werden. Die Admin-Sicherung kann als vollständiger SQL-Dump der Datenbank oder als schulbezogene ZIP-Sicherung im JSON-Format erzeugt werden. Die Schulsicherung enthält nur Klassen, Zuordnungen und Leistungsdaten der ausgewählten Schule.
 
 Optional kann die ZIP-Datei mit einem Kennwort verschlüsselt werden. Das Kennwort muss außerhalb der App sicher aufbewahrt werden.
 

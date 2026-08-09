@@ -5,9 +5,9 @@ require_once __DIR__.'/../lib/school_years.php';
 $u=require_role('teacher'); $pdo=db(); $bp=cfg()['base_path'];
 
 $currentSchoolYearId=school_year_current_id($pdo);
-$classes=load_teacher_classes($pdo,(int)$u['id'],$currentSchoolYearId,false,false);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$currentSchoolYearId,false,false,false);
 
-$st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? ORDER BY s.code");
+$st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? AND ta.status='active' ORDER BY s.code");
 $st->execute([(int)$u['id']]); $subjects=$st->fetchAll();
 
 // Class+Subject combinations for quick-entry buttons
@@ -15,7 +15,7 @@ $st=$pdo->prepare("SELECT c.id AS class_id,c.name AS class_name,s.id AS subject_
   FROM teacher_assignments ta
   JOIN classes c ON c.id=ta.class_id
   JOIN subjects s ON s.id=ta.subject_id
-  WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_archived=0 AND c.is_departed=0
+  WHERE ta.teacher_id=? AND ta.status='active' AND c.school_period_set_id=? AND c.is_archived=0 AND c.is_departed=0
   ORDER BY c.name,s.code");
 $st->execute([(int)$u['id'],$currentSchoolYearId]);
 $combos=$st->fetchAll();

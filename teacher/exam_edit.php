@@ -20,7 +20,7 @@ $st->execute([$id,(int)$u['id']]);
 $ex=$st->fetch();
 if(!$ex){ http_response_code(404); exit('Eintrag nicht gefunden (oder nicht berechtigt).'); }
 require_teacher_assignment($u,(int)$ex['class_id'],(int)$ex['subject_id']);
-require_class_writable($pdo,(int)$ex['class_id']);
+$assignmentReadOnly=!teacher_can_edit_assignment((int)$u['id'],(int)$ex['class_id'],(int)$ex['subject_id']) || class_is_readonly((array)(class_context($pdo,(int)$ex['class_id']) ?? []));
 
 $class_id=(int)$ex['class_id'];
 $subject_id=(int)$ex['subject_id'];
@@ -43,6 +43,8 @@ $err='';
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
+  require_teacher_active_assignment($u,(int)$ex['class_id'],(int)$ex['subject_id']);
+  require_class_writable($pdo,(int)$ex['class_id']);
   $action=$_POST['action'] ?? 'save';
 
   if($action==='delete'){
@@ -141,6 +143,7 @@ render_header('Besondere schriftliche Leistungsfeststellung bearbeiten',$u);
 ?>
 <div class="grid"><div class="col-12"><div class="card">
   <h1>Besondere schriftliche Leistungsfeststellung bearbeiten</h1>
+  <?php if($assignmentReadOnly): ?><div class="notice">Historische Zuweisung: Diese Leistungsfeststellung ist nur lesbar. Neue Änderungen sind nicht möglich.</div><?php endif; ?>
   <div class="muted"><?php echo h($ex['class_name']); ?> · <?php echo h($ex['subject_code']); ?></div>
   <?php if(legal_hints_enabled($u)): ?>
     <details class="accordion" id="writtenSummaryCard" data-summary-map="<?php echo h(json_encode($written_summary_map, JSON_UNESCAPED_UNICODE)); ?>" data-tooltip-map="<?php echo h(json_encode($written_tooltip_map, JSON_UNESCAPED_UNICODE)); ?>" style="margin-top:10px">

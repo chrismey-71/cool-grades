@@ -45,9 +45,11 @@ $subjects=$st->fetchAll();
 
 $exams=[];
 $classContext=null;
+$assignmentReadOnly=false;
 if($class_id && $subject_id){
   require_teacher_assignment($u,$class_id,$subject_id);
   $classContext=class_context($pdo,$class_id);
+  $assignmentReadOnly=!teacher_can_edit_assignment((int)$u['id'],$class_id,$subject_id) || ($classContext && class_is_readonly($classContext));
 
   $sql="SELECT e.id,e.exam_date,e.title, e.exam_type
         FROM exams e
@@ -83,6 +85,7 @@ render_header('Besondere schriftliche Leistungsfeststellungen',$u);
 <div class="grid"><div class="col-12"><div class="card">
   <h1>Besondere schriftliche Leistungsfeststellungen – bearbeiten</h1>
   <div class="muted">Hier findest du alle besonderen schriftlichen Leistungsfeststellungen (Schularbeit + Test) und kannst sie bearbeiten.</div>
+  <?php if($assignmentReadOnly): ?><div class="notice" style="margin-top:10px">Historische Zuweisung: Die vorhandenen Leistungsfeststellungen sind nur lesbar.</div><?php endif; ?>
   <?php if(legal_hints_enabled($u)): ?>
     <details class="accordion" id="writtenSummaryCard" data-summary-map="<?php echo h(json_encode($written_summary_map, JSON_UNESCAPED_UNICODE)); ?>" data-tooltip-map="<?php echo h(json_encode($written_tooltip_map, JSON_UNESCAPED_UNICODE)); ?>" style="margin-top:10px">
       <summary>
@@ -140,7 +143,7 @@ render_header('Besondere schriftliche Leistungsfeststellungen',$u);
     </div>
     <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><button class="btn secondary">Anzeigen</button></div>
 
-    <?php if($class_id && $subject_id && (!$classContext || !class_is_readonly($classContext))): ?>
+    <?php if($class_id && $subject_id && !$assignmentReadOnly && (!$classContext || !class_is_readonly($classContext))): ?>
       <div style="flex:0 0 auto"><label class="muted">&nbsp;</label>
         <a class="btn" href="<?php echo h($bp); ?>/teacher/exam_new.php?class_id=<?php echo (int)$class_id; ?>&subject_id=<?php echo (int)$subject_id; ?>">Neu anlegen</a>
       </div>

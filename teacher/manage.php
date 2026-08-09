@@ -31,7 +31,7 @@ $assignmentSql="SELECT c.id AS class_id,c.name AS class_name,c.assessment_system
                 JOIN classes c ON c.id=ta.class_id
                 JOIN subjects s ON s.id=ta.subject_id
                 LEFT JOIN school_period_sets sp ON sp.id=c.school_period_set_id
-                WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0
+                WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0 AND ta.status='active'
                 ORDER BY c.name,s.code,s.name";
 $st=$pdo->prepare($assignmentSql);
 $st->execute([(int)$u['id'],$schoolYearId]);
@@ -63,7 +63,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && (string)($_POST['action'] ?? '')==='sa
   if(!$selectedAssignment){
     $weightError='Die gewählte Klasse-Fach-Zuordnung ist für dieses Schuljahr nicht verfügbar.';
   } else {
-    require_teacher_assignment($u,$classId,$subjectId);
+    require_teacher_active_assignment($u,$classId,$subjectId);
     $assessmentModel=(string)$selectedAssignment['assessment_system'];
     if($weightContextReadonly){
       $weightError='Gewichtungen archivierter Klassen oder Schuljahre können nicht verändert werden.';

@@ -247,6 +247,107 @@ function backup_teacher_export(PDO $pdo, array $teacher): array {
   ];
 }
 
+function backup_school_export(PDO $pdo, int $schoolId): array {
+  $school=backup_rows($pdo,"SELECT * FROM schools WHERE id=? LIMIT 1",[$schoolId])[0] ?? null;
+  if(!$school) throw new RuntimeException('Schule für die Sicherung nicht gefunden.');
+  $forms=backup_rows($pdo,"SELECT * FROM school_forms WHERE school_id=? ORDER BY code",[$schoolId]);
+  $formIds=backup_ids($forms,'id');
+  $params=[]; $formIn=backup_in_clause($formIds,$params);
+  $classes=$formIds ? backup_rows($pdo,"SELECT * FROM classes WHERE school_form_id IN $formIn ORDER BY school_period_set_id,name",$params) : [];
+  $classIds=backup_ids($classes,'id');
+  $periodIds=backup_ids($classes,'school_period_set_id');
+  $params=[]; $periodIn=backup_in_clause($periodIds,$params);
+  $periods=$periodIds ? backup_rows($pdo,"SELECT * FROM school_period_sets WHERE id IN $periodIn OR school_id=? ORDER BY semester1_from",array_merge($params,[$schoolId])) : backup_rows($pdo,"SELECT * FROM school_period_sets WHERE school_id=? ORDER BY semester1_from",[$schoolId]);
+
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $enrollments=$classIds ? backup_rows($pdo,"SELECT * FROM class_enrollments WHERE class_id IN $classIn ORDER BY class_id,student_id",$params) : [];
+  $studentIds=backup_ids($enrollments,'student_id');
+  $params=[]; $studentIn=backup_in_clause($studentIds,$params);
+  $students=$studentIds ? backup_rows($pdo,"SELECT * FROM students WHERE id IN $studentIn ORDER BY last_name,first_name",$params) : [];
+
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $assignments=$classIds ? backup_rows($pdo,"SELECT * FROM teacher_assignments WHERE class_id IN $classIn ORDER BY class_id,subject_id,teacher_id",$params) : [];
+  $teacherIds=backup_ids($assignments,'teacher_id');
+  $subjectIds=backup_ids($assignments,'subject_id');
+  $params=[]; $teacherIn=backup_in_clause($teacherIds,$params);
+  $teachers=$teacherIds ? backup_rows($pdo,"SELECT id,username,first_name,last_name,role,is_active,must_change_password,created_at FROM users WHERE id IN $teacherIn ORDER BY last_name,first_name",$params) : [];
+  $params=[]; $subjectIn=backup_in_clause($subjectIds,$params);
+  $subjects=$subjectIds ? backup_rows($pdo,"SELECT * FROM subjects WHERE id IN $subjectIn ORDER BY code,name",$params) : [];
+  $params=[]; $subjectIn=backup_in_clause($subjectIds,$params);
+  $subjectForms=$subjectIds ? backup_rows($pdo,"SELECT * FROM subject_school_forms WHERE subject_id IN $subjectIn ORDER BY subject_id,school_form_id",$params) : [];
+  $params=[]; $teacherIn=backup_in_clause($teacherIds,$params);
+  $teacherSchools=$teacherIds ? backup_rows($pdo,"SELECT * FROM teacher_schools WHERE teacher_id IN $teacherIn AND school_id=? ORDER BY teacher_id",array_merge($params,[$schoolId])) : [];
+
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $lessons=$classIds ? backup_rows($pdo,"SELECT * FROM lesson_sessions WHERE class_id IN $classIn ORDER BY lesson_date,id",$params) : [];
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $participation=$classIds ? backup_rows($pdo,"SELECT * FROM participation_events WHERE class_id IN $classIn ORDER BY event_date,id",$params) : [];
+  $eventIds=backup_ids($participation,'id');
+  $params=[]; $eventIn=backup_in_clause($eventIds,$params);
+  $participationOptions=$eventIds ? backup_rows($pdo,"SELECT * FROM participation_event_options WHERE event_id IN $eventIn ORDER BY event_id,option_id",$params) : [];
+  $params=[]; $eventIn=backup_in_clause($eventIds,$params);
+  $participationCriteria=$eventIds ? backup_rows($pdo,"SELECT * FROM participation_event_criteria WHERE event_id IN $eventIn ORDER BY event_id,criteria_id",$params) : [];
+  $usedOptionIds=[];
+  foreach($participation as $row){
+    foreach(['reason_option_id','impact_option_id','social_form_option_id','phase_option_id','homework_option_id'] as $field){
+      $optionId=(int)($row[$field] ?? 0); if($optionId>0) $usedOptionIds[$optionId]=$optionId;
+    }
+  }
+  foreach($participationOptions as $row){ $optionId=(int)($row['option_id'] ?? 0); if($optionId>0) $usedOptionIds[$optionId]=$optionId; }
+  $optionWhere=["scope='global'"]; $params=[];
+  if($subjectIds){ $subjectIn=backup_in_clause($subjectIds,$params); $optionWhere[]="(scope='subject' AND subject_id IN $subjectIn)"; }
+  if($teacherIds){ $teacherIn=backup_in_clause($teacherIds,$params); $optionWhere[]="(scope='teacher' AND teacher_id IN $teacherIn)"; }
+  if($usedOptionIds){ $optionIn=backup_in_clause(array_values($usedOptionIds),$params); $optionWhere[]="id IN $optionIn"; }
+  $picklistOptions=backup_rows($pdo,"SELECT * FROM participation_options WHERE ".implode(' OR ',$optionWhere)." ORDER BY opt_type,scope,subject_id,teacher_id,sort,label",$params);
+  $usedCriteriaIds=backup_ids($participationCriteria,'criteria_id');
+  $criteriaSetWhere=[]; $params=[];
+  if($subjectIds){ $subjectIn=backup_in_clause($subjectIds,$params); $criteriaSetWhere[]="(scope='subject' AND subject_id IN $subjectIn)"; }
+  if($teacherIds){ $teacherIn=backup_in_clause($teacherIds,$params); $criteriaSetWhere[]="(scope='teacher' AND teacher_id IN $teacherIn)"; }
+  $criteriaSets=$criteriaSetWhere ? backup_rows($pdo,"SELECT * FROM criteria_sets WHERE ".implode(' OR ',$criteriaSetWhere)." ORDER BY scope,subject_id,teacher_id,name",$params) : [];
+  $criteriaSetIds=backup_ids($criteriaSets,'id');
+  $criteriaWhere=[]; $params=[];
+  if($criteriaSetIds){ $setIn=backup_in_clause($criteriaSetIds,$params); $criteriaWhere[]="criteria_set_id IN $setIn"; }
+  if($usedCriteriaIds){ $criteriaIn=backup_in_clause($usedCriteriaIds,$params); $criteriaWhere[]="id IN $criteriaIn"; }
+  $criteria=$criteriaWhere ? backup_rows($pdo,"SELECT * FROM criteria WHERE ".implode(' OR ',$criteriaWhere)." ORDER BY criteria_set_id,category,label",$params) : [];
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $exams=$classIds ? backup_rows($pdo,"SELECT * FROM exams WHERE class_id IN $classIn ORDER BY exam_date,id",$params) : [];
+  $examIds=backup_ids($exams,'id');
+  $params=[]; $examIn=backup_in_clause($examIds,$params);
+  $examGrades=$examIds ? backup_rows($pdo,"SELECT * FROM exam_grades WHERE exam_id IN $examIn ORDER BY exam_id,student_id",$params) : [];
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $orals=$classIds ? backup_rows($pdo,"SELECT * FROM oral_assessments WHERE class_id IN $classIn ORDER BY assessment_date,id",$params) : [];
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $groups=$classIds ? backup_rows($pdo,"SELECT * FROM teacher_student_groups WHERE class_id IN $classIn ORDER BY class_id,subject_id,name",$params) : [];
+  $groupIds=backup_ids($groups,'id');
+  $params=[]; $groupIn=backup_in_clause($groupIds,$params);
+  $groupMembers=$groupIds ? backup_rows($pdo,"SELECT * FROM teacher_student_group_members WHERE group_id IN $groupIn ORDER BY group_id,sort,student_id",$params) : [];
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $weights=$classIds ? backup_rows($pdo,"SELECT * FROM assessment_weight_settings WHERE class_id IN $classIn ORDER BY school_period_set_id,class_id,subject_id",$params) : [];
+  $params=[]; $classIn=backup_in_clause($classIds,$params);
+  $finals=$classIds ? backup_rows($pdo,"SELECT * FROM final_assessments WHERE class_id IN $classIn ORDER BY school_period_set_id,class_id,subject_id,student_id,assessment_scope",$params) : [];
+  $finalIds=backup_ids($finals,'id');
+  $params=[]; $finalIn=backup_in_clause($finalIds,$params);
+  $finalHistory=$finalIds ? backup_rows($pdo,"SELECT * FROM final_assessment_history WHERE final_assessment_id IN $finalIn ORDER BY final_assessment_id,created_at,id",$params) : [];
+  $events=backup_rows($pdo,"SELECT * FROM events WHERE school_id=? ORDER BY created_at,id",[$schoolId]);
+
+  return [
+    'metadata'=>[
+      'app'=>'COOL-Grades','backup_type'=>'school_scoped_json','created_at'=>date('c'),
+      'school_id'=>$schoolId,'school_name'=>(string)$school['name'],
+      'scope_note'=>'Export enthält nur die Daten der ausgewählten Schule. Personenstammdaten werden nur soweit ausgegeben, wie sie für Klassen dieser Schule benötigt werden.',
+    ],
+    'tables'=>[
+      'schools'=>[$school],'school_forms'=>$forms,'school_period_sets'=>$periods,'classes'=>$classes,
+      'class_enrollments'=>$enrollments,'students'=>$students,'teacher_assignments'=>$assignments,'users'=>$teachers,
+      'teacher_schools'=>$teacherSchools,'subjects'=>$subjects,'subject_school_forms'=>$subjectForms,
+      'lesson_sessions'=>$lessons,'participation_events'=>$participation,'participation_event_options'=>$participationOptions,'participation_event_criteria'=>$participationCriteria,
+      'participation_options'=>$picklistOptions,'criteria_sets'=>$criteriaSets,'criteria'=>$criteria,
+      'exams'=>$exams,'exam_grades'=>$examGrades,'oral_assessments'=>$orals,'teacher_student_groups'=>$groups,'teacher_student_group_members'=>$groupMembers,
+      'assessment_weight_settings'=>$weights,'final_assessments'=>$finals,'final_assessment_history'=>$finalHistory,'events'=>$events,
+    ],
+  ];
+}
+
 function backup_zip_bytes(array $files, string $password = ''): string {
   if(!class_exists('ZipArchive')) throw new RuntimeException('ZIP-Erweiterung ist auf diesem Server nicht verfügbar.');
   $tmp = tempnam(sys_get_temp_dir(), 'cool-grades-backup-');

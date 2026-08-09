@@ -88,7 +88,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     teacher_student_groups_redirect($bp,$class_id,$subject_id,$hide_assigned,'','Bitte zuerst Klasse und Fach wählen.');
   }
 
-  require_teacher_assignment($u,$class_id,$subject_id);
+  require_teacher_active_assignment($u,$class_id,$subject_id);
 
   $st=$pdo->prepare("SELECT id, first_name, last_name
                      FROM students

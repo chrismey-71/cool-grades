@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS classes (
   predecessor_class_id INT NULL,
   is_archived TINYINT(1) NOT NULL DEFAULT 0,
   is_departed TINYINT(1) NOT NULL DEFAULT 0,
-  UNIQUE KEY uniq_class_school_year_name (school_period_set_id,name),
+  UNIQUE KEY uniq_class_school_year_form_name (school_period_set_id,school_form_id,name),
   INDEX idx_classes_school_period (school_period_set_id),
   INDEX idx_classes_school_form (school_form_id),
   FOREIGN KEY (school_form_id) REFERENCES school_forms(id) ON DELETE SET NULL
@@ -97,6 +97,24 @@ CREATE TABLE IF NOT EXISTS subjects (
   code VARCHAR(8) NOT NULL UNIQUE,
   name VARCHAR(128) NOT NULL,
   is_schularbeit_subject TINYINT(1) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS teacher_schools (
+  teacher_id INT NOT NULL,
+  school_id INT NOT NULL,
+  PRIMARY KEY (teacher_id,school_id),
+  INDEX idx_teacher_schools_school (school_id,teacher_id),
+  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS subject_school_forms (
+  subject_id INT NOT NULL,
+  school_form_id INT NOT NULL,
+  PRIMARY KEY (subject_id,school_form_id),
+  INDEX idx_subject_school_forms_form (school_form_id,subject_id),
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+  FOREIGN KEY (school_form_id) REFERENCES school_forms(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS students (
@@ -260,6 +278,7 @@ CREATE TABLE IF NOT EXISTS oral_assessments (
 
 CREATE TABLE IF NOT EXISTS school_period_sets (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  school_id INT NULL,
   label VARCHAR(32) NOT NULL,
   semester1_from DATE NOT NULL,
   semester1_to DATE NOT NULL,
@@ -269,7 +288,9 @@ CREATE TABLE IF NOT EXISTS school_period_sets (
   is_current TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
-  INDEX idx_school_period_archived_dates (archived, semester1_from, semester2_to)
+  INDEX idx_school_period_archived_dates (archived, semester1_from, semester2_to),
+  INDEX idx_school_period_school (school_id, archived, semester1_from),
+  FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS class_enrollments (
@@ -294,9 +315,12 @@ CREATE TABLE IF NOT EXISTS events (
   id INT AUTO_INCREMENT PRIMARY KEY,
   type VARCHAR(64) NOT NULL,
   actor_user_id INT NULL,
+  school_id INT NULL,
   created_at DATETIME NOT NULL,
   payload_json JSON NOT NULL,
-  FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE SET NULL,
+  INDEX idx_events_school_created (school_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS teacher_participation_presets (
@@ -321,10 +345,16 @@ CREATE TABLE IF NOT EXISTS teacher_assignments (
   teacher_id INT NOT NULL,
   class_id INT NOT NULL,
   subject_id INT NOT NULL,
+  status ENUM('active','ended') NOT NULL DEFAULT 'active',
+  ended_at DATETIME NULL,
+  ended_by INT NULL,
+  end_note TEXT NULL,
   UNIQUE KEY uniq_teacher_class_subject (teacher_id,class_id,subject_id),
+  INDEX idx_teacher_assignment_status (teacher_id,status,class_id,subject_id),
   FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
-  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+  FOREIGN KEY (ended_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS assessment_weight_settings (
@@ -517,4 +547,13 @@ CREATE TABLE IF NOT EXISTS criteria_suggestions (
   INDEX idx_subject (subject_code),
   INDEX idx_active (active, archived),
   UNIQUE KEY uniq_suggestion (school_type, subject_code, category, label)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS criteria_suggestion_school_forms (
+  suggestion_id INT NOT NULL,
+  school_form_id INT NOT NULL,
+  PRIMARY KEY (suggestion_id, school_form_id),
+  INDEX idx_criteria_suggestion_school_form (school_form_id, suggestion_id),
+  FOREIGN KEY (suggestion_id) REFERENCES criteria_suggestions(id) ON DELETE CASCADE,
+  FOREIGN KEY (school_form_id) REFERENCES school_forms(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -55,10 +55,24 @@ function current_user(): ?array {
 function require_login(): array { $u=current_user(); if(!$u) redirect('/login.php'); return $u; }
 function require_role(string $role): array { $u=require_login(); if($u['role']!==$role){http_response_code(403);exit('Forbidden');} return $u; }
 
-function teacher_can_access(int $teacher_id,int $class_id,int $subject_id): bool {
-  $st=db()->prepare("SELECT 1 FROM teacher_assignments WHERE teacher_id=? AND class_id=? AND subject_id=? LIMIT 1");
+function teacher_assignment_status(int $teacher_id,int $class_id,int $subject_id): ?string {
+  $st=db()->prepare("SELECT status FROM teacher_assignments WHERE teacher_id=? AND class_id=? AND subject_id=? LIMIT 1");
   $st->execute([$teacher_id,$class_id,$subject_id]);
-  return (bool)$st->fetchColumn();
+  $status=$st->fetchColumn();
+  return $status === false ? null : ((string)$status ?: 'active');
+}
+
+/** A ended assignment remains readable so teachers can document their prior work. */
+function teacher_can_access(int $teacher_id,int $class_id,int $subject_id): bool {
+  return teacher_assignment_status($teacher_id,$class_id,$subject_id) !== null;
+}
+
+function teacher_can_edit_assignment(int $teacher_id,int $class_id,int $subject_id): bool {
+  return teacher_assignment_status($teacher_id,$class_id,$subject_id) === 'active';
+}
+
+function teacher_assignment_is_ended(int $teacher_id,int $class_id,int $subject_id): bool {
+  return teacher_assignment_status($teacher_id,$class_id,$subject_id) === 'ended';
 }
 
 function deny_with_popup(string $message, string $fallback = '/dashboard.php'): void {
@@ -89,6 +103,13 @@ function require_teacher_assignment(array $u,int $class_id,int $subject_id): voi
   if (($u['role'] ?? '')!=='teacher') return;
   if (!teacher_can_access((int)$u['id'],$class_id,$subject_id)) {
     deny_with_popup('Keine Berechtigung für diese Klasse/dieses Fach.', '/teacher/index.php');
+  }
+}
+
+function require_teacher_active_assignment(array $u,int $class_id,int $subject_id): void {
+  require_teacher_assignment($u,$class_id,$subject_id);
+  if (($u['role'] ?? '')==='teacher' && !teacher_can_edit_assignment((int)$u['id'],$class_id,$subject_id)) {
+    deny_with_popup('Diese Zuweisung wurde beendet. Historische Daten sind nur lesbar.', '/teacher/index.php');
   }
 }
 

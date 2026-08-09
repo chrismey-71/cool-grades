@@ -80,6 +80,7 @@ function _ensure_schema(PDO $pdo): void {
   try{
     $pdo->exec("CREATE TABLE IF NOT EXISTS school_period_sets (
       id INT AUTO_INCREMENT PRIMARY KEY,
+      school_id INT NULL,
       label VARCHAR(32) NOT NULL,
       semester1_from DATE NOT NULL,
       semester1_to DATE NOT NULL,
@@ -89,12 +90,18 @@ function _ensure_schema(PDO $pdo): void {
       is_current TINYINT(1) NOT NULL DEFAULT 0,
       created_at DATETIME NOT NULL,
       updated_at DATETIME NOT NULL,
-      INDEX idx_school_period_archived_dates (archived, semester1_from, semester2_to)
+      INDEX idx_school_period_archived_dates (archived, semester1_from, semester2_to),
+      INDEX idx_school_period_school (school_id, archived, semester1_from)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
     $st=$pdo->query("SHOW COLUMNS FROM school_period_sets LIKE 'is_current'");
     if(!$st->fetch()){
       $pdo->exec("ALTER TABLE school_period_sets ADD COLUMN is_current TINYINT(1) NOT NULL DEFAULT 0 AFTER archived");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM school_period_sets LIKE 'school_id'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE school_period_sets ADD COLUMN school_id INT NULL AFTER id");
+      $pdo->exec("ALTER TABLE school_period_sets ADD INDEX idx_school_period_school (school_id, archived, semester1_from)");
     }
 
     $periodCount = (int)$pdo->query("SELECT COUNT(*) FROM school_period_sets")->fetchColumn();
@@ -121,15 +128,50 @@ function _ensure_schema(PDO $pdo): void {
                            VALUES(?,?,?,?,?,0,NOW(),NOW())");
       $st->execute([$label,$semester1From,$semester1To,$semester2From,$semester2To]);
     }
-    $currentCount = (int)$pdo->query("SELECT COUNT(*) FROM school_period_sets WHERE is_current=1")->fetchColumn();
-    if($currentCount === 0){
-      $pdo->exec("UPDATE school_period_sets SET is_current=1 WHERE id=(SELECT id FROM (SELECT id FROM school_period_sets WHERE archived=0 ORDER BY semester1_from DESC, id DESC LIMIT 1) x)");
-    } elseif($currentCount > 1){
-      $pdo->exec("UPDATE school_period_sets SET is_current=0 WHERE id NOT IN (SELECT id FROM (SELECT id FROM school_period_sets WHERE is_current=1 ORDER BY semester1_from DESC, id DESC LIMIT 1) x)");
+    // Globales Schuljahr und schulbezogene Schuljahre haben jeweils einen eigenen „aktuell“-Status.
+    $globalCurrent=(int)$pdo->query("SELECT COUNT(*) FROM school_period_sets WHERE is_current=1 AND school_id IS NULL")->fetchColumn();
+    if($globalCurrent===0){
+      $pdo->exec("UPDATE school_period_sets SET is_current=1 WHERE id=(SELECT id FROM (SELECT id FROM school_period_sets WHERE archived=0 AND school_id IS NULL ORDER BY semester1_from DESC, id DESC LIMIT 1) x)");
+    } elseif($globalCurrent>1){
+      $pdo->exec("UPDATE school_period_sets SET is_current=0 WHERE school_id IS NULL AND id NOT IN (SELECT id FROM (SELECT id FROM school_period_sets WHERE is_current=1 AND school_id IS NULL ORDER BY semester1_from DESC, id DESC LIMIT 1) x)");
+    }
+    foreach($pdo->query("SELECT DISTINCT school_id FROM school_period_sets WHERE school_id IS NOT NULL") as $schoolRow){
+      $schoolId=(int)$schoolRow['school_id'];
+      $count=(int)$pdo->query("SELECT COUNT(*) FROM school_period_sets WHERE is_current=1 AND school_id=".$schoolId)->fetchColumn();
+      if($count>1){
+        $pdo->exec("UPDATE school_period_sets SET is_current=0 WHERE school_id=".$schoolId." AND id NOT IN (SELECT id FROM (SELECT id FROM school_period_sets WHERE is_current=1 AND school_id=".$schoolId." ORDER BY semester1_from DESC, id DESC LIMIT 1) x)");
+      }
     }
   }catch(Exception $e){ /* ignore */ }
 
   // Lightweight, idempotent schema tweaks (keeps updates resilient)
+  try{
+    $st=$pdo->query("SHOW COLUMNS FROM teacher_assignments LIKE 'status'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE teacher_assignments ADD COLUMN status ENUM('active','ended') NOT NULL DEFAULT 'active' AFTER subject_id");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM teacher_assignments LIKE 'ended_at'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE teacher_assignments ADD COLUMN ended_at DATETIME NULL AFTER status");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM teacher_assignments LIKE 'ended_by'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE teacher_assignments ADD COLUMN ended_by INT NULL AFTER ended_at");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM teacher_assignments LIKE 'end_note'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE teacher_assignments ADD COLUMN end_note TEXT NULL AFTER ended_by");
+    }
+    $st=$pdo->query("SHOW INDEX FROM teacher_assignments WHERE Key_name='idx_teacher_assignment_status'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE teacher_assignments ADD INDEX idx_teacher_assignment_status (teacher_id,status,class_id,subject_id)");
+    }
+    $st=$pdo->query("SELECT 1 FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='teacher_assignments' AND CONSTRAINT_NAME='fk_teacher_assignments_ended_by' LIMIT 1");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE teacher_assignments ADD CONSTRAINT fk_teacher_assignments_ended_by FOREIGN KEY (ended_by) REFERENCES users(id) ON DELETE SET NULL");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
   try{
     $st=$pdo->query("SHOW COLUMNS FROM criteria LIKE 'archived'");
     $has=$st->fetch();
@@ -352,6 +394,76 @@ function _ensure_schema(PDO $pdo): void {
       $st=$pdo->prepare("UPDATE classes SET school_form_id=? WHERE (school_form_id IS NULL OR school_form_id=0) AND school_type=?");
       $st->execute([(int)$form['id'], (string)$form['code']]);
     }
+    try{
+      $st=$pdo->query("SELECT 1 FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='school_period_sets' AND CONSTRAINT_NAME='fk_school_period_sets_school' LIMIT 1");
+      if(!$st->fetch()) $pdo->exec("ALTER TABLE school_period_sets ADD CONSTRAINT fk_school_period_sets_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE RESTRICT");
+    }catch(Exception $ignored){}
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS teacher_schools (
+      teacher_id INT NOT NULL,
+      school_id INT NOT NULL,
+      PRIMARY KEY (teacher_id,school_id),
+      INDEX idx_teacher_schools_school (school_id,teacher_id),
+      FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE RESTRICT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS subject_school_forms (
+      subject_id INT NOT NULL,
+      school_form_id INT NOT NULL,
+      PRIMARY KEY (subject_id,school_form_id),
+      INDEX idx_subject_school_forms_form (school_form_id,subject_id),
+      FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+      FOREIGN KEY (school_form_id) REFERENCES school_forms(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS criteria_suggestion_school_forms (
+      suggestion_id INT NOT NULL,
+      school_form_id INT NOT NULL,
+      PRIMARY KEY (suggestion_id,school_form_id),
+      INDEX idx_criteria_suggestion_school_form (school_form_id,suggestion_id),
+      FOREIGN KEY (suggestion_id) REFERENCES criteria_suggestions(id) ON DELETE CASCADE,
+      FOREIGN KEY (school_form_id) REFERENCES school_forms(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    $teacherSeeded=(string)$pdo->query("SELECT value FROM app_settings WHERE `key`='teacher_schools_legacy_seeded' LIMIT 1")->fetchColumn();
+    if($teacherSeeded!=='1'){
+      $pdo->exec("INSERT IGNORE INTO teacher_schools(teacher_id,school_id)
+                  SELECT DISTINCT ta.teacher_id,sf.school_id
+                  FROM teacher_assignments ta
+                  JOIN classes c ON c.id=ta.class_id
+                  JOIN school_forms sf ON sf.id=c.school_form_id");
+      if($defaultSchoolId>0){
+        $st=$pdo->prepare("INSERT IGNORE INTO teacher_schools(teacher_id,school_id)
+                           SELECT u.id,? FROM users u
+                           LEFT JOIN teacher_schools ts ON ts.teacher_id=u.id
+                           WHERE u.role='teacher' AND ts.teacher_id IS NULL");
+        $st->execute([$defaultSchoolId]);
+      }
+      $st=$pdo->prepare("INSERT INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('teacher_schools_legacy_seeded','1',NOW(),NOW())
+                         ON DUPLICATE KEY UPDATE `value`='1',updated_at=NOW()");
+      $st->execute();
+    }
+
+    $subjectSeeded=(string)$pdo->query("SELECT value FROM app_settings WHERE `key`='subject_school_forms_legacy_seeded' LIMIT 1")->fetchColumn();
+    if($subjectSeeded!=='1'){
+      $pdo->exec("INSERT IGNORE INTO subject_school_forms(subject_id,school_form_id)
+                  SELECT su.id,sf.id FROM subjects su CROSS JOIN school_forms sf");
+      $st=$pdo->prepare("INSERT INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('subject_school_forms_legacy_seeded','1',NOW(),NOW())
+                         ON DUPLICATE KEY UPDATE `value`='1',updated_at=NOW()");
+      $st->execute();
+    }
+
+    $suggestionSeeded=(string)$pdo->query("SELECT value FROM app_settings WHERE `key`='criteria_suggestion_school_form_legacy_seeded' LIMIT 1")->fetchColumn();
+    if($suggestionSeeded!=='1'){
+      // Alte HLS-/FSB-Empfehlungen werden auf alle passenden konkreten Schulformen übertragen; BOTH bleibt global.
+      $pdo->exec("INSERT IGNORE INTO criteria_suggestion_school_forms(suggestion_id,school_form_id)
+                  SELECT cs.id,sf.id
+                  FROM criteria_suggestions cs
+                  JOIN school_forms sf ON sf.code=cs.school_type
+                  WHERE cs.school_type IN ('HLS','FSB')");
+      $st=$pdo->prepare("INSERT INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('criteria_suggestion_school_form_legacy_seeded','1',NOW(),NOW())
+                         ON DUPLICATE KEY UPDATE `value`='1',updated_at=NOW()");
+      $st->execute();
+    }
   }catch(Exception $e){ /* ignore */ }
 
   try{
@@ -380,8 +492,12 @@ function _ensure_schema(PDO $pdo): void {
       try{ $pdo->exec("ALTER TABLE classes DROP INDEX name"); }catch(Exception $ignored){}
     }
     $st=$pdo->query("SHOW INDEX FROM classes WHERE Key_name='uniq_class_school_year_name'");
+    if($st->fetch()){
+      try{ $pdo->exec("ALTER TABLE classes DROP INDEX uniq_class_school_year_name"); }catch(Exception $ignored){}
+    }
+    $st=$pdo->query("SHOW INDEX FROM classes WHERE Key_name='uniq_class_school_year_form_name'");
     if(!$st->fetch()){
-      try{ $pdo->exec("ALTER TABLE classes ADD UNIQUE KEY uniq_class_school_year_name (school_period_set_id,name)"); }catch(Exception $ignored){}
+      try{ $pdo->exec("ALTER TABLE classes ADD UNIQUE KEY uniq_class_school_year_form_name (school_period_set_id,school_form_id,name)"); }catch(Exception $ignored){}
     }
   }catch(Exception $e){ /* ignore */ }
 
@@ -631,10 +747,37 @@ function _ensure_schema(PDO $pdo): void {
       id INT AUTO_INCREMENT PRIMARY KEY,
       type VARCHAR(64) NOT NULL,
       actor_user_id INT NULL,
+      school_id INT NULL,
       created_at DATETIME NOT NULL,
       payload_json JSON NOT NULL,
-      FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+      FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+      FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE SET NULL,
+      INDEX idx_events_school_created (school_id,created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    $st=$pdo->query("SHOW COLUMNS FROM events LIKE 'school_id'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE events ADD COLUMN school_id INT NULL AFTER actor_user_id");
+      $pdo->exec("ALTER TABLE events ADD INDEX idx_events_school_created (school_id,created_at)");
+      try{ $pdo->exec("ALTER TABLE events ADD CONSTRAINT fk_events_school FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE SET NULL"); }catch(Exception $ignored){}
+    }
+    $backfillDone=(string)$pdo->query("SELECT value FROM app_settings WHERE `key`='events_school_backfill_v1' LIMIT 1")->fetchColumn();
+    if($backfillDone!=='1'){
+      $rows=$pdo->query("SELECT id,payload_json FROM events WHERE school_id IS NULL")->fetchAll();
+      $lookup=$pdo->prepare("SELECT sf.school_id FROM classes c JOIN school_forms sf ON sf.id=c.school_form_id WHERE c.id=? LIMIT 1");
+      $update=$pdo->prepare("UPDATE events SET school_id=? WHERE id=?");
+      foreach($rows as $row){
+        $payload=json_decode((string)($row['payload_json'] ?? ''),true);
+        if(!is_array($payload)) continue;
+        $classId=0;
+        foreach(['class_id','source_class_id','target_class_id'] as $field){ if((int)($payload[$field] ?? 0)>0){ $classId=(int)$payload[$field]; break; } }
+        if($classId<=0) continue;
+        $lookup->execute([$classId]);
+        $schoolId=(int)($lookup->fetchColumn() ?: 0);
+        if($schoolId>0) $update->execute([$schoolId,(int)$row['id']]);
+      }
+      $st=$pdo->prepare("INSERT INTO app_settings(`key`,`value`,updated_at,created_at) VALUES('events_school_backfill_v1','1',NOW(),NOW()) ON DUPLICATE KEY UPDATE `value`='1',updated_at=NOW()");
+      $st->execute();
+    }
   }catch(Exception $e){ /* ignore */ }
 
   try{

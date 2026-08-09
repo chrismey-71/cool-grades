@@ -2,13 +2,16 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
 
 $u=require_role('admin');
 $pdo=db();
 $bp=cfg()['base_path'] ?? '';
 
-$schoolYears=load_school_years($pdo,true);
-$currentSchoolYearId=school_year_current_id($pdo);
+$schools=schools_load($pdo,true);
+$schoolId=(int)($_REQUEST['school_id'] ?? 0);
+$schoolYears=load_school_years($pdo,true,$schoolId,$schoolId>0);
+$currentSchoolYearId=school_year_current_id($pdo,$schoolId);
 
 $sourceYearId=(int)($_REQUEST['source_school_period_set_id'] ?? $currentSchoolYearId);
 $targetYearId=(int)($_REQUEST['target_school_period_set_id'] ?? 0);
@@ -28,13 +31,17 @@ $msg='';
 $err='';
 $preview=null;
 
-function _transition_classes_for_year(PDO $pdo, int $yearId): array {
-  return load_classes_for_admin($pdo,$yearId,false);
+function _transition_classes_for_year(PDO $pdo, int $yearId, int $schoolId = 0): array {
+  return load_classes_for_admin($pdo,$yearId,false,$schoolId);
 }
 
-function _transition_target_exists(PDO $pdo, int $yearId, string $name): ?array {
-  $st=$pdo->prepare("SELECT * FROM classes WHERE school_period_set_id=? AND name=? LIMIT 1");
-  $st->execute([$yearId,$name]);
+function _transition_target_exists(PDO $pdo, int $yearId, string $name, int $schoolFormId = 0): ?array {
+  $sql="SELECT * FROM classes WHERE school_period_set_id=? AND name=?";
+  $params=[$yearId,$name];
+  if($schoolFormId>0){ $sql.=" AND school_form_id=?"; $params[]=$schoolFormId; }
+  $sql.=" LIMIT 1";
+  $st=$pdo->prepare($sql);
+  $st->execute($params);
   $row=$st->fetch();
   return $row ?: null;
 }
@@ -68,7 +75,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $statusClassId=(int)($_POST['status_class_id'] ?? 0);
     $newStatus=trim((string)($_POST['class_status'] ?? 'active'));
     if(!in_array($newStatus, ['active','archived','departed'], true)) $newStatus='active';
-    if($statusClassId <= 0){
+    if($statusClassId <= 0 || ($schoolId>0 && class_school_id($pdo,$statusClassId)!==$schoolId)){
       $err='Bitte eine Klasse für die Statusänderung auswählen.';
     } else {
       $values=_transition_status_values($newStatus);
@@ -84,8 +91,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $sourceClass=class_context($pdo,$sourceClassId);
   $targetYear=null;
   foreach($schoolYears as $sy){ if((int)$sy['id']===$targetYearId){ $targetYear=$sy; break; } }
-  if(!$sourceClass){
-    $err='Bitte eine Ausgangsklasse auswählen.';
+  if($schoolId<=0){
+    $err='Bitte zuerst eine Schule auswählen.';
+  } elseif(!$sourceClass || class_school_id($pdo,$sourceClassId)!==$schoolId){
+    $err='Bitte eine Ausgangsklasse der ausgewählten Schule auswählen.';
   } elseif($transitionMode === 'promote' && (!$targetYear || $targetClassName==='')) {
     $err='Bitte Ausgangsklasse, Zielschuljahr und Zielklasse vollständig auswählen.';
   } else {
@@ -105,7 +114,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       else $promote[]=['id'=>$sid,'name'=>$label];
     }
 
-    $existingTarget=($transitionMode === 'promote' && $targetYearId > 0 && $targetClassName !== '') ? _transition_target_exists($pdo,$targetYearId,$targetClassName) : null;
+    $existingTarget=($transitionMode === 'promote' && $targetYearId > 0 && $targetClassName !== '') ? _transition_target_exists($pdo,$targetYearId,$targetClassName,(int)($sourceClass['school_form_id'] ?? 0)) : null;
     $preview=[
       'source_class'=>$sourceClass,
       'target_year'=>$targetYear,
@@ -158,9 +167,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         foreach($transfer as $student){
           $dest=(int)($student['class_id'] ?? 0);
           if($dest > 0){
-            $st=$pdo->prepare("SELECT school_period_set_id FROM classes WHERE id=?");
-            $st->execute([$dest]);
+          $st=$pdo->prepare("SELECT school_period_set_id FROM classes WHERE id=?");
+          $st->execute([$dest]);
             $destYear=(int)($st->fetchColumn() ?: $targetYearId);
+            if($schoolId>0 && class_school_id($pdo,$dest)!==$schoolId) throw new RuntimeException('Zielklasse für Klassenwechsel gehört nicht zur ausgewählten Schule.');
             $enroll->execute([(int)$student['id'],$dest,$destYear,'transferred',$now,$now]);
             $setCurrent->execute([$dest,(int)$student['id']]);
           }
@@ -196,7 +206,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           'source_status_after'=>$sourceStatusAfter,
         ]);
         $pdo->commit();
-        header('Location: '.$bp.'/admin/school_year_transition.php?msg=done&source_school_period_set_id='.$sourceYearId.'&target_school_period_set_id='.$targetYearId.'&source_class_id='.$sourceClassId);
+        header('Location: '.$bp.'/admin/school_year_transition.php?msg=done&school_id='.$schoolId.'&source_school_period_set_id='.$sourceYearId.'&target_school_period_set_id='.$targetYearId.'&source_class_id='.$sourceClassId);
         exit;
       }catch(Throwable $e){
         if($pdo->inTransaction()) $pdo->rollBack();
@@ -212,7 +222,7 @@ if(isset($_GET['msg']) && (string)$_GET['msg']==='done'){
   $msg='Schuljahreswechsel wurde durchgeführt. Alte Leistungsdaten bleiben bei der Ausgangsklasse erhalten.';
 }
 
-$sourceClasses=_transition_classes_for_year($pdo,$sourceYearId);
+$sourceClasses=$schoolId>0 ? _transition_classes_for_year($pdo,$sourceYearId,$schoolId) : [];
 if($targetYearId <= 0){
   foreach($schoolYears as $sy){
     if((int)$sy['id'] !== $sourceYearId){
@@ -221,8 +231,8 @@ if($targetYearId <= 0){
     }
   }
 }
-$targetClasses=$targetYearId>0 ? _transition_classes_for_year($pdo,$targetYearId) : [];
-$statusClasses=load_classes_for_admin($pdo,0,true);
+$targetClasses=($targetYearId>0 && $schoolId>0) ? _transition_classes_for_year($pdo,$targetYearId,$schoolId) : [];
+$statusClasses=$schoolId>0 ? load_classes_for_admin($pdo,0,true,$schoolId) : [];
 $sourceStudents=$sourceClassId>0 ? load_class_students($pdo,$sourceClassId,true) : [];
 $selectedSourceClass=class_context($pdo,$sourceClassId);
 if($targetClassName==='' && $selectedSourceClass && $transitionMode === 'promote'){
@@ -274,6 +284,13 @@ render_header('Schuljahreswechsel',$u);
   <div class="col-12 col-md-6">
     <div class="settings-panel">
       <div class="settings-panel-title">1. Aktuelle Klasse auswählen</div>
+      <label class="muted">Schule</label>
+      <select class="input" name="school_id" onchange="this.form.submit()">
+        <option value="0" <?php echo $schoolId===0?'selected':''; ?>>Bitte Schule wählen…</option>
+        <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
+      </select>
+      <div class="muted" style="margin-top:6px;font-size:13px">Klassenwechsel werden innerhalb einer Schule durchgeführt. So bleiben gleich lautende Klassen anderer Schulen getrennt.</div>
+      <div style="height:10px"></div>
       <label class="muted">Ausgangsschuljahr</label>
       <select class="input" name="source_school_period_set_id" onchange="this.form.submit()">
         <?php foreach($schoolYears as $sy): ?>

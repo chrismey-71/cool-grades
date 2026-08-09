@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/settings.php';
+require_once __DIR__.'/../lib/schools.php';
 $u=require_role('admin'); 
 $pdo=db();
+$schools=schools_load($pdo,true);
 
 /**
  * admin/events.php
@@ -185,7 +187,7 @@ if($eventRetentionDays>0){
 
 // --- Lookup Maps (IDs -> Namen) ---
 $classes = []; $subjects = []; $users = []; $students = []; $sets = []; $criteria = [];
-try { foreach($pdo->query("SELECT id, name FROM classes") as $r)  $classes[(int)$r['id']] = $r['name']; } catch(Throwable $e) {}
+try { foreach($pdo->query("SELECT c.id,CONCAT(COALESCE(s.name,'Unbekannte Schule'),' · ',c.name) AS name FROM classes c LEFT JOIN school_forms sf ON sf.id=c.school_form_id LEFT JOIN schools s ON s.id=sf.school_id") as $r)  $classes[(int)$r['id']] = $r['name']; } catch(Throwable $e) {}
 try { foreach($pdo->query("SELECT id, CONCAT(code,' ',name) AS n FROM subjects") as $r) $subjects[(int)$r['id']] = trim($r['n']); } catch(Throwable $e) {}
 try { foreach($pdo->query("SELECT id, CONCAT(last_name,', ',first_name,' (',role,')') AS n FROM users") as $r) $users[(int)$r['id']] = $r['n']; } catch(Throwable $e) {}
 try { foreach($pdo->query("SELECT id, CONCAT(last_name,', ',first_name) AS n FROM students") as $r) $students[(int)$r['id']] = $r['n']; } catch(Throwable $e) {}
@@ -198,6 +200,7 @@ $actor = trim($_GET['actor'] ?? '');
 $from = trim($_GET['from'] ?? '');
 $to = trim($_GET['to'] ?? '');
 $q = trim($_GET['q'] ?? '');
+$schoolFilter=(int)($_GET['school_id'] ?? 0);
 $limit = (int)($_GET['limit'] ?? 300);
 if ($limit < 50) $limit = 50;
 if ($limit > 1000) $limit = 1000;
@@ -209,20 +212,23 @@ if ($type !== '') { $where[] = "e.type=?"; $params[] = $type; }
 if ($actor !== '') { $where[] = "e.actor_user_id=?"; $params[] = (int)$actor; }
 if ($from !== '') { $where[] = "e.created_at>=?"; $params[] = $from.' 00:00:00'; }
 if ($to !== '') { $where[] = "e.created_at<=?"; $params[] = $to.' 23:59:59'; }
+if($schoolFilter>0){ $where[]="e.school_id=?"; $params[]=$schoolFilter; }
 if ($q !== '') {
   $where[] = "(e.type LIKE ? OR e.payload_json LIKE ? OR u.username LIKE ?)";
   $params[] = "%$q%"; $params[] = "%$q%"; $params[] = "%$q%";
 }
 
-$sql = "SELECT e.*, u.username AS actor_username
+$sql = "SELECT e.*, u.username AS actor_username,s.name AS school_name
         FROM events e
-        LEFT JOIN users u ON u.id=e.actor_user_id";
+        LEFT JOIN users u ON u.id=e.actor_user_id
+        LEFT JOIN schools s ON s.id=e.school_id";
 if ($where) $sql .= " WHERE ".implode(" AND ", $where);
 $sql .= " ORDER BY e.id DESC LIMIT ".$limit;
 
-$types = $pdo->query("SELECT type, COUNT(*) c FROM events GROUP BY type ORDER BY c DESC")->fetchAll();
+$scopeWhere=$schoolFilter>0 ? ' WHERE e.school_id='.(int)$schoolFilter : '';
+$types = $pdo->query("SELECT e.type, COUNT(*) c FROM events e".$scopeWhere." GROUP BY e.type ORDER BY c DESC")->fetchAll();
 $actors = $pdo->query("SELECT u.id, u.username, CONCAT(u.last_name,', ',u.first_name) AS n, COUNT(*) c
-                       FROM events e JOIN users u ON u.id=e.actor_user_id
+                       FROM events e JOIN users u ON u.id=e.actor_user_id".$scopeWhere."
                        GROUP BY u.id,u.username,u.first_name,u.last_name
                        ORDER BY c DESC")->fetchAll();
 
@@ -262,6 +268,14 @@ render_header('Eventauswertungen',$u);
     </div>
 
     <div>
+      <label class="muted">Schule</label>
+      <select class="input" name="school_id" onchange="this.form.submit()">
+        <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen</option>
+        <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
+      </select>
+    </div>
+
+    <div>
       <label class="muted">Von</label>
       <input class="input" type="date" name="from" value="<?php echo h($from); ?>">
     </div>
@@ -293,6 +307,7 @@ render_header('Eventauswertungen',$u);
       <tr>
         <th style="white-space:nowrap;">Zeit</th>
         <th>Typ</th>
+        <th>Schule</th>
         <th>Akteur</th>
         <th>Übersicht</th>
         <th>Details</th>
@@ -346,6 +361,7 @@ render_header('Eventauswertungen',$u);
           <span class="badge"><?php echo h($typeDe); ?></span><br>
           <span class="muted" style="font-size:12px;"><?php echo h($e['type']); ?></span>
         </td>
+        <td><?php echo h((string)($e['school_name'] ?? 'nicht zugeordnet')); ?></td>
         <td><?php echo h($actorTxt); ?></td>
         <td><?php echo h($summary); ?></td>
         <td style="min-width:280px;">

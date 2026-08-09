@@ -22,8 +22,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $st=$pdo->prepare("SELECT COUNT(*) FROM school_forms WHERE school_id=?");
       $st->execute([$id]);
       $formCount=(int)$st->fetchColumn();
-      if($formCount>0){
-        $err='Diese Schule kann nicht gelöscht werden, weil noch Schulformen zugeordnet sind.';
+      $st=$pdo->prepare("SELECT COUNT(*) FROM teacher_schools WHERE school_id=?");
+      $st->execute([$id]);
+      $teacherCount=(int)$st->fetchColumn();
+      if($formCount>0 || $teacherCount>0){
+        $err=$formCount>0
+          ? 'Diese Schule kann nicht gelöscht werden, weil noch Schulformen zugeordnet sind.'
+          : 'Diese Schule kann nicht gelöscht werden, weil sie noch Lehrkräften zugeordnet ist.';
       } else {
         $nameSt=$pdo->prepare("SELECT name FROM schools WHERE id=?");
         $nameSt->execute([$id]);
@@ -94,6 +99,10 @@ $formCountBySchool=[];
 foreach($forms as $form){
   $schoolId=(int)($form['school_id'] ?? 0);
   $formCountBySchool[$schoolId]=($formCountBySchool[$schoolId] ?? 0) + 1;
+}
+$teacherCountBySchool=[];
+foreach($pdo->query("SELECT school_id,COUNT(*) AS teacher_count FROM teacher_schools GROUP BY school_id")->fetchAll() as $row){
+  $teacherCountBySchool[(int)$row['school_id']]=(int)$row['teacher_count'];
 }
 $editSchool=null;
 if(!empty($_GET['edit_school'])){
@@ -185,6 +194,7 @@ render_header('Schulen und Schulformen',$u);
         <tbody>
           <?php foreach($schools as $school): ?>
             <?php $assignedForms=(int)($formCountBySchool[(int)$school['id']] ?? 0); ?>
+            <?php $assignedTeachers=(int)($teacherCountBySchool[(int)$school['id']] ?? 0); ?>
             <tr>
               <td><?php echo h($school['name']); ?></td>
               <td><?php echo nl2br(h((string)$school['address'])); ?></td>
@@ -192,7 +202,7 @@ render_header('Schulen und Schulformen',$u);
               <td><?php echo ((int)$school['active']===1)?'<span class="badge ok">aktiv</span>':'<span class="badge off">inaktiv</span>'; ?></td>
               <td style="white-space:nowrap">
                 <a class="btn small secondary" href="<?php echo h($bp); ?>/admin/schools.php?edit_school=<?php echo (int)$school['id']; ?>">Bearbeiten</a>
-                <?php if($assignedForms===0): ?>
+                <?php if($assignedForms===0 && $assignedTeachers===0): ?>
                   <form method="post" style="display:inline" onsubmit="return confirm('Schule wirklich löschen?');" data-dirty-ignore="1">
                     <?php echo csrf_input(); ?>
                     <input type="hidden" name="action" value="delete_school">
@@ -200,7 +210,7 @@ render_header('Schulen und Schulformen',$u);
                     <button class="btn small danger">Löschen</button>
                   </form>
                 <?php else: ?>
-                  <span class="muted" style="font-size:13px">Löschen erst ohne Schulformen möglich</span>
+                  <span class="muted" style="font-size:13px">Löschen erst ohne Schulformen und Lehrkraft-Zuordnungen möglich</span>
                 <?php endif; ?>
               </td>
             </tr>

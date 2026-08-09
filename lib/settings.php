@@ -142,18 +142,23 @@ function school_period_year_label(string $semester1From, string $semester2To): s
   return trim($semester1From.' '.$semester2To);
 }
 
-function app_school_period_sets(bool $includeArchived = false): array {
+function app_school_period_sets(bool $includeArchived = false, int $schoolId = 0, bool $includeGlobal = true): array {
   try{
-    $sql = "SELECT id,label,semester1_from,semester1_to,semester2_from,semester2_to,archived,is_current,created_at,updated_at
-            FROM school_period_sets";
-    if(!$includeArchived){
-      $sql .= " WHERE archived=0";
+    $sql = "SELECT id,school_id,label,semester1_from,semester1_to,semester2_from,semester2_to,archived,is_current,created_at,updated_at
+            FROM school_period_sets WHERE 1=1";
+    $params=[];
+    if(!$includeArchived) $sql .= " AND archived=0";
+    if($schoolId>0){
+      $sql .= $includeGlobal ? " AND (school_id=? OR school_id IS NULL)" : " AND school_id=?";
+      $params[]=$schoolId;
     }
-    $sql .= " ORDER BY semester1_from DESC, id DESC";
-    $rows = db()->query($sql)->fetchAll();
+    $sql .= " ORDER BY school_id IS NULL DESC, semester1_from DESC, id DESC";
+    $st=db()->prepare($sql); $st->execute($params);
+    $rows=$st->fetchAll();
     if(!$rows) return [];
     return array_map(static function(array $row): array {
       $row['id'] = (int)$row['id'];
+      $row['school_id'] = (int)($row['school_id'] ?? 0);
       $row['archived'] = (int)$row['archived'];
       $row['is_current'] = (int)($row['is_current'] ?? 0);
       return $row;
@@ -171,25 +176,29 @@ function app_school_period_find(int $id, bool $includeArchived = true): ?array {
   return null;
 }
 
-function app_school_period_create(string $label, string $semester1From, string $semester1To, string $semester2From, string $semester2To): void {
+function app_school_period_create(string $label, string $semester1From, string $semester1To, string $semester2From, string $semester2To, int $schoolId = 0): void {
   $label = trim($label);
   if($label === ''){
     $label = school_period_year_label($semester1From, $semester2To);
   }
-  $st = db()->prepare("INSERT INTO school_period_sets(label,semester1_from,semester1_to,semester2_from,semester2_to,archived,created_at,updated_at)
-                       VALUES(?,?,?,?,?,0,?,?)");
+  $st = db()->prepare("INSERT INTO school_period_sets(school_id,label,semester1_from,semester1_to,semester2_from,semester2_to,archived,created_at,updated_at)
+                       VALUES(?,?,?,?,?,?,0,?,?)");
   $now = now_iso();
-  $st->execute([$label,$semester1From,$semester1To,$semester2From,$semester2To,$now,$now]);
+  $st->execute([$schoolId>0?$schoolId:null,$label,$semester1From,$semester1To,$semester2From,$semester2To,$now,$now]);
 }
 
 function app_school_period_archive(int $id): void {
   $pdo = db();
+  $lookup=$pdo->prepare("SELECT school_id FROM school_period_sets WHERE id=?");
+  $lookup->execute([$id]);
+  $schoolId=$lookup->fetchColumn();
   $st = $pdo->prepare("UPDATE school_period_sets SET archived=1, is_current=0, updated_at=? WHERE id=?");
   $st->execute([now_iso(), $id]);
   try{
-    $currentCount = (int)$pdo->query("SELECT COUNT(*) FROM school_period_sets WHERE is_current=1")->fetchColumn();
+    $scope=$schoolId===null ? 'school_id IS NULL' : 'school_id='.(int)$schoolId;
+    $currentCount = (int)$pdo->query("SELECT COUNT(*) FROM school_period_sets WHERE is_current=1 AND ".$scope)->fetchColumn();
     if($currentCount === 0){
-      $pdo->exec("UPDATE school_period_sets SET is_current=1 WHERE id=(SELECT id FROM (SELECT id FROM school_period_sets WHERE archived=0 ORDER BY semester1_from DESC, id DESC LIMIT 1) x)");
+      $pdo->exec("UPDATE school_period_sets SET is_current=1 WHERE id=(SELECT id FROM (SELECT id FROM school_period_sets WHERE archived=0 AND ".$scope." ORDER BY semester1_from DESC, id DESC LIMIT 1) x)");
     }
   }catch(Exception $e){ /* ignore */ }
 }

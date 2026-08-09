@@ -45,6 +45,7 @@ $postedValues = null;
 $bulkValues = [];
 $bulkFieldErrors = [];
 $rowsData = null;
+$assignmentReadOnly = false;
 
 function _fa_query(array $base, array $overrides = []): string {
   return '?'.http_build_query(array_merge($base, $overrides));
@@ -147,7 +148,7 @@ function _fa_written_assessment_display(array $writtenRows): array {
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
   verify_csrf();
   if($class_id && $subject_id){
-    require_teacher_assignment($u, $class_id, $subject_id);
+    require_teacher_active_assignment($u, $class_id, $subject_id);
   }
   $postAction = (string)($_POST['action'] ?? 'single_save');
 
@@ -310,6 +311,8 @@ if($msg === '' && isset($_GET['msg'])){
 
 if($class_id && $subject_id && $school_period_set_id > 0){
   require_teacher_assignment($u, $class_id, $subject_id);
+  $assignmentReadOnly = !teacher_can_edit_assignment((int)$u['id'], $class_id, $subject_id)
+    || class_is_readonly((array)(class_context($pdo,$class_id) ?? []));
   $periodSet = app_school_period_find($school_period_set_id, true);
   if($periodSet){
     $rowsData = final_assessment_build_rows($pdo, $class_id, $subject_id, $periodSet, $scope, (int)$u['id']);
@@ -426,7 +429,7 @@ render_header('Abschlussbeurteilung', $u);
         <div class="flash error" style="margin-top:14px">Für die gewählte Kombination liegen aktuell keine auswertbaren Schüler:innendaten vor.</div>
       <?php endif; ?>
 
-      <?php if($rowsData && !empty($rowsData['rows'])): ?>
+      <?php if($rowsData && !empty($rowsData['rows']) && !$assignmentReadOnly): ?>
         <details class="accordion final-assessment-bulk-entry" style="margin-top:14px">
           <summary><span class="acc-title">Schnelleingabe: finale Noten für die ganze Klasse speichern</span></summary>
           <div class="acc-body">
@@ -652,6 +655,7 @@ render_header('Abschlussbeurteilung', $u);
             <?php endif; ?>
             <span class="muted">Einzelbeurteilung · <?php echo h($schularbeitCompactNote); ?></span>
           </div>
+          <?php if($assignmentReadOnly): ?><div class="notice" style="margin-top:12px">Historische Zuweisung: Die vorhandenen Daten und Beurteilungen sind nur lesbar. Neue oder geänderte Abschlussbeurteilungen sind nicht möglich.</div><?php endif; ?>
         </div>
 
         <div class="grid final-assessment-box-grid" style="margin-top:14px">
@@ -852,7 +856,7 @@ render_header('Abschlussbeurteilung', $u);
             </div>
           <?php endif; ?>
 
-          <form method="post" id="<?php echo h($formId); ?>" class="final-assessment-decision-form" style="margin-top:14px" data-existing-final="<?php echo ($existing && (string)$existing['status'] === 'final') ? '1' : '0'; ?>">
+          <?php if(!$assignmentReadOnly): ?><form method="post" id="<?php echo h($formId); ?>" class="final-assessment-decision-form" style="margin-top:14px" data-existing-final="<?php echo ($existing && (string)$existing['status'] === 'final') ? '1' : '0'; ?>">
             <?php echo csrf_input(); ?>
             <input type="hidden" name="class_id" value="<?php echo (int)$class_id; ?>">
             <input type="hidden" name="subject_id" value="<?php echo (int)$subject_id; ?>">
@@ -896,7 +900,7 @@ render_header('Abschlussbeurteilung', $u);
               <button class="btn secondary" name="save_mode" value="draft">Entwurf speichern und nächste:n öffnen</button>
               <button class="btn" name="save_mode" value="final">Finale Note speichern und nächste:n öffnen</button>
             </div>
-          </form>
+          </form><?php endif; ?>
         </div>
 
         <?php if($existing): ?>

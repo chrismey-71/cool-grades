@@ -2,9 +2,15 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/settings.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
 
 $u = require_role('admin');
 $bp = cfg()['base_path'] ?? '';
+$pdo=db();
+$schools=schools_load($pdo,true);
+$schoolNames=[];
+foreach($schools as $school) $schoolNames[(int)$school['id']]=(string)$school['name'];
+$schoolFilter=(int)($_REQUEST['school_id'] ?? 0);
 
 $msg = '';
 $err = '';
@@ -21,6 +27,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   $action = trim((string)($_POST['action'] ?? ''));
 
   if($action === 'create_school_period'){
+    $schoolId=(int)($_POST['school_id'] ?? 0);
     $newPeriodLabel = trim((string)($_POST['period_label'] ?? $newPeriodLabel));
     $semester1From = trim((string)($_POST['semester1_from'] ?? $semester1From));
     $semester1To = trim((string)($_POST['semester1_to'] ?? $semester1To));
@@ -38,7 +45,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
       $err = 'Bitte die Semesterdaten in logischer Reihenfolge eingeben.';
     } else {
       $duplicate = false;
-      foreach(app_school_period_sets(true) as $periodRow){
+      foreach(app_school_period_sets(true,$schoolId,false) as $periodRow){
         if(
           (string)$periodRow['semester1_from'] === $semester1From &&
           (string)$periodRow['semester1_to'] === $semester1To &&
@@ -53,7 +60,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
       if($duplicate){
         $err = 'Für diese Datumswerte existiert bereits ein aktives Schuljahr.';
       } else {
-        app_school_period_create($newPeriodLabel, $semester1From, $semester1To, $semester2From, $semester2To);
+        app_school_period_create($newPeriodLabel, $semester1From, $semester1To, $semester2From, $semester2To,$schoolId);
         $msg = 'Schuljahr gespeichert.';
         $defaultRanges = school_period_default_ranges();
         $newPeriodLabel = school_period_year_label($defaultRanges['semester1']['from'], $defaultRanges['semester2']['to']);
@@ -84,7 +91,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   }
 }
 
-$allPeriods = app_school_period_sets(true);
+$allPeriods = app_school_period_sets(true,$schoolFilter,$schoolFilter>0);
 $activePeriods = [];
 $archivedPeriods = [];
 foreach($allPeriods as $periodRow){
@@ -106,6 +113,10 @@ render_header('Schuljahre und Semester', $u);
       <?php if($msg): ?><div class="flash success"><?php echo h($msg); ?></div><?php endif; ?>
       <?php if($err): ?><div class="flash error"><?php echo h($err); ?></div><?php endif; ?>
 
+      <form method="get" class="row" style="align-items:end;margin-top:12px">
+        <div style="max-width:360px"><label class="muted">Schule</label><select class="input" name="school_id" onchange="this.form.submit()"><option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen und globale Schuljahre</option><?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?></select></div>
+      </form>
+
       <div class="report-focus-block" style="margin-top:12px">
         <strong>Empfohlener Ablauf</strong>
         <div class="muted" style="margin-top:8px">
@@ -119,6 +130,7 @@ render_header('Schuljahre und Semester', $u);
         <table class="table" style="margin-top:14px">
           <thead>
             <tr>
+              <th>Schule</th>
               <th>Schuljahr</th>
               <th>1. Semester</th>
               <th>2. Semester</th>
@@ -130,6 +142,7 @@ render_header('Schuljahre und Semester', $u);
           <tbody>
             <?php foreach($activePeriods as $periodRow): ?>
               <tr>
+                <td><?php echo h($schoolNames[(int)($periodRow['school_id'] ?? 0)] ?? 'global / alle Schulen'); ?></td>
                 <td><strong><?php echo h($periodRow['label']); ?></strong></td>
                 <td><?php echo h($periodRow['semester1_from']); ?> bis <?php echo h($periodRow['semester1_to']); ?></td>
                 <td><?php echo h($periodRow['semester2_from']); ?> bis <?php echo h($periodRow['semester2_to']); ?></td>
@@ -141,6 +154,7 @@ render_header('Schuljahre und Semester', $u);
                     <?php echo csrf_input(); ?>
                     <input type="hidden" name="action" value="set_current_school_period">
                     <input type="hidden" name="period_id" value="<?php echo (int)$periodRow['id']; ?>">
+                    <input type="hidden" name="school_id" value="<?php echo (int)$schoolFilter; ?>">
                     <button class="btn secondary small">Als aktuell setzen</button>
                   </form>
                   <?php endif; ?>
@@ -148,6 +162,7 @@ render_header('Schuljahre und Semester', $u);
                     <?php echo csrf_input(); ?>
                     <input type="hidden" name="action" value="archive_school_period">
                     <input type="hidden" name="period_id" value="<?php echo (int)$periodRow['id']; ?>">
+                    <input type="hidden" name="school_id" value="<?php echo (int)$schoolFilter; ?>">
                     <button class="btn danger small">Löschen</button>
                   </form>
                 </td>
@@ -169,7 +184,14 @@ render_header('Schuljahre und Semester', $u);
             <input type="hidden" name="action" value="create_school_period">
             <div class="settings-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">
               <div class="settings-panel">
-                <div class="settings-panel-title">Bezeichnung</div>
+                <div class="settings-panel-title">Schule und Bezeichnung</div>
+                <label class="muted">Schule</label>
+                <select class="input" name="school_id">
+                  <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>global / alle Schulen</option>
+                  <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
+                </select>
+                <div class="muted" style="margin-top:6px">Wählen Sie eine Schule, wenn sie eigene Semestertermine führt. Globale Schuljahre bleiben für alle Schulen verwendbar.</div>
+                <div style="height:10px"></div>
                 <label class="muted">Schuljahr</label>
                 <input class="input" name="period_label" value="<?php echo h($newPeriodLabel); ?>" placeholder="z. B. 2025/26">
                 <div class="muted" style="margin-top:6px">Wird in Auswertung, Abschlussbeurteilung und PDF-Berichten angezeigt.</div>
@@ -218,6 +240,7 @@ render_header('Schuljahre und Semester', $u);
             <table class="table">
               <thead>
                 <tr>
+                  <th>Schule</th>
                   <th>Schuljahr</th>
                   <th>1. Semester</th>
                   <th>2. Semester</th>
@@ -227,6 +250,7 @@ render_header('Schuljahre und Semester', $u);
               <tbody>
                 <?php foreach($archivedPeriods as $periodRow): ?>
                   <tr>
+                    <td><?php echo h($schoolNames[(int)($periodRow['school_id'] ?? 0)] ?? 'global / alle Schulen'); ?></td>
                     <td><strong><?php echo h($periodRow['label']); ?></strong></td>
                     <td><?php echo h($periodRow['semester1_from']); ?> bis <?php echo h($periodRow['semester1_to']); ?></td>
                     <td><?php echo h($periodRow['semester2_from']); ?> bis <?php echo h($periodRow['semester2_to']); ?></td>
@@ -235,6 +259,7 @@ render_header('Schuljahre und Semester', $u);
                         <?php echo csrf_input(); ?>
                         <input type="hidden" name="action" value="restore_school_period">
                         <input type="hidden" name="period_id" value="<?php echo (int)$periodRow['id']; ?>">
+                        <input type="hidden" name="school_id" value="<?php echo (int)$schoolFilter; ?>">
                         <button class="btn secondary small">Wiederherstellen</button>
                       </form>
                     </td>

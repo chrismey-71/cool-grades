@@ -4,8 +4,11 @@ $u=require_role('admin'); $pdo=db(); $bp=cfg()['base_path'];
 $schoolYears=load_school_years($pdo,true);
 $schoolForms=school_forms_load($pdo,true);
 $schoolFormsById=school_forms_by_id($schoolForms);
+$schoolNamesById=[];
+foreach($schoolForms as $schoolFormRow) $schoolNamesById[(int)$schoolFormRow['school_id']]=(string)$schoolFormRow['school_name'];
 $currentSchoolYearId=school_year_current_id($pdo);
 $schoolYearFilter=(int)($_GET['school_period_set_id'] ?? $currentSchoolYearId);
+$err='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
   $a=$_POST['action']??'';
@@ -18,18 +21,29 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     }
     $type=(string)($schoolForm['code'] ?? 'HLS');
     $schoolPeriodSetId=(int)($_POST['school_period_set_id'] ?? $currentSchoolYearId);
+    $periodSchoolId=0;
+    if($schoolPeriodSetId>0){
+      $periodSt=$pdo->prepare("SELECT school_id FROM school_period_sets WHERE id=?");
+      $periodSt->execute([$schoolPeriodSetId]);
+      $periodSchoolId=(int)($periodSt->fetchColumn() ?: 0);
+    }
+    if($periodSchoolId>0 && $periodSchoolId!==(int)($schoolForm['school_id'] ?? 0)){
+      $err='Das gewählte Schuljahr gehört zu einer anderen Schule. Wählen Sie ein globales oder ein zur Schulform passendes Schuljahr.';
+    }
     $assessmentSystem=trim((string)($_POST['assessment_system'] ?? 'yearly'));
     if(!class_assessment_system_is_valid($assessmentSystem)) $assessmentSystem='yearly';
-    $nid=upsert('classes',[
-      'name'=>$name,
-      'school_period_set_id'=>$schoolPeriodSetId ?: null,
-      'school_type'=>$type,
-      'school_form_id'=>$schoolFormId ?: null,
-      'year'=>$year,
-      'label'=>$label,
-      'assessment_system'=>$assessmentSystem,
-    ],$id);
-    emit_event($id?'admin_class_updated':'admin_class_created',['target_id'=>$nid,'target_name'=>$name,'school_period_set_id'=>$schoolPeriodSetId]); header('Location: '.$bp.'/admin/classes.php?school_period_set_id='.$schoolPeriodSetId); exit;
+    if($err===''){
+      $nid=upsert('classes',[
+        'name'=>$name,
+        'school_period_set_id'=>$schoolPeriodSetId ?: null,
+        'school_type'=>$type,
+        'school_form_id'=>$schoolFormId ?: null,
+        'year'=>$year,
+        'label'=>$label,
+        'assessment_system'=>$assessmentSystem,
+      ],$id);
+      emit_event($id?'admin_class_updated':'admin_class_created',['target_id'=>$nid,'target_name'=>$name,'school_period_set_id'=>$schoolPeriodSetId]); header('Location: '.$bp.'/admin/classes.php?school_period_set_id='.$schoolPeriodSetId); exit;
+    }
   }
   if($a==='delete'){ $id=(int)$_POST['id']; emit_event('admin_class_deleted',['target_id'=>$id]); del('classes',$id); header('Location: '.$bp.'/admin/classes.php'); exit; }
 }
@@ -39,6 +53,7 @@ render_header('Klassen',$u);
 ?>
 <div class="grid">
 <div class="col-12"><div class="card"><h1>Klassen</h1>
+<?php if($err!==''): ?><div class="flash error"><?php echo h($err); ?></div><?php endif; ?>
 <div class="report-focus-block" style="margin-bottom:12px">
   <strong>Empfohlener Ablauf beim Schuljahreswechsel</strong>
   <div class="muted" style="margin-top:8px">
@@ -82,9 +97,10 @@ render_header('Klassen',$u);
     <div class="settings-panel-title">Schuljahr und Name</div>
     <label class="muted">Schuljahr</label>
     <?php $sySel=(int)($edit['school_period_set_id'] ?? $schoolYearFilter); ?>
-    <select class="input" name="school_period_set_id" required>
+    <select class="input" name="school_period_set_id" id="class-school-year" required>
     <?php foreach($schoolYears as $sy): ?>
-      <option value="<?php echo (int)$sy['id']; ?>" <?php echo $sySel===(int)$sy['id']?'selected':''; ?>><?php echo h($sy['label'].(((int)$sy['is_current']===1)?' · aktuell':'')); ?></option>
+      <?php $periodSchoolId=(int)($sy['school_id'] ?? 0); $periodSuffix=$periodSchoolId>0 ? ' · '.($schoolNamesById[$periodSchoolId] ?? 'Schule') : ' · global'; ?>
+      <option value="<?php echo (int)$sy['id']; ?>" data-school-id="<?php echo $periodSchoolId; ?>" <?php echo $sySel===(int)$sy['id']?'selected':''; ?>><?php echo h($sy['label'].$periodSuffix.(((int)$sy['is_current']===1)?' · aktuell':'')); ?></option>
     <?php endforeach; ?>
     </select>
     <div class="muted" style="margin-top:6px;font-size:13px">Eine Klasse ist immer eine Klasseninstanz eines konkreten Schuljahres. Für den Schuljahreswechsel bitte den Assistenten verwenden.</div>
@@ -95,7 +111,7 @@ render_header('Klassen',$u);
   <div class="settings-panel">
     <div class="settings-panel-title">Stammdaten</div>
     <div class="row">
-      <div><label class="muted">Schulform</label><select class="input" name="school_form_id" required>
+      <div><label class="muted">Schulform</label><select class="input" name="school_form_id" id="class-school-form" required>
       <?php
         $selectedFormId=(int)($edit['school_form_id'] ?? 0);
         if($selectedFormId<=0 && $edit){
@@ -109,7 +125,7 @@ render_header('Klassen',$u);
         if($selectedFormId<=0) $selectedFormId=school_form_default_id($pdo);
       ?>
       <?php foreach($schoolForms as $form): ?>
-        <option value="<?php echo (int)$form['id']; ?>" <?php echo $selectedFormId===(int)$form['id']?'selected':''; ?>><?php echo h(school_form_label($form).(((int)$form['active']===1)?'':' · inaktiv')); ?></option>
+        <option value="<?php echo (int)$form['id']; ?>" data-school-id="<?php echo (int)$form['school_id']; ?>" <?php echo $selectedFormId===(int)$form['id']?'selected':''; ?>><?php echo h(school_form_label($form).(((int)$form['active']===1)?'':' · inaktiv')); ?></option>
       <?php endforeach; ?>
       </select>
       <div class="muted" style="margin-top:6px;font-size:13px">Die Auswahl wird unter Einstellungen → Schulen und Schulformen gepflegt.</div></div>
@@ -134,6 +150,9 @@ render_header('Klassen',$u);
 <div style="height:12px"></div><button class="btn">Speichern</button>
 <?php if($edit): ?><a class="btn secondary" href="<?php echo h($bp); ?>/admin/classes.php?school_period_set_id=<?php echo (int)$schoolYearFilter; ?>">Abbrechen</a><?php endif; ?>
 </form>
+<script>
+(() => { const form=document.getElementById('class-school-form'), year=document.getElementById('class-school-year'); if(!form||!year)return; const sync=()=>{const school=String(form.options[form.selectedIndex]?.dataset.schoolId||''); let selected=false; [...year.options].forEach(option=>{const allowed=!option.dataset.schoolId||option.dataset.schoolId===school; option.hidden=!allowed; option.disabled=!allowed; if(allowed&&option.selected)selected=true;}); if(!selected){const first=[...year.options].find(option=>!option.disabled); if(first)first.selected=true;}}; form.addEventListener('change',sync); sync();})();
+</script>
 </div>
 </details>
 

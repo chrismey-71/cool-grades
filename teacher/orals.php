@@ -24,9 +24,11 @@ $subjects=$st->fetchAll();
 
 $rows=[];
 $classContext=null;
+$assignmentReadOnly=false;
 if($class_id && $subject_id){
   require_teacher_assignment($u,$class_id,$subject_id);
   $classContext=class_context($pdo,$class_id);
+  $assignmentReadOnly=!teacher_can_edit_assignment((int)$u['id'],$class_id,$subject_id) || ($classContext && class_is_readonly($classContext));
 
   $sql="SELECT oa.id, oa.assessment_date, oa.assessment_type, oa.impact_label, oa.topic_area, oa.questions, oa.category, oa.title,
                st.last_name, st.first_name
@@ -53,6 +55,7 @@ render_header('Besondere mündliche Leistungsfeststellungen',$u);
 <div class="grid"><div class="col-12"><div class="card">
   <h1>Besondere mündliche Leistungsfeststellungen – bearbeiten</h1>
   <div class="muted">Hier findest du mündliche Prüfungen und mündliche Übungen getrennt von den schriftlichen Leistungsfeststellungen.</div>
+  <?php if($assignmentReadOnly): ?><div class="notice" style="margin-top:10px">Historische Zuweisung: Die vorhandenen Leistungsfeststellungen sind nur lesbar.</div><?php endif; ?>
   <?php if(legal_hints_enabled($u)): ?>
     <details class="accordion" style="margin-top:10px">
       <summary>
@@ -109,7 +112,7 @@ render_header('Besondere mündliche Leistungsfeststellungen',$u);
     </div>
     <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><button class="btn secondary">Anzeigen</button></div>
 
-    <?php if($class_id && $subject_id && (!isset($classContext) || !$classContext || !class_is_readonly($classContext))): ?>
+    <?php if($class_id && $subject_id && !$assignmentReadOnly && (!isset($classContext) || !$classContext || !class_is_readonly($classContext))): ?>
       <div style="flex:0 0 auto"><label class="muted">&nbsp;</label>
         <a class="btn" href="<?php echo h($bp); ?>/teacher/oral_new.php?class_id=<?php echo (int)$class_id; ?>&subject_id=<?php echo (int)$subject_id; ?>&oral_type=<?php echo h($new_type); ?>">Neu anlegen</a>
       </div>

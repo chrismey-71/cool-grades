@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
+require_once __DIR__.'/../lib/schools.php';
 require_once __DIR__.'/_crud.php';
 
 $u=require_role('admin');
@@ -8,10 +9,11 @@ $pdo=db();
 $bp=cfg()['base_path'];
 
 $subjects=$pdo->query("SELECT code,name FROM subjects ORDER BY code")->fetchAll();
+$schoolForms=school_forms_load($pdo,true);
 
 $show_archived = !empty($_GET['show_archived']) ? 1 : 0;
 $filter_subject = strtoupper(trim($_GET['subject'] ?? ''));
-$filter_school = strtoupper(trim($_GET['school_type'] ?? ''));
+$filter_school_form_id = (int)($_GET['school_form_id'] ?? 0);
 $q = trim($_GET['q'] ?? '');
 
 $msg=''; $err='';
@@ -22,8 +24,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
   if($a==='save'){
     $id = !empty($_POST['id']) ? (int)$_POST['id'] : null;
-    $school_type = strtoupper(trim($_POST['school_type'] ?? 'BOTH'));
-    if(!in_array($school_type,['FSB','HLS','BOTH'],true)) $school_type='BOTH';
+    $schoolFormIds=is_array($_POST['school_form_ids'] ?? null) ? $_POST['school_form_ids'] : [];
 
     $subject_code = strtoupper(trim($_POST['subject_code'] ?? 'ALL'));
     if($subject_code==='') $subject_code='ALL';
@@ -37,7 +38,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $err='Bitte Kategorie und Kriterium (Label) ausfüllen.';
     }else{
       $data=[
-        'school_type'=>$school_type,
+        // Legacy-Spalte bleibt für vorhandene Installationen erhalten. Die konkrete Zuordnung liegt in der M:N-Tabelle.
+        'school_type'=>'BOTH',
         'subject_code'=>$subject_code,
         'category'=>$category,
         'label'=>$label,
@@ -48,16 +50,23 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         'created_at'=>date('Y-m-d H:i:s'),
         'updated_at'=>null,
       ];
-      if($id!==null){
-        unset($data['created_at']);
-        $data['updated_at']=date('Y-m-d H:i:s');
-        upsert('criteria_suggestions',$data,$id);
-        emit_event('admin_suggestion_updated',['target_id'=>$id,'subject_code'=>$subject_code]);
-      }else{
-        $nid=upsert('criteria_suggestions',$data,null);
-        emit_event('admin_suggestion_created',['target_id'=>$nid,'subject_code'=>$subject_code]);
+      try{
+        $pdo->beginTransaction();
+        if($id!==null){
+          unset($data['created_at']);
+          $data['updated_at']=date('Y-m-d H:i:s');
+          $nid=upsert('criteria_suggestions',$data,$id);
+        }else{
+          $nid=upsert('criteria_suggestions',$data,null);
+        }
+        criteria_suggestion_school_forms_sync($pdo,$nid,$schoolFormIds);
+        $pdo->commit();
+        emit_event($id!==null?'admin_suggestion_updated':'admin_suggestion_created',['target_id'=>$nid,'subject_code'=>$subject_code,'school_form_ids'=>array_map('intval',$schoolFormIds)]);
+        header('Location: '.$bp.'/admin/suggestions.php'); exit;
+      }catch(Throwable $e){
+        if($pdo->inTransaction()) $pdo->rollBack();
+        $err='Vorschlag konnte nicht gespeichert werden.';
       }
-      header('Location: '.$bp.'/admin/suggestions.php'); exit;
     }
   }
 
@@ -84,6 +93,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           $active=!empty($it['active'])?1:0;
           $sort=(int)($it['sort']??0);
           $ins->execute([$school,$sub,$cat,$lab,$active,$sort,$now]);
+          if($school!=='BOTH'){
+            $find=$pdo->prepare("SELECT id FROM criteria_suggestions WHERE school_type=? AND subject_code=? AND category=? AND label=? LIMIT 1");
+            $find->execute([$school,$sub,$cat,$lab]);
+            $suggestionId=(int)($find->fetchColumn() ?: 0);
+            if($suggestionId>0){
+              $forms=$pdo->prepare("SELECT id FROM school_forms WHERE code=?");
+              $forms->execute([$school]);
+              criteria_suggestion_school_forms_sync($pdo,$suggestionId,array_map('intval',$forms->fetchAll(PDO::FETCH_COLUMN)));
+            }
+          }
           $n++;
         }
         emit_event('admin_suggestions_imported',['count'=>$n]);
@@ -122,6 +141,7 @@ if(!empty($_GET['edit'])){
   $st->execute([(int)$_GET['edit']]);
   $edit=$st->fetch();
 }
+$selectedSchoolFormIds=$edit ? criteria_suggestion_school_form_ids($pdo,(int)$edit['id']) : [];
 
 $where=[]; $params=[];
 if(!$show_archived){ $where[]="archived=0"; }
@@ -129,18 +149,22 @@ if($filter_subject!==''){
   $where[]="subject_code=?";
   $params[]=$filter_subject;
 }
-if($filter_school!=='' && in_array($filter_school,['FSB','HLS','BOTH'],true)){
-  $where[]="school_type=?";
-  $params[]=$filter_school;
+if($filter_school_form_id>0){
+  $where[]="EXISTS (SELECT 1 FROM criteria_suggestion_school_forms cssf_filter WHERE cssf_filter.suggestion_id=cs.id AND cssf_filter.school_form_id=?)";
+  $params[]=$filter_school_form_id;
 }
 if($q!==''){
   $where[]="(label LIKE ? OR category LIKE ? OR subject_code LIKE ?)";
   $params[]="%$q%"; $params[]="%$q%"; $params[]="%$q%";
 }
 
-$sql="SELECT * FROM criteria_suggestions";
+$sql="SELECT cs.*, GROUP_CONCAT(DISTINCT CONCAT(s.name,' · ',sf.code) ORDER BY s.name,sf.code SEPARATOR ' | ') AS school_forms_label
+      FROM criteria_suggestions cs
+      LEFT JOIN criteria_suggestion_school_forms cssf ON cssf.suggestion_id=cs.id
+      LEFT JOIN school_forms sf ON sf.id=cssf.school_form_id
+      LEFT JOIN schools s ON s.id=sf.school_id";
 if($where) $sql.=" WHERE ".implode(" AND ",$where);
-$sql.=" ORDER BY subject_code, school_type, category, sort, label";
+$sql.=" GROUP BY cs.id ORDER BY cs.subject_code, cs.category, cs.sort, cs.label";
 
 $st=$pdo->prepare($sql); $st->execute($params);
 $items=$st->fetchAll();
@@ -157,13 +181,13 @@ render_header('Kriterien-Vorschläge',$u);
         <input type="hidden" name="action" value="save">
         <input type="hidden" name="id" value="<?php echo (int)($edit['id']??0); ?>">
 
-        <label>Schultyp</label>
-        <select name="school_type">
-          <?php $stp=$edit['school_type']??'BOTH'; ?>
-          <?php foreach(['BOTH'=>'FSB+HLS','FSB'=>'Fachschule (FSB)','HLS'=>'HLS'] as $k=>$v): ?>
-            <option value="<?php echo h($k); ?>" <?php echo $stp===$k?'selected':''; ?>><?php echo h($v); ?></option>
+        <label>Gültige Schulformen</label>
+        <div class="muted" style="margin:4px 0 7px">Ohne Auswahl gilt der Vorschlag für alle Schulformen. Mit Auswahl erscheint er nur für die gewählten Schulformen.</div>
+        <div class="settings-panel" style="max-height:190px;overflow:auto">
+          <?php foreach($schoolForms as $form): $formId=(int)$form['id']; ?>
+            <label style="display:block;margin:5px 0"><input type="checkbox" name="school_form_ids[]" value="<?php echo $formId; ?>" <?php echo in_array($formId,$selectedSchoolFormIds,true)?'checked':''; ?>> <?php echo h($form['school_name'].' · '.$form['code'].' – '.$form['name']); ?></label>
           <?php endforeach; ?>
-        </select>
+        </div>
 
         <label>Fach (Code)</label>
         <select name="subject_code">
@@ -230,12 +254,12 @@ render_header('Kriterien-Vorschläge',$u);
               <?php endforeach; ?>
             </select>
           </div>
-          <div style="width:180px">
-            <label>Schultyp</label>
-            <select name="school_type">
-              <option value="">Alle</option>
-              <?php foreach(['BOTH'=>'FSB+HLS','FSB'=>'FSB','HLS'=>'HLS'] as $k=>$v): ?>
-                <option value="<?php echo h($k); ?>" <?php echo $filter_school===$k?'selected':''; ?>><?php echo h($v); ?></option>
+          <div style="width:240px">
+            <label>Schulform</label>
+            <select name="school_form_id">
+              <option value="0">Alle</option>
+              <?php foreach($schoolForms as $form): ?>
+                <option value="<?php echo (int)$form['id']; ?>" <?php echo $filter_school_form_id===(int)$form['id']?'selected':''; ?>><?php echo h($form['school_name'].' · '.$form['code']); ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -257,14 +281,14 @@ render_header('Kriterien-Vorschläge',$u);
       <table class="table">
         <thead>
           <tr>
-            <th>Fach</th><th>Typ</th><th>Kategorie</th><th>Kriterium</th><th>Status</th><th>Aktion</th>
+            <th>Fach</th><th>Schulformen</th><th>Kategorie</th><th>Kriterium</th><th>Status</th><th>Aktion</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach($items as $it): $arch=(int)($it['archived']??0)===1; ?>
           <tr class="<?php echo $arch?'muted':''; ?>">
             <td data-label="Fach"><?php echo h($it['subject_code']); ?></td>
-            <td data-label="Typ"><?php echo h($it['school_type']); ?></td>
+            <td data-label="Schulformen"><?php echo h((string)($it['school_forms_label'] ?: 'alle Schulformen')); ?></td>
             <td data-label="Kategorie"><?php echo h($it['category']); ?></td>
             <td data-label="Kriterium"><?php echo h($it['label']); ?></td>
             <td data-label="Status">

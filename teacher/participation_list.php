@@ -47,7 +47,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       exit;
     }
 
-    require_teacher_assignment($u,$post_class_id,$post_subject_id);
+    require_teacher_active_assignment($u,$post_class_id,$post_subject_id);
 
     $eventsSt=$pdo->prepare("SELECT id, reason_label, phase_option_id, homework_option_id, note, reason_text
                              FROM participation_events

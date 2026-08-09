@@ -22,9 +22,9 @@ $sort_options = [
 if(!isset($sort_options[$sort])) $sort='date_desc';
 
 // Assignable classes/subjects
-$classes=load_teacher_classes($pdo,(int)$u['id'],school_year_current_id($pdo),false,false);
+$classes=load_teacher_classes($pdo,(int)$u['id'],school_year_current_id($pdo),false,false,false);
 
-$st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? ORDER BY s.code");
+$st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? AND ta.status='active' ORDER BY s.code");
 $st->execute([(int)$u['id']]);
 $subjects=$st->fetchAll();
 
@@ -68,7 +68,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       } else {
         $class_id=(int)$ls_edit['class_id'];
         $subject_id=(int)$ls_edit['subject_id'];
-        require_teacher_assignment($u,$class_id,$subject_id);
+        require_teacher_active_assignment($u,$class_id,$subject_id);
         require_class_writable($pdo,$class_id);
 
         $date=(string)($_POST['lesson_date'] ?? '');
@@ -131,7 +131,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!$class_id||!$subject_id){
       $err='Bitte Klasse und Fach wählen.';
     } else {
-      require_teacher_assignment($u,$class_id,$subject_id);
+      require_teacher_active_assignment($u,$class_id,$subject_id);
       require_class_writable($pdo,$class_id);
 
       $date=$_POST['lesson_date'] ?? date('Y-m-d');

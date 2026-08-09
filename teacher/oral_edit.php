@@ -22,7 +22,7 @@ $st->execute([$id,(int)$u['id']]);
 $oral=$st->fetch();
 if(!$oral){ http_response_code(404); exit('Eintrag nicht gefunden (oder nicht berechtigt).'); }
 require_teacher_assignment($u,(int)$oral['class_id'],(int)$oral['subject_id']);
-require_class_writable($pdo,(int)$oral['class_id']);
+$assignmentReadOnly=!teacher_can_edit_assignment((int)$u['id'],(int)$oral['class_id'],(int)$oral['subject_id']) || class_is_readonly((array)(class_context($pdo,(int)$oral['class_id']) ?? []));
 
 $class_id=(int)$oral['class_id'];
 $subject_id=(int)$oral['subject_id'];
@@ -46,6 +46,8 @@ $err='';
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
+  require_teacher_active_assignment($u,(int)$oral['class_id'],(int)$oral['subject_id']);
+  require_class_writable($pdo,(int)$oral['class_id']);
   $action=(string)($_POST['action'] ?? 'save');
 
   if($action==='delete'){
@@ -155,6 +157,7 @@ render_header('Besondere mündliche Leistungsfeststellung bearbeiten',$u);
 ?>
 <div class="grid"><div class="col-12"><div class="card">
   <h1>Besondere mündliche Leistungsfeststellung bearbeiten</h1>
+  <?php if($assignmentReadOnly): ?><div class="notice">Historische Zuweisung: Diese Leistungsfeststellung ist nur lesbar. Neue Änderungen sind nicht möglich.</div><?php endif; ?>
   <div class="muted"><?php echo h($oral['class_name']); ?> · <?php echo h($oral['subject_code']); ?> · Schüler:in <b><?php echo h($oral['last_name'].', '.$oral['first_name']); ?></b></div>
   <?php if(legal_hints_enabled($u)): ?>
     <details class="accordion" id="oralSummaryCard" data-summary-exam="<?php echo h($summary_map['ORAL_EXAM']); ?>" data-summary-exercise="<?php echo h($summary_map['ORAL_EXERCISE']); ?>" data-tooltip-exam="<?php echo h($summary_tooltip_map['ORAL_EXAM']); ?>" data-tooltip-exercise="<?php echo h($summary_tooltip_map['ORAL_EXERCISE']); ?>" style="margin-top:10px">

@@ -16,6 +16,35 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.72] - 2026-08-09
+
+### Hinzugefügt
+
+- Zuweisungen von Lehrkraft, Klasse und Fach können im Adminbereich nun sicher beendet und bei Bedarf reaktiviert werden
+- beendete Zuweisungen werden als historische Zuweisung mit Lesemodus geführt, damit die bisherige Lehrkraft Einträge, Auswertungen und PDFs weiter einsehen kann
+- kompakte Übersicht vorhandener Dokumentationen je Zuweisung, einschließlich Mitarbeit, Stunden, besonderer mündlicher und schriftlicher Leistungen sowie Abschlussbeurteilungen
+- automatisierter Prüffall für die datensichere Behandlung von Lehrer:innen-Zuweisungen
+- Lehrkräfte können einer oder mehreren Schulen zugeordnet werden
+- Fächer können gezielt einer oder mehreren Schulformen zugeordnet werden
+- konkrete Schulformzuordnung für Kriterien-Vorschläge; Vorschläge können auch bewusst für alle Schulformen gelten
+- schulbezogene Schuljahre und Semestertermine zusätzlich zu bestehenden globalen Schuljahren
+- Schulfilter im Schuljahreswechsel-Assistenten, damit Klassenwechsel innerhalb einer Schule erfolgen
+- schulbezogene ZIP-Sicherung mit den Klassen-, Zuordnungs- und Leistungsdaten einer ausgewählten Schule
+- Schulfilter in der Ereignisauswertung; neue Ereignisse werden anhand ihrer Klasse automatisch einer Schule zugeordnet
+
+### Geändert
+
+- Zuweisungen ohne gespeicherte Kontextdaten können endgültig gelöscht werden
+- Zuweisungen mit vorhandenen Dokumentationen werden nicht mehr gelöscht, sondern beendet; Leistungsdaten werden weder verschoben noch gelöscht
+- neue oder nachträgliche Eingaben sind bei beendeten Zuweisungen serverseitig gesperrt, historische Listen und Berichte bleiben zugänglich
+- aktive Arbeitsbereiche zeigen nur aktive Zuweisungen als neue Erfassungskombinationen
+- neue oder reaktivierte Zuweisungen berücksichtigen die Schulzuordnung der Lehrkraft sowie die Schulform der Klasse und des Fachs; die Prüfung erfolgt auch serverseitig
+- die Zuordnungsmaske zeigt nach Auswahl einer Lehrkraft nur deren Klassen und die dazu passenden Fächer an
+- Klassen mit derselben Bezeichnung können in unterschiedlichen Schulformen eines Schuljahres geführt werden
+- bestehende globale Schuljahre und Kriterien-Vorschläge bleiben erhalten und weiterhin nutzbar
+- Kriterien-Vorschläge werden für Lehrkräfte nach den Schulformen ihrer zugewiesenen Klassen gefiltert
+- Versionsnummer auf 1.72 erhöht
+
 ## [1.71] - 2026-07-05
 
 ### Geändert
