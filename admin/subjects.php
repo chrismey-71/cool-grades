@@ -78,9 +78,12 @@ render_header('Fächer',$u);
 <div class="muted" style="margin-top:6px">Die Kennzeichnung steuert nur die Interpretation in der Auswertung. Die Mitarbeit wird weiterhin unverändert gezählt.</div>
 <div style="height:10px"></div><label class="muted">Gültige Schulformen <span aria-hidden="true">*</span></label>
 <div class="muted" style="margin:4px 0 7px">Das Fach erscheint bei neuen Zuweisungen nur für Klassen dieser Schulformen. Bestehende Zuweisungen und historische Daten werden dadurch nicht verändert.</div>
-<div class="settings-panel" style="max-height:210px;overflow:auto">
+<div class="school-choice-list" style="max-height:260px;overflow:auto">
   <?php foreach($schoolForms as $form): $formId=(int)$form['id']; ?>
-    <label style="display:block;margin:5px 0"><input type="checkbox" name="school_form_ids[]" value="<?php echo $formId; ?>" <?php echo in_array($formId,$selectedSchoolFormIds,true)?'checked':''; ?>> <?php echo h($form['school_name'].' · '.$form['code'].' – '.$form['name']); ?><?php echo (int)$form['active']===1?'':' · inaktiv'; ?></label>
+    <label class="school-choice <?php echo h(school_tone_class((int)$form['school_id'])); ?>">
+      <input type="checkbox" name="school_form_ids[]" value="<?php echo $formId; ?>" <?php echo in_array($formId,$selectedSchoolFormIds,true)?'checked':''; ?>>
+      <span class="school-choice-copy"><span class="school-choice-name"><?php echo h($form['school_name']); ?> · <?php echo h($form['code']); ?></span><span class="school-choice-detail"><?php echo h($form['name']); ?><?php echo (int)$form['active']===1?'':' · inaktiv'; ?></span></span>
+    </label>
   <?php endforeach; ?>
   <?php if(!$schoolForms): ?><span class="muted">Zuerst unter „Schulen und Schulformen“ eine Schulform anlegen.</span><?php endif; ?>
 </div>

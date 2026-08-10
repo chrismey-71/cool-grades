@@ -111,7 +111,7 @@ render_header('Klassen',$u);
   <div class="settings-panel">
     <div class="settings-panel-title">Stammdaten</div>
     <div class="row">
-      <div><label class="muted">Schulform</label><select class="input" name="school_form_id" id="class-school-form" required>
+      <div class="school-selection" data-school-selection><label class="school-selection-label">Schulform und Schule</label><select class="input school-select" name="school_form_id" id="class-school-form" required>
       <?php
         $selectedFormId=(int)($edit['school_form_id'] ?? 0);
         if($selectedFormId<=0 && $edit){
@@ -125,10 +125,10 @@ render_header('Klassen',$u);
         if($selectedFormId<=0) $selectedFormId=school_form_default_id($pdo);
       ?>
       <?php foreach($schoolForms as $form): ?>
-        <option value="<?php echo (int)$form['id']; ?>" data-school-id="<?php echo (int)$form['school_id']; ?>" <?php echo $selectedFormId===(int)$form['id']?'selected':''; ?>><?php echo h(school_form_label($form).(((int)$form['active']===1)?'':' · inaktiv')); ?></option>
+        <option value="<?php echo (int)$form['id']; ?>" data-school-id="<?php echo (int)$form['school_id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$form['school_id'])); ?>" <?php echo $selectedFormId===(int)$form['id']?'selected':''; ?>><?php echo h(school_form_label($form).(((int)$form['active']===1)?'':' · inaktiv')); ?></option>
       <?php endforeach; ?>
       </select>
-      <div class="muted" style="margin-top:6px;font-size:13px">Die Auswahl wird unter Einstellungen → Schulen und Schulformen gepflegt.</div></div>
+      <div class="school-selection-note">Die Auswahl wird unter Einstellungen → Schulen und Schulformen gepflegt.</div></div>
       <div><label class="muted">Jahrgang</label><input class="input" type="number" min="1" max="5" name="year" value="<?php echo h($edit['year']??1); ?>"></div>
     </div>
     <div style="height:10px"></div><label class="muted">Label (optional)</label><input class="input" name="label" value="<?php echo h($edit['label']??''); ?>">

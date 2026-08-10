@@ -284,12 +284,14 @@ render_header('Schuljahreswechsel',$u);
   <div class="col-12 col-md-6">
     <div class="settings-panel">
       <div class="settings-panel-title">1. Aktuelle Klasse auswählen</div>
-      <label class="muted">Schule</label>
-      <select class="input" name="school_id" onchange="this.form.submit()">
+      <div class="school-selection" data-school-selection>
+      <label class="school-selection-label">Schule</label>
+      <select class="input school-select" name="school_id" onchange="this.form.submit()">
         <option value="0" <?php echo $schoolId===0?'selected':''; ?>>Bitte Schule wählen…</option>
-        <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
+        <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
       </select>
-      <div class="muted" style="margin-top:6px;font-size:13px">Klassenwechsel werden innerhalb einer Schule durchgeführt. So bleiben gleich lautende Klassen anderer Schulen getrennt.</div>
+      <div class="school-selection-note">Klassenwechsel werden innerhalb einer Schule durchgeführt. So bleiben gleich lautende Klassen anderer Schulen getrennt.</div>
+      </div>
       <div style="height:10px"></div>
       <label class="muted">Ausgangsschuljahr</label>
       <select class="input" name="source_school_period_set_id" onchange="this.form.submit()">

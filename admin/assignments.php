@@ -110,7 +110,7 @@ $assignableClasses=[];
 $assignableSubjects=[];
 $subjectFormMap=[];
 if($filter_teacher>0){
-  $st=$pdo->prepare("SELECT c.id,c.name,c.school_form_id,sf.code AS school_form_code,sf.name AS school_form_name,s.name AS school_name
+  $st=$pdo->prepare("SELECT c.id,c.name,c.school_form_id,sf.code AS school_form_code,sf.name AS school_form_name,s.id AS school_id,s.name AS school_name
                      FROM classes c
                      JOIN school_forms sf ON sf.id=c.school_form_id
                      JOIN schools s ON s.id=sf.school_id
@@ -188,7 +188,7 @@ render_header('Zuweisungen',$u);
   <input type="hidden" name="action" value="create"><input type="hidden" name="school_period_set_id" value="<?php echo (int)$schoolYearFilter; ?>"><input type="hidden" name="show" value="<?php echo h($show); ?>">
   <div class="row" style="align-items:end">
     <div><label class="muted">Lehrer:in</label><input class="input" readonly value="<?php $selectedTeacher=array_values(array_filter($teachers,static fn(array $t): bool => (int)$t['id']===$filter_teacher)); echo h($selectedTeacher ? $selectedTeacher[0]['last_name'].', '.$selectedTeacher[0]['first_name'] : ''); ?>"><input type="hidden" name="teacher_id" value="<?php echo (int)$filter_teacher; ?>"></div>
-    <div><label class="muted">Klasse</label><select class="input" name="class_id" id="assignment-class" required><?php foreach($assignableClasses as $c): ?><option value="<?php echo (int)$c['id']; ?>" data-school-form-id="<?php echo (int)$c['school_form_id']; ?>"><?php echo h($c['name'].' · '.$c['school_name'].' · '.$c['school_form_code']); ?></option><?php endforeach; ?></select></div>
+    <div class="school-selection" data-school-selection><label class="school-selection-label">Klasse, Schule und Schulform</label><select class="input school-select" name="class_id" id="assignment-class" required><?php foreach($assignableClasses as $c): ?><option value="<?php echo (int)$c['id']; ?>" data-school-form-id="<?php echo (int)$c['school_form_id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$c['school_id'])); ?>"><?php echo h($c['name'].' · '.$c['school_name'].' · '.$c['school_form_code']); ?></option><?php endforeach; ?></select><div class="school-selection-note">Die Fachauswahl wird anschließend auf diese Schulform eingeschränkt.</div></div>
     <div><label class="muted">Fach</label><select class="input" name="subject_id" id="assignment-subject" required><?php foreach($assignableSubjects as $s): $formIds=$subjectFormMap[(int)$s['id']] ?? []; ?><option value="<?php echo (int)$s['id']; ?>" data-school-form-ids="<?php echo h(implode(',',$formIds)); ?>"><?php echo h($s['code'].' · '.$s['name']); ?></option><?php endforeach; ?></select><div class="muted" style="margin-top:5px;font-size:12px">Es werden nur Fächer der Schulform der gewählten Klasse angezeigt.</div></div>
     <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><button class="btn">Zuweisen</button></div>
   </div>

@@ -61,6 +61,11 @@ function teacher_school_ids(PDO $pdo, int $teacherId): array {
   return array_map('intval',array_column($st->fetchAll(),'school_id'));
 }
 
+/** Returns a stable visual tone for school-related form controls. */
+function school_tone_class(int $schoolId): string {
+  return 'school-tone-'.(($schoolId % 5) + 1);
+}
+
 function teacher_schools_sync(PDO $pdo, int $teacherId, array $schoolIds): void {
   $schoolIds=array_values(array_unique(array_filter(array_map('intval',$schoolIds),static fn(int $id): bool => $id>0)));
   $valid=[];

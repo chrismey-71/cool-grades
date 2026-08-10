@@ -87,12 +87,14 @@ render_header('Datenbanksicherung', $u);
               <option value="school">Sicherung einer Schule</option>
             </select>
             <div style="height:10px"></div>
-            <label class="muted">Schule</label>
-            <select class="input" name="school_id" id="backup-school-id">
+            <div class="school-selection" data-school-selection>
+            <label class="school-selection-label">Schule</label>
+            <select class="input school-select" name="school_id" id="backup-school-id">
               <option value="0">Bitte wählen…</option>
-              <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>"><?php echo h($school['name']); ?></option><?php endforeach; ?>
+              <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>"><?php echo h($school['name']); ?></option><?php endforeach; ?>
             </select>
-            <div class="muted" style="margin-top:8px;font-size:13px">Die Schulsicherung enthält nur Klassen, Zuordnungen und Leistungsdaten der gewählten Schule. Die Gesamtsicherung bleibt für eine vollständige Systemwiederherstellung vorgesehen.</div>
+            <div class="school-selection-note">Die Schulsicherung enthält nur Klassen, Zuordnungen und Leistungsdaten der gewählten Schule. Die Gesamtsicherung bleibt für eine vollständige Systemwiederherstellung vorgesehen.</div>
+            </div>
           </div>
           <div class="settings-panel">
             <div class="settings-panel-title">Optionaler Kennwortschutz</div>

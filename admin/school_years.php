@@ -114,7 +114,7 @@ render_header('Schuljahre und Semester', $u);
       <?php if($err): ?><div class="flash error"><?php echo h($err); ?></div><?php endif; ?>
 
       <form method="get" class="row" style="align-items:end;margin-top:12px">
-        <div style="max-width:360px"><label class="muted">Schule</label><select class="input" name="school_id" onchange="this.form.submit()"><option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen und globale Schuljahre</option><?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?></select></div>
+        <div class="school-selection" data-school-selection style="max-width:420px"><label class="school-selection-label">Schule</label><select class="input school-select" name="school_id" onchange="this.form.submit()"><option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen und globale Schuljahre</option><?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?></select><div class="school-selection-note">Filtert die angezeigten Schuljahre und Semestertermine.</div></div>
       </form>
 
       <div class="report-focus-block" style="margin-top:12px">
@@ -185,12 +185,14 @@ render_header('Schuljahre und Semester', $u);
             <div class="settings-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">
               <div class="settings-panel">
                 <div class="settings-panel-title">Schule und Bezeichnung</div>
-                <label class="muted">Schule</label>
-                <select class="input" name="school_id">
+                <div class="school-selection" data-school-selection>
+                <label class="school-selection-label">Schule</label>
+                <select class="input school-select" name="school_id">
                   <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>global / alle Schulen</option>
-                  <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
+                  <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
                 </select>
-                <div class="muted" style="margin-top:6px">Wählen Sie eine Schule, wenn sie eigene Semestertermine führt. Globale Schuljahre bleiben für alle Schulen verwendbar.</div>
+                <div class="school-selection-note">Wählen Sie eine Schule, wenn sie eigene Semestertermine führt. Globale Schuljahre bleiben für alle Schulen verwendbar.</div>
+                </div>
                 <div style="height:10px"></div>
                 <label class="muted">Schuljahr</label>
                 <input class="input" name="period_label" value="<?php echo h($newPeriodLabel); ?>" placeholder="z. B. 2025/26">

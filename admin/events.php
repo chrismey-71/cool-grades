@@ -267,12 +267,13 @@ render_header('Eventauswertungen',$u);
       </select>
     </div>
 
-    <div>
-      <label class="muted">Schule</label>
-      <select class="input" name="school_id" onchange="this.form.submit()">
+    <div class="school-selection" data-school-selection>
+      <label class="school-selection-label">Schule</label>
+      <select class="input school-select" name="school_id" onchange="this.form.submit()">
         <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen</option>
-        <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
+        <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
       </select>
+      <div class="school-selection-note">Zeigt nur Ereignisse der gewählten Schule.</div>
     </div>
 
     <div>

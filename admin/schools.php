@@ -160,14 +160,17 @@ render_header('Schulen und Schulformen',$u);
                 <?php echo csrf_input(); ?>
                 <input type="hidden" name="action" value="save_form">
                 <input type="hidden" name="id" value="<?php echo h((string)($editForm['id'] ?? '0')); ?>">
-                <label class="muted">Schule</label>
-                <select class="input" name="school_id" required>
+                <div class="school-selection" data-school-selection>
+                <label class="school-selection-label">Schule</label>
+                <select class="input school-select" name="school_id" required>
                   <option value="0">Bitte wählen...</option>
                   <?php $formSchoolId=(int)($editForm['school_id'] ?? ($schools[0]['id'] ?? 0)); ?>
                   <?php foreach($schools as $school): ?>
-                    <option value="<?php echo (int)$school['id']; ?>" <?php echo $formSchoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name'].(((int)$school['active']===1)?'':' · inaktiv')); ?></option>
+                    <option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $formSchoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name'].(((int)$school['active']===1)?'':' · inaktiv')); ?></option>
                   <?php endforeach; ?>
                 </select>
+                <div class="school-selection-note">Die Schulform wird genau dieser Schule zugeordnet.</div>
+                </div>
                 <div style="height:10px"></div>
                 <label class="muted">Kürzel</label>
                 <input class="input" name="code" required value="<?php echo h((string)($editForm['code'] ?? '')); ?>" placeholder="z. B. HLS oder FSB">

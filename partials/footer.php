@@ -25,6 +25,34 @@
 
 <script>
 (function(){
+  function updateSchoolSelection(wrapper){
+    var select=wrapper.querySelector('select.school-select');
+    if(!select) return;
+    var option=select.options[select.selectedIndex];
+    for(var i=1;i<=5;i++) wrapper.classList.remove('school-tone-'+i);
+    if(option && option.dataset.schoolTone) wrapper.classList.add(option.dataset.schoolTone);
+
+    var state=wrapper.querySelector('.school-selection-state');
+    if(!state){
+      state=document.createElement('div');
+      state.className='school-selection-state';
+      state.setAttribute('aria-live','polite');
+      wrapper.appendChild(state);
+    }
+    var text=option ? (option.textContent || '').replace(/\s+/g,' ').trim() : '';
+    state.textContent=text ? 'Ausgewählt: '+text : 'Bitte eine Schule auswählen.';
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-school-selection]'),function(wrapper){
+    updateSchoolSelection(wrapper);
+    var select=wrapper.querySelector('select.school-select');
+    if(select) select.addEventListener('change',function(){ updateSchoolSelection(wrapper); });
+  });
+})();
+</script>
+
+<script>
+(function(){
   function openParentDetails(el){
     var parent = el ? el.parentElement : null;
     while(parent){

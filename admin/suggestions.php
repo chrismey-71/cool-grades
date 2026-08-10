@@ -183,9 +183,12 @@ render_header('Kriterien-Vorschläge',$u);
 
         <label>Gültige Schulformen</label>
         <div class="muted" style="margin:4px 0 7px">Ohne Auswahl gilt der Vorschlag für alle Schulformen. Mit Auswahl erscheint er nur für die gewählten Schulformen.</div>
-        <div class="settings-panel" style="max-height:190px;overflow:auto">
+        <div class="school-choice-list" style="max-height:260px;overflow:auto">
           <?php foreach($schoolForms as $form): $formId=(int)$form['id']; ?>
-            <label style="display:block;margin:5px 0"><input type="checkbox" name="school_form_ids[]" value="<?php echo $formId; ?>" <?php echo in_array($formId,$selectedSchoolFormIds,true)?'checked':''; ?>> <?php echo h($form['school_name'].' · '.$form['code'].' – '.$form['name']); ?></label>
+            <label class="school-choice <?php echo h(school_tone_class((int)$form['school_id'])); ?>">
+              <input type="checkbox" name="school_form_ids[]" value="<?php echo $formId; ?>" <?php echo in_array($formId,$selectedSchoolFormIds,true)?'checked':''; ?>>
+              <span class="school-choice-copy"><span class="school-choice-name"><?php echo h($form['school_name']); ?> · <?php echo h($form['code']); ?></span><span class="school-choice-detail"><?php echo h($form['name']); ?></span></span>
+            </label>
           <?php endforeach; ?>
         </div>
 
@@ -254,12 +257,12 @@ render_header('Kriterien-Vorschläge',$u);
               <?php endforeach; ?>
             </select>
           </div>
-          <div style="width:240px">
-            <label>Schulform</label>
-            <select name="school_form_id">
+          <div class="school-selection" data-school-selection style="width:260px">
+            <label class="school-selection-label">Schulform und Schule</label>
+            <select class="school-select" name="school_form_id">
               <option value="0">Alle</option>
               <?php foreach($schoolForms as $form): ?>
-                <option value="<?php echo (int)$form['id']; ?>" <?php echo $filter_school_form_id===(int)$form['id']?'selected':''; ?>><?php echo h($form['school_name'].' · '.$form['code']); ?></option>
+                <option value="<?php echo (int)$form['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$form['school_id'])); ?>" <?php echo $filter_school_form_id===(int)$form['id']?'selected':''; ?>><?php echo h($form['school_name'].' · '.$form['code']); ?></option>
               <?php endforeach; ?>
             </select>
           </div>

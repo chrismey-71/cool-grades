@@ -129,9 +129,12 @@ render_header('Lehrer:innen',$u);
         <div style="height:10px"></div>
         <label class="muted">Zugeordnete Schulen <span aria-hidden="true">*</span></label>
         <div class="muted" style="margin:4px 0 7px">Die Zuordnung bestimmt, für welche Schulen diese Lehrkraft künftig Klassen-Fach-Zuweisungen erhalten kann. Bereits beendete Zuweisungen und historische Daten bleiben erhalten.</div>
-        <div class="settings-panel" style="max-height:180px;overflow:auto">
+        <div class="school-choice-list" style="max-height:260px;overflow:auto">
           <?php foreach($schools as $school): $schoolId=(int)$school['id']; ?>
-            <label style="display:block;margin:5px 0"><input type="checkbox" name="school_ids[]" value="<?php echo $schoolId; ?>" <?php echo in_array($schoolId,$selectedSchoolIds,true)?'checked':''; ?>> <?php echo h($school['name']); ?><?php echo (int)$school['active']===1?'':' · inaktiv'; ?></label>
+            <label class="school-choice <?php echo h(school_tone_class($schoolId)); ?>">
+              <input type="checkbox" name="school_ids[]" value="<?php echo $schoolId; ?>" <?php echo in_array($schoolId,$selectedSchoolIds,true)?'checked':''; ?>>
+              <span class="school-choice-copy"><span class="school-choice-name"><?php echo h($school['name']); ?></span><span class="school-choice-detail">Für künftige Klassen-Fach-Zuweisungen verfügbar<?php echo (int)$school['active']===1?'':' · inaktiv'; ?></span></span>
+            </label>
           <?php endforeach; ?>
           <?php if(!$schools): ?><span class="muted">Zuerst unter „Schulen und Schulformen“ eine Schule anlegen.</span><?php endif; ?>
         </div>

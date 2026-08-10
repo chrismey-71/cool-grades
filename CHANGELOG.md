@@ -16,6 +16,15 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.73] - 2026-08-10
+
+### Geändert
+
+- Schulauswahlen im Adminbereich sind farblich und inhaltlich klarer gegliedert: Die aktuell gewählte Schule bleibt direkt am Auswahlfeld sichtbar.
+- Mehrfachauswahlen für Schulen und Schulformen verwenden nun moderne, farblich getrennte Auswahlkacheln mit eindeutiger Zuordnung.
+- Schulbezogene Auswahlfelder bei Klassen, Zuweisungen, Schuljahren, Schuljahreswechsel, Sicherungen, Ereignissen, Fächern und Kriterien-Vorschlägen folgen einem einheitlichen Design.
+- Versionsnummer auf 1.73 erhöht.
+
 ## [1.72] - 2026-08-09
 
 ### Hinzugefügt
