@@ -16,6 +16,41 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.74] - 2026-08-10
+
+### Hinzugefügt
+
+- Personenverwaltung kann nun getrennte Konten für Lehrkräfte und Administrator:innen anlegen.
+- Administrator:innen können einer oder mehreren Schulen zugeordnet werden und erscheinen mit ihrer Rolle in der Personenübersicht.
+- Picklisten für `Eindruck/Relevanz` enthalten nun eine explizit pflegbare Wertungsrichtung: positiv, neutral, negativ oder ohne Wertung.
+- Neue Mitarbeitseinträge und besondere mündliche Leistungen speichern diese Wertungsrichtung als Momentaufnahme mit dem Eintrag.
+- Die Gewichtung für Notenvorschläge wurde zur unverbindlichen `Orientierungsgewichtung` erweitert, inklusive fachtypabhängiger Presets für Schularbeitsfächer und Nicht-Schularbeitsfächer.
+- Besondere mündliche und schriftliche Leistungsfeststellungen können optional mit einem Einzelgewicht von `0,5 x` bis `3 x` versehen werden.
+- Der schriftliche Bereich unterstützt nun `Diktat` als eigenen Typ zusätzlich zu Schularbeit, Test und den bisherigen schriftlichen Arten.
+- Idempotente Migration ergänzt die Wertungsrichtung bei bestehenden Picklisten und historischen Einträgen; konfliktträchtige Fälle wie `kaum nachweisbar` werden als negativ eingeordnet.
+- Die Löschung einer noch unbenutzten Stunde aus der vereinfachten Mitarbeitserfassung wurde repariert und führt mit erhaltenem Klasse-Fach-Kontext zurück zur Erfassung.
+- Lehrkräfte mit mehreren Schulzuordnungen können im Dashboard ihre Arbeitsschule wählen; Klassen, Fächer und Schnellzugriffe werden darauf beschränkt.
+- Die Schulbezeichnung im Kopfbereich übernimmt nun die im Dashboard gewählte Arbeitsschule und bleibt als geprüfter Sitzungs-Kontext auf weiteren Lehrer:innenseiten sichtbar.
+- Die Arbeitsbereich-Schule bleibt bei Navigation in andere Lehrer:innenmenüs und beim anschließenden Rücksprung zum Dashboard erhalten.
+- Schulgebundene Administrator:innen werden nun konsequent auf ihre zugeordneten Schulen begrenzt; Administrationskonten ohne Schulzuordnung gelten als Superadministrator:innen.
+- Administrator:innen können neue Schulen anlegen; schulgebundene Admins werden neu angelegten Schulen automatisch zugeordnet.
+- Zusätzlicher Prüffall sichert die Schultrennung für Schulen, Klassen, Schüler:innen, Fächer, Kriterienvorschläge, Schuljahre, Zuweisungen, Sicherungen und Ereignisse ab.
+
+### Geändert
+
+- Lehrkraft- und Administrationsrolle bleiben pro Konto fest getrennt; für beide Aufgaben derselben Person sind bewusst zwei Konten mit unterschiedlichen Usernames erforderlich.
+- Administrator:innen werden nicht als Lehrkräfte in Klassen-Fach-Zuweisungen angeboten und erhalten dadurch keine Erfassungsrechte.
+- Das letzte aktive Administrationskonto und das eigene Administrationskonto sind vor dem Löschen geschützt.
+- Der Menüpunkt heißt nun `Personen & Rollen`.
+- Die pädagogische Einordnung nutzt die gespeicherte Wertungsrichtung zentral in Erfassung, Berichten und Notenvorschlägen; die Textbezeichnung dient nur noch als Rückfall für Altdaten.
+- Negative Eindruckswerte bleiben bei formativ vorgeschlagenem Anlass als sichtbarer Konflikthinweis erhalten; sie werden nicht stillschweigend zu einer summativen Bewertung umgedeutet.
+- Löschversuche für Stunden werden nun vollständig protokolliert; ein optional fehlgeschlagenes Ereignisprotokoll meldet nicht mehr fälschlich einen fehlgeschlagenen Löschvorgang.
+- Die Gewichtung für Notenvorschläge verwendet nun dieselbe ruhige Kartenoptik wie die übrigen Bereiche der Lehrkräfteverwaltung.
+- Bestehende individuelle Gewichtungen werden nicht automatisch durch neue Orientierungs-Presets ersetzt; Presets wirken nur nach bewusster Auswahl.
+- Schulbezogene Adminbereiche filtern und validieren Schule, Schulform, Klasse, Fach, Schuljahr und Benutzerkonto nun serverseitig gegen die Schulzuordnung des angemeldeten Administrationskontos.
+- Schulübergreifende Fach- und Benutzerzuordnungen werden bei Bearbeitung durch schulgebundene Admins nicht versehentlich entfernt.
+- Versionsnummer auf 1.74 erhöht.
+
 ## [1.73] - 2026-08-10
 
 ### Geändert

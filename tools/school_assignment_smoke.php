@@ -23,7 +23,7 @@ foreach([
 
 $pdo->exec("INSERT INTO schools VALUES(1,'Schule A'),(2,'Schule B')");
 $pdo->exec("INSERT INTO school_forms VALUES(10,1,'HLS'),(20,2,'FSB')");
-$pdo->exec("INSERT INTO users VALUES(7,'teacher'),(8,'teacher')");
+$pdo->exec("INSERT INTO users VALUES(7,'teacher'),(8,'teacher'),(9,'admin')");
 $pdo->exec("INSERT INTO subjects VALUES(100,'D'),(200,'RW')");
 $pdo->exec('INSERT INTO classes VALUES(1000,10),(2000,20)');
 
@@ -32,6 +32,8 @@ subject_school_forms_sync($pdo,100,[10]);
 subject_school_forms_sync($pdo,200,[20]);
 
 sa_assert_same([1],teacher_school_ids($pdo,7),'Eine Lehrkraft muss ihre gespeicherten Schulen wieder laden können.');
+user_schools_sync($pdo,9,[2]);
+sa_assert_same([2],user_school_ids($pdo,9),'Ein Administrationskonto muss seine zugeordnete Schule speichern und wieder laden können.');
 sa_assert_same([10],subject_school_form_ids($pdo,100),'Ein Fach muss seine gespeicherten Schulformen wieder laden können.');
 sa_assert_same(true,teacher_assignment_context_allowed($pdo,7,1000,100),'Passende Schule, Klasse und Schulform müssen eine Zuweisung erlauben.');
 sa_assert_same(false,teacher_assignment_context_allowed($pdo,7,1000,200),'Ein Fach einer anderen Schulform darf nicht zugewiesen werden.');

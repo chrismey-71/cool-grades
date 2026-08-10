@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__.'/../lib/layout.php'; require_once __DIR__.'/../lib/events.php'; require_once __DIR__.'/../lib/schools.php'; require_once __DIR__.'/_crud.php';
 $u=require_role('admin'); $pdo=db(); $bp=cfg()['base_path'];
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$allowedSchoolIds=admin_assigned_school_ids($pdo,$u);
 $err=''; $formValues=[];
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
@@ -11,8 +13,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $formValues=$_POST;
     try{
       $pdo->beginTransaction();
+      if($id!==null){
+        require_admin_subject_access($pdo,$u,$id);
+        if(admin_subject_has_external_school_forms($pdo,$u,$id)){
+          throw new RuntimeException('Dieses Fach ist auch Schulformen außerhalb Ihrer Schulzuordnung zugeordnet und kann hier nicht zentral geändert werden.');
+        }
+      }
       $nid=upsert('subjects',['code'=>$code,'name'=>$name,'is_schularbeit_subject'=>$schularbeitValue],$id);
-      subject_school_forms_sync($pdo,$nid,is_array($_POST['school_form_ids'] ?? null)?$_POST['school_form_ids']:[]);
+      subject_school_forms_sync_for_admin($pdo,$u,$nid,is_array($_POST['school_form_ids'] ?? null)?$_POST['school_form_ids']:[]);
       $pdo->commit();
       emit_event($id?'admin_subject_updated':'admin_subject_created',['target_id'=>$nid,'target_name'=>$name,'subject_code'=>$code,'school_form_ids'=>array_map('intval',(array)($_POST['school_form_ids'] ?? []))]);
       header('Location: '.$bp.'/admin/subjects.php'); exit;
@@ -21,18 +29,47 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $err=$e instanceof RuntimeException ? $e->getMessage() : 'Fach konnte nicht gespeichert werden. Bitte prüfen Sie die Eingaben.';
     }
   }
-  if($a==='delete'){ $id=(int)$_POST['id']; emit_event('admin_subject_deleted',['target_id'=>$id]); del('subjects',$id); header('Location: '.$bp.'/admin/subjects.php'); exit; }
+  if($a==='delete'){
+    $id=(int)$_POST['id'];
+    require_admin_subject_access($pdo,$u,$id);
+    if(admin_subject_has_external_school_forms($pdo,$u,$id)){
+      $err='Dieses Fach ist auch anderen Schulen zugeordnet und kann von diesem Administrationskonto nicht gelöscht werden.';
+    } else {
+      emit_event('admin_subject_deleted',['target_id'=>$id]); del('subjects',$id); header('Location: '.$bp.'/admin/subjects.php'); exit;
+    }
+  }
 }
-$schoolForms=school_forms_load($pdo,true);
+$schoolForms=admin_school_forms_load($pdo,$u,true);
 $formsBySubject=[];
-$formMap=$pdo->query("SELECT ssf.subject_id,sf.id AS school_form_id,sf.code,sf.name,s.name AS school_name
-                      FROM subject_school_forms ssf
-                      JOIN school_forms sf ON sf.id=ssf.school_form_id
-                      JOIN schools s ON s.id=sf.school_id
-                      ORDER BY s.name,sf.code")->fetchAll();
+$formSql="SELECT ssf.subject_id,sf.id AS school_form_id,sf.code,sf.name,s.name AS school_name
+          FROM subject_school_forms ssf
+          JOIN school_forms sf ON sf.id=ssf.school_form_id
+          JOIN schools s ON s.id=sf.school_id";
+$formParams=[];
+if(!$isSuperAdmin && $allowedSchoolIds){
+  $formSql.=" WHERE sf.school_id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")";
+  $formParams=$allowedSchoolIds;
+}
+$formSql.=" ORDER BY s.name,sf.code";
+$st=$pdo->prepare($formSql);
+$st->execute($formParams);
+$formMap=$st->fetchAll();
 foreach($formMap as $mapping) $formsBySubject[(int)$mapping['subject_id']][]=$mapping;
-$subjects=$pdo->query("SELECT * FROM subjects ORDER BY code")->fetchAll();
-$edit=null; if(!empty($_GET['edit'])){ $st=$pdo->prepare("SELECT * FROM subjects WHERE id=?");$st->execute([(int)$_GET['edit']]);$edit=$st->fetch(); }
+$subjectSql="SELECT DISTINCT su.* FROM subjects su";
+$subjectParams=[];
+if(!$isSuperAdmin && $allowedSchoolIds){
+  $subjectSql.=" JOIN subject_school_forms ssf ON ssf.subject_id=su.id
+                 JOIN school_forms sf ON sf.id=ssf.school_form_id
+                 WHERE sf.school_id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")";
+  $subjectParams=$allowedSchoolIds;
+}
+$subjectSql.=" ORDER BY su.code";
+$st=$pdo->prepare($subjectSql);
+$st->execute($subjectParams);
+$subjects=$st->fetchAll();
+$subjectExternalMap=[];
+foreach($subjects as $subjectRow) $subjectExternalMap[(int)$subjectRow['id']]=admin_subject_has_external_school_forms($pdo,$u,(int)$subjectRow['id']);
+$edit=null; if(!empty($_GET['edit'])){ $editId=(int)$_GET['edit']; require_admin_subject_access($pdo,$u,$editId); $st=$pdo->prepare("SELECT * FROM subjects WHERE id=?");$st->execute([$editId]);$edit=$st->fetch(); }
 $selectedSchoolFormIds=$edit ? subject_school_form_ids($pdo,(int)$edit['id']) : [];
 if($formValues){
   $selectedSchoolFormIds=array_map('intval',(array)($formValues['school_form_ids'] ?? []));
@@ -56,11 +93,15 @@ render_header('Fächer',$u);
   ?>
 </td>
 <td class="actions" style="white-space:nowrap">
+<?php if(!($subjectExternalMap[(int)$s['id']] ?? false)): ?>
 <a class="btn small secondary" href="<?php echo h($bp); ?>/admin/subjects.php?edit=<?php echo (int)$s['id']; ?>">Bearbeiten</a>
+<?php else: ?>
+<span class="muted" style="font-size:13px">schulübergreifend</span>
+<?php endif; ?>
         <form method="post" style="display:inline" onsubmit="return confirm('Wirklich löschen?');">
           <?php echo csrf_input(); ?>
 <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)$s['id']; ?>">
-<button class="btn small danger">Löschen</button></form>
+<button class="btn small danger" <?php echo ($subjectExternalMap[(int)$s['id']] ?? false)?'disabled':''; ?>>Löschen</button></form>
 </td></tr><?php endforeach; ?>
 </tbody></table>
 </div></div></div>

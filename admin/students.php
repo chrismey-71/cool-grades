@@ -3,12 +3,22 @@ require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/_crud.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
 $u=require_role('admin'); $pdo=db(); $bp=cfg()['base_path'];
 
 $currentSchoolYearId=school_year_current_id($pdo);
 $schoolYearFilter=(int)($_GET['school_period_set_id'] ?? $currentSchoolYearId);
-$schoolYears=load_school_years($pdo,true);
-$classes=load_classes_for_admin($pdo,$schoolYearFilter,false);
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$allowedSchoolIds=admin_assigned_school_ids($pdo,$u);
+$schoolYears=array_values(array_filter(load_school_years($pdo,true),static function(array $sy) use ($isSuperAdmin,$allowedSchoolIds): bool {
+  if($isSuperAdmin) return true;
+  $schoolId=(int)($sy['school_id'] ?? 0);
+  return $schoolId===0 || in_array($schoolId,$allowedSchoolIds,true);
+}));
+if(!admin_can_access_school_period($pdo,$u,$schoolYearFilter,true)){
+  $schoolYearFilter=(int)($schoolYears[0]['id'] ?? 0);
+}
+$classes=load_classes_for_admin($pdo,$schoolYearFilter,false,0,$isSuperAdmin?[]:$allowedSchoolIds);
 $classFilter=$_GET['class_id'] ?? '';
 $sort=$_GET['sort'] ?? 'last';
 $orderBy = ($sort==='first') ? 's.first_name,s.last_name' : 's.last_name,s.first_name';
@@ -21,18 +31,21 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $first=trim($_POST['first_name']??''); $last=trim($_POST['last_name']??'');
     $class_id=(int)($_POST['class_id']??0);
     $active=(int)($_POST['is_active']??1);
+    if($id!==null) require_admin_student_access($pdo,$u,$id);
+    require_admin_class_access($pdo,$u,$class_id);
     $nid=upsert('students',['first_name'=>$first,'last_name'=>$last,'class_id'=>$class_id,'is_active'=>$active],$id);
     ensure_student_enrollment($pdo,$nid,$class_id,'active');
     emit_event($id?'admin_student_updated':'admin_student_created',['target_id'=>$nid,'target_name'=>"$last, $first",'class_id'=>$class_id]);
     header('Location: '.$bp.'/admin/students.php?school_period_set_id='.$schoolYearFilter.'&class_id='.$class_id.'&sort='.$sort); exit;
   }
   if($a==='delete'){
-    $id=(int)$_POST['id']; emit_event('admin_student_deleted',['target_id'=>$id]); del('students',$id);
+    $id=(int)$_POST['id']; require_admin_student_access($pdo,$u,$id); emit_event('admin_student_deleted',['target_id'=>$id]); del('students',$id);
     header('Location: '.$bp.'/admin/students.php?school_period_set_id='.$schoolYearFilter.'&class_id='.$classFilter.'&sort='.$sort); exit;
   }
   if($a==='import'){
     if(!isset($_FILES['csv'])||$_FILES['csv']['error']!==UPLOAD_ERR_OK) die('CSV Upload fehlgeschlagen');
     $class_id=(int)($_POST['import_class_id']??0);
+    require_admin_class_access($pdo,$u,$class_id);
     $csv=file_get_contents($_FILES['csv']['tmp_name']);
     $lines=preg_split("/\r\n|\n|\r/",$csv);
     $count=0;
@@ -52,14 +65,19 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 
 $edit=null;
-if(!empty($_GET['edit'])){ $st=$pdo->prepare("SELECT * FROM students WHERE id=?");$st->execute([(int)$_GET['edit']]);$edit=$st->fetch(); }
+if(!empty($_GET['edit'])){ $editId=(int)$_GET['edit']; require_admin_student_access($pdo,$u,$editId); $st=$pdo->prepare("SELECT * FROM students WHERE id=?");$st->execute([$editId]);$edit=$st->fetch(); }
 
 $where='WHERE c.school_period_set_id=?'; $params=[$schoolYearFilter];
 if($classFilter!==''){ $where.=' AND ce.class_id=?'; $params[]=(int)$classFilter; }
+if(!$isSuperAdmin && $allowedSchoolIds){
+  $where.=' AND sf.school_id IN ('.implode(',',array_fill(0,count($allowedSchoolIds),'?')).')';
+  $params=array_merge($params,$allowedSchoolIds);
+}
 $st=$pdo->prepare("SELECT s.*, c.name AS class_name, sp.label AS school_year_label, ce.status AS enrollment_status
                    FROM class_enrollments ce
                    JOIN students s ON s.id=ce.student_id
                    JOIN classes c ON c.id=ce.class_id
+                   LEFT JOIN school_forms sf ON sf.id=c.school_form_id
                    LEFT JOIN school_period_sets sp ON sp.id=c.school_period_set_id
                    $where ORDER BY $orderBy");
 $st->execute($params); $students=$st->fetchAll();

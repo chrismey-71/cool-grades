@@ -4,6 +4,7 @@ require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/assessment_summaries.php';
 require_once __DIR__.'/../lib/student_groups.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/assessment_weights.php';
 $u=require_role('teacher'); $pdo=db(); $bp=cfg()['base_path'];
 $class_id=(int)($_GET['class_id'] ?? $_POST['class_id'] ?? 0);
 $subject_id=(int)($_GET['subject_id'] ?? $_POST['subject_id'] ?? 0);
@@ -25,6 +26,7 @@ $selected_student_id=(int)($_GET['student_id'] ?? $_POST['selected_student_id'] 
 if($selected_student_id<=0 && $students) $selected_student_id=(int)$students[0]['id'];
 $form_date=(string)($_POST['exam_date'] ?? date('Y-m-d'));
 $form_title=trim((string)($_POST['title'] ?? written_assessment_type_label($exam_type)));
+$form_weight=assessment_weight_multiplier_normalize($_POST['weight_multiplier'] ?? 1);
 $grade_values=[];
 $tendency_values=[];
 $remark_values=[];
@@ -61,8 +63,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   if($err===''){
     $pdo->beginTransaction();
     try{
-      $pdo->prepare("INSERT INTO exams (class_id,subject_id,teacher_id,exam_type,exam_date,title,created_at) VALUES (?,?,?,?,?,?,?)")
-          ->execute([$class_id,$subject_id,(int)$u['id'],$exam_type,$date,$title,now_iso()]);
+      $pdo->prepare("INSERT INTO exams (class_id,subject_id,teacher_id,exam_type,weight_multiplier,exam_date,title,created_at) VALUES (?,?,?,?,?,?,?,?)")
+          ->execute([$class_id,$subject_id,(int)$u['id'],$exam_type,$form_weight,$date,$title,now_iso()]);
       $eid=(int)$pdo->lastInsertId();
       $ins=$pdo->prepare("INSERT INTO exam_grades (exam_id,student_id,grade,tendency,remark) VALUES (?,?,?,?,?)");
       foreach($students as $s){
@@ -91,6 +93,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $written_summary_map = [
   'SA' => written_assessment_summary('SA'),
   'TEST' => written_assessment_summary('TEST'),
+  'DICTATION' => written_assessment_summary('DICTATION'),
   'REVIEW' => written_assessment_summary('REVIEW'),
   'TASK' => written_assessment_summary('TASK'),
   'OTHER' => written_assessment_summary('OTHER'),
@@ -98,11 +101,13 @@ $written_summary_map = [
 $written_tooltip_map = [
   'SA' => written_assessment_summary_tooltip('SA'),
   'TEST' => written_assessment_summary_tooltip('TEST'),
+  'DICTATION' => written_assessment_summary_tooltip('DICTATION'),
   'REVIEW' => written_assessment_summary_tooltip('REVIEW'),
   'TASK' => written_assessment_summary_tooltip('TASK'),
   'OTHER' => written_assessment_summary_tooltip('OTHER'),
 ];
 $written_type_options = written_assessment_types();
+$weight_multiplier_options = assessment_weight_multiplier_options();
 $compact_forms = compact_entry_forms_enabled($u);
 
 render_header('Besondere schriftliche Leistungsfeststellung',$u);
@@ -140,6 +145,15 @@ render_header('Besondere schriftliche Leistungsfeststellung',$u);
         <option value="<?php echo h($typeValue); ?>" <?php echo $exam_type===$typeValue?'selected':''; ?>><?php echo h($typeLabel); ?></option>
       <?php endforeach; ?>
     </select>
+  </div>
+  <div>
+    <label class="muted">Gewicht</label>
+    <select class="input" name="weight_multiplier" style="max-width:140px">
+      <?php foreach($weight_multiplier_options as $weightValue => $weightLabel): ?>
+        <option value="<?php echo h($weightValue); ?>" <?php echo abs($form_weight-(float)$weightValue)<0.001?'selected':''; ?>><?php echo h($weightLabel); ?></option>
+      <?php endforeach; ?>
+    </select>
+    <div class="small muted">Optional für Umfang und Schwierigkeit.</div>
   </div>
   <div>
     <label class="muted">Titel</label>

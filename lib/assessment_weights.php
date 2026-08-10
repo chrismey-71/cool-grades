@@ -3,14 +3,62 @@
 require_once __DIR__.'/report_evaluation.php';
 require_once __DIR__.'/assessment_systems.php';
 
-function assessment_weight_defaults(): array {
-  return [
-    'participation' => 60.0,
-    'oral' => 20.0,
-    'written' => 20.0,
+function assessment_weight_defaults(?string $subjectSchularbeitStatus = null): array {
+  $status = in_array($subjectSchularbeitStatus, ['yes','no'], true) ? $subjectSchularbeitStatus : '';
+  $areaDefaults = $status === 'yes'
+    ? ['participation' => 40.0, 'oral' => 10.0, 'written' => 50.0]
+    : ($status === 'no'
+      ? ['participation' => 40.0, 'oral' => 30.0, 'written' => 30.0]
+      : ['participation' => 60.0, 'oral' => 20.0, 'written' => 20.0]);
+  return $areaDefaults + [
     'first_semester' => 40.0,
     'current_year' => 60.0,
   ];
+}
+
+function assessment_weight_preset_definitions(?string $subjectSchularbeitStatus = null): array {
+  if($subjectSchularbeitStatus === 'yes'){
+    return [
+      'sa_balanced' => [
+        'label' => 'Schularbeitsfach - ausgewogen',
+        'description' => 'Beispielhafte Orientierungsgewichtung für ein Fach mit Schularbeiten. Die Werte sind frei anpassbar und keine gesetzliche Vorgabe.',
+        'weights' => ['participation'=>40.0,'oral'=>10.0,'written'=>50.0],
+      ],
+      'sa_written' => [
+        'label' => 'Schularbeitsfach - schriftlich stärker',
+        'description' => 'Orientierung mit stärkerem schriftlichem Anteil; auch diese Werte sind frei anpassbar.',
+        'weights' => ['participation'=>30.0,'oral'=>10.0,'written'=>60.0],
+      ],
+      'sa_continuous' => [
+        'label' => 'Schularbeitsfach - kontinuierlicher',
+        'description' => 'Orientierung mit stärkerer laufender Dokumentation und mündlichen Leistungsfeststellungen.',
+        'weights' => ['participation'=>45.0,'oral'=>15.0,'written'=>40.0],
+      ],
+    ];
+  }
+
+  return [
+    'balanced' => [
+      'label' => 'Ausgewogen',
+      'description' => 'Allgemeine Orientierungsgewichtung für ein Fach ohne verpflichtende Schularbeiten.',
+      'weights' => ['participation'=>40.0,'oral'=>30.0,'written'=>30.0],
+    ],
+    'participation' => [
+      'label' => 'Mitarbeitsorientiert',
+      'description' => 'Orientierung mit stärkerem Schwerpunkt auf laufender Mitarbeit.',
+      'weights' => ['participation'=>50.0,'oral'=>25.0,'written'=>25.0],
+    ],
+    'continuous' => [
+      'label' => 'Stark kontinuierlich',
+      'description' => 'Orientierung mit deutlichem Schwerpunkt auf laufender Unterrichtsarbeit.',
+      'weights' => ['participation'=>60.0,'oral'=>20.0,'written'=>20.0],
+    ],
+  ];
+}
+
+function assessment_weight_preset_resolve(string $presetKey, ?string $subjectSchularbeitStatus = null): ?array {
+  $presets = assessment_weight_preset_definitions($subjectSchularbeitStatus);
+  return $presets[$presetKey] ?? null;
 }
 
 function assessment_weight_area_labels(): array {
@@ -47,8 +95,8 @@ function assessment_weight_normalize(array $weights, array $keys): array {
   return $normalized;
 }
 
-function assessment_weight_settings_resolve(?array $row, ?string $assessmentSystem): array {
-  $defaults = assessment_weight_defaults();
+function assessment_weight_settings_resolve(?array $row, ?string $assessmentSystem, array $subjectContext = []): array {
+  $defaults = assessment_weight_defaults((string)($subjectContext['status'] ?? ''));
   $mapping = [
     'participation' => 'participation_weight',
     'oral' => 'special_oral_weight',
@@ -94,7 +142,7 @@ function assessment_weight_settings_resolve(?array $row, ?string $assessmentSyst
   ];
 }
 
-function assessment_weight_settings_load(PDO $pdo, int $teacherId, int $classId, int $subjectId, int $schoolPeriodSetId, ?string $assessmentSystem): array {
+function assessment_weight_settings_load(PDO $pdo, int $teacherId, int $classId, int $subjectId, int $schoolPeriodSetId, ?string $assessmentSystem, array $subjectContext = []): array {
   $row = null;
   try{
     $st = $pdo->prepare("SELECT * FROM assessment_weight_settings
@@ -105,7 +153,7 @@ function assessment_weight_settings_load(PDO $pdo, int $teacherId, int $classId,
   }catch(Throwable $e){
     $row = null;
   }
-  return assessment_weight_settings_resolve($row, $assessmentSystem);
+  return assessment_weight_settings_resolve($row, $assessmentSystem, $subjectContext);
 }
 
 function assessment_weight_settings_validate(array $input, bool $isYearly): array {
@@ -185,6 +233,101 @@ function assessment_weight_settings_store(
   ]);
 }
 
+function assessment_weight_multiplier_normalize($value): float {
+  $normalized = (float)str_replace(',', '.', (string)$value);
+  $allowed = [0.5, 1.0, 1.5, 2.0, 3.0];
+  foreach($allowed as $candidate){
+    if(abs($normalized - $candidate) < 0.001) return $candidate;
+  }
+  return 1.0;
+}
+
+function assessment_weight_multiplier_options(): array {
+  return [
+    '0.5' => '0,5 x',
+    '1' => '1 x',
+    '1.5' => '1,5 x',
+    '2' => '2 x',
+    '3' => '3 x',
+  ];
+}
+
+function assessment_weight_settings_activity(PDO $pdo, int $teacherId, int $classId, int $subjectId, array $periodSet): array {
+  $from = (string)($periodSet['semester1_from'] ?? '');
+  $to = (string)($periodSet['semester2_to'] ?? '');
+  $stats = [
+    'participation_count' => 0,
+    'oral_count' => 0,
+    'written_count' => 0,
+    'written_type_counts' => [],
+    'from' => $from,
+    'to' => $to,
+  ];
+  if($teacherId <= 0 || $classId <= 0 || $subjectId <= 0 || $from === '' || $to === ''){
+    return $stats;
+  }
+
+  try{
+    $st = $pdo->prepare("SELECT COUNT(*) FROM participation_events
+                         WHERE teacher_id=? AND class_id=? AND subject_id=? AND event_date BETWEEN ? AND ?");
+    $st->execute([$teacherId,$classId,$subjectId,$from,$to]);
+    $stats['participation_count'] = (int)$st->fetchColumn();
+  }catch(Throwable $e){}
+
+  try{
+    $st = $pdo->prepare("SELECT COUNT(*) FROM oral_assessments
+                         WHERE teacher_id=? AND class_id=? AND subject_id=? AND assessment_date BETWEEN ? AND ?");
+    $st->execute([$teacherId,$classId,$subjectId,$from,$to]);
+    $stats['oral_count'] = (int)$st->fetchColumn();
+  }catch(Throwable $e){}
+
+  try{
+    $st = $pdo->prepare("SELECT UPPER(IFNULL(exam_type,'SA')) AS exam_type, COUNT(*) AS cnt
+                         FROM exams
+                         WHERE teacher_id=? AND class_id=? AND subject_id=? AND exam_date BETWEEN ? AND ?
+                         GROUP BY UPPER(IFNULL(exam_type,'SA'))");
+    $st->execute([$teacherId,$classId,$subjectId,$from,$to]);
+    foreach($st->fetchAll(PDO::FETCH_ASSOC) as $row){
+      $type = written_assessment_normalize_type((string)($row['exam_type'] ?? 'SA'));
+      $count = (int)($row['cnt'] ?? 0);
+      $stats['written_type_counts'][$type] = ($stats['written_type_counts'][$type] ?? 0) + $count;
+      $stats['written_count'] += $count;
+    }
+  }catch(Throwable $e){}
+
+  return $stats;
+}
+
+function assessment_weight_plausibility_warnings(array $settings, array $subjectContext = [], array $activity = [], array $areas = []): array {
+  $configured = (array)($settings['configured'] ?? assessment_weight_defaults((string)($subjectContext['status'] ?? '')));
+  $warnings = [];
+  $writtenWeight = (float)($configured['written'] ?? 0);
+  $schularbeitCount = (int)($activity['written_type_counts']['SA'] ?? 0);
+  $subjectStatus = (string)($subjectContext['status'] ?? '');
+
+  if($subjectStatus === 'yes' && $writtenWeight < 30.0){
+    $warnings[] = 'Die besonderen schriftlichen Leistungsfeststellungen sind in diesem Schularbeitsfach vergleichsweise niedrig gewichtet. Bitte prüfe, ob die Gewichtung unter Berücksichtigung von Anzahl, Umfang und Schwierigkeit der Leistungsfeststellungen für dein Fach passend ist.';
+  }
+  if($subjectStatus === 'yes' && $schularbeitCount >= 2 && $writtenWeight < 30.0){
+    $warnings[] = 'Für dieses Schularbeitsfach sind bereits mehrere Schularbeiten erfasst. Prüfe bitte, ob die gewählte Gewichtung der besonderen schriftlichen Leistungsfeststellungen angesichts von Anzahl, Umfang und Schwierigkeit passend ist.';
+  }
+
+  $availableDataKeys = [];
+  if((int)($activity['participation_count'] ?? 0) > 0 || !empty($areas['participation']['available'])) $availableDataKeys[] = 'participation';
+  if((int)($activity['oral_count'] ?? 0) > 0 || !empty($areas['oral']['available'])) $availableDataKeys[] = 'oral';
+  if((int)($activity['written_count'] ?? 0) > 0 || !empty($areas['written']['available'])) $availableDataKeys[] = 'written';
+  if(count(array_unique($availableDataKeys)) >= 2){
+    foreach(['participation','oral','written'] as $key){
+      if((float)($configured[$key] ?? 0) > 80.0){
+        $warnings[] = 'Ein Leistungsbereich ist sehr stark gewichtet. Bitte prüfe, ob diese Gewichtung das gesamte Leistungsbild angemessen widerspiegelt.';
+        break;
+      }
+    }
+  }
+
+  return array_values(array_unique($warnings));
+}
+
 function assessment_weight_value_from_qualitative_average(float $average): int {
   if($average >= 1.1) return 1;
   if($average >= 0.45) return 2;
@@ -196,7 +339,7 @@ function assessment_weight_value_from_qualitative_average(float $average): int {
 /**
  * Produces comparable 1-5 proposal values without turning qualitative entries
  * into stored individual grades. Participation and oral use impression/relevance;
- * written assessments use their stored grades (equally weighted for now).
+ * written assessments use their stored grades and optional assessment weights.
  */
 function assessment_weight_area_values(array $summary): array {
   $participationProposal = $summary['note_proposal'] ?? [];
@@ -205,11 +348,21 @@ function assessment_weight_area_values(array $summary): array {
     : null;
 
   $oralScores = [];
+  $oralWeightedSum = 0.0;
+  $oralWeightSum = 0.0;
   foreach((array)($summary['oral_rows'] ?? []) as $oralRow){
-    $score = report_eval_rating_score((string)($oralRow['impact_label'] ?? ''));
-    if($score !== null) $oralScores[] = $score;
+    $score = report_eval_rating_score(
+      (string)($oralRow['impact_label'] ?? ''),
+      (string)($oralRow['impact_kind'] ?? '')
+    );
+    if($score !== null){
+      $weight = assessment_weight_multiplier_normalize($oralRow['weight_multiplier'] ?? 1);
+      $oralScores[] = $score;
+      $oralWeightedSum += $score * $weight;
+      $oralWeightSum += $weight;
+    }
   }
-  $oralAverage = $oralScores ? array_sum($oralScores) / count($oralScores) : null;
+  $oralAverage = $oralWeightSum > 0 ? $oralWeightedSum / $oralWeightSum : null;
   $oralValue = $oralAverage !== null ? (float)assessment_weight_value_from_qualitative_average($oralAverage) : null;
 
   $writtenCount = (int)($summary['written_count'] ?? 0);
@@ -232,9 +385,10 @@ function assessment_weight_area_values(array $summary): array {
       'count' => count($oralScores),
       'kind' => 'Eindruck/Relevanz',
       'basis' => $oralValue !== null
-        ? count($oralScores).' verwertbare Eindruckswerte, qualitativer Bereichswert '.assessment_weight_grade_format($oralValue)
+        ? count($oralScores).' verwertbare Eindruckswerte, gewichteter qualitativer Bereichswert '.assessment_weight_grade_format($oralValue)
         : 'keine verwertbaren Eindruckswerte',
       'qualitative_average' => $oralAverage,
+      'weight_sum' => $oralWeightSum,
     ],
     'written' => [
       'available' => $writtenValue !== null,
@@ -242,7 +396,7 @@ function assessment_weight_area_values(array $summary): array {
       'count' => $writtenCount,
       'kind' => 'Noten',
       'basis' => $writtenValue !== null
-        ? $writtenCount.' gleich gewichtete Note(n), Durchschnitt '.assessment_weight_grade_format($writtenValue)
+        ? $writtenCount.' Note(n), gewichteter Durchschnitt '.assessment_weight_grade_format($writtenValue)
         : 'keine verwertbaren Noten',
     ],
   ];
@@ -257,7 +411,7 @@ function assessment_weight_list_label(array $weights, array $keys, array $labels
 }
 
 /** Missing areas are excluded and the configured weights are normalized to 100 %. */
-function assessment_weight_compute_area_proposal(array $summary, array $settings): array {
+function assessment_weight_compute_area_proposal(array $summary, array $settings, array $subjectContext = []): array {
   $areas = assessment_weight_area_values($summary);
   $labels = assessment_weight_area_labels();
   $availableKeys = [];
@@ -267,7 +421,16 @@ function assessment_weight_compute_area_proposal(array $summary, array $settings
     else $excludedLabels[] = $labels[$key];
   }
   $configured = (array)($settings['configured'] ?? assessment_weight_defaults());
-  $warnings = (array)($settings['warnings'] ?? []);
+  $activity = [
+    'participation_count' => (int)($summary['participation_count'] ?? 0),
+    'oral_count' => count((array)($summary['oral_rows'] ?? [])),
+    'written_count' => (int)($summary['written_count'] ?? 0),
+    'written_type_counts' => (array)($summary['written_type_counts'] ?? []),
+  ];
+  $warnings = array_merge(
+    (array)($settings['warnings'] ?? []),
+    assessment_weight_plausibility_warnings($settings, $subjectContext, $activity, $areas)
+  );
   $configuredLabel = assessment_weight_list_label($configured, ['participation','oral','written'], $labels);
 
   if(!$availableKeys){
@@ -290,9 +453,9 @@ function assessment_weight_compute_area_proposal(array $summary, array $settings
         'effective_label' => 'Keine Gewichtung angewendet',
         'effective' => [],
         'excluded' => $excludedLabels,
-        'warnings' => $warnings,
+        'warnings' => array_values(array_unique($warnings)),
       ],
-      'signals' => $warnings,
+      'signals' => array_values(array_unique($warnings)),
     ];
   }
 

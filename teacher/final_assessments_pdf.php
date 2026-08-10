@@ -116,7 +116,7 @@ if($isYearlyModel){
   $weightLines[] = strtoupper((string)($classContext['value'] ?? '')).' bleibt semesterbezogen; Winter- und Sommersemester werden nicht automatisch zu einer Jahresnote verbunden.';
 }
 $pdf->boxedSection(
-  'Gewichtung der Berechnungshilfe',
+  'Orientierungsgewichtung der Berechnungshilfe',
   $weightLines,
   [248,250,252],
   [207,214,223]

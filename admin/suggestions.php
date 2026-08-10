@@ -7,9 +7,22 @@ require_once __DIR__.'/_crud.php';
 $u=require_role('admin');
 $pdo=db();
 $bp=cfg()['base_path'];
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$allowedSchoolIds=admin_assigned_school_ids($pdo,$u);
 
-$subjects=$pdo->query("SELECT code,name FROM subjects ORDER BY code")->fetchAll();
-$schoolForms=school_forms_load($pdo,true);
+$subjectsSql="SELECT DISTINCT su.code,su.name FROM subjects su";
+$subjectsParams=[];
+if(!$isSuperAdmin && $allowedSchoolIds){
+  $subjectsSql.=" JOIN subject_school_forms ssf ON ssf.subject_id=su.id
+                  JOIN school_forms sf ON sf.id=ssf.school_form_id
+                  WHERE sf.school_id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")";
+  $subjectsParams=$allowedSchoolIds;
+}
+$subjectsSql.=" ORDER BY su.code";
+$st=$pdo->prepare($subjectsSql);
+$st->execute($subjectsParams);
+$subjects=$st->fetchAll();
+$schoolForms=admin_school_forms_load($pdo,$u,true);
 
 $show_archived = !empty($_GET['show_archived']) ? 1 : 0;
 $filter_subject = strtoupper(trim($_GET['subject'] ?? ''));
@@ -25,6 +38,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   if($a==='save'){
     $id = !empty($_POST['id']) ? (int)$_POST['id'] : null;
     $schoolFormIds=is_array($_POST['school_form_ids'] ?? null) ? $_POST['school_form_ids'] : [];
+    if($id!==null) require_admin_criteria_suggestion_access($pdo,$u,$id);
+    if(!$isSuperAdmin && !$schoolFormIds){
+      $schoolFormIds=array_map('intval',array_column($schoolForms,'id'));
+    }
 
     $subject_code = strtoupper(trim($_POST['subject_code'] ?? 'ALL'));
     if($subject_code==='') $subject_code='ALL';
@@ -59,7 +76,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         }else{
           $nid=upsert('criteria_suggestions',$data,null);
         }
-        criteria_suggestion_school_forms_sync($pdo,$nid,$schoolFormIds);
+        criteria_suggestion_school_forms_sync_for_admin($pdo,$u,$nid,$schoolFormIds);
         $pdo->commit();
         emit_event($id!==null?'admin_suggestion_updated':'admin_suggestion_created',['target_id'=>$nid,'subject_code'=>$subject_code,'school_form_ids'=>array_map('intval',$schoolFormIds)]);
         header('Location: '.$bp.'/admin/suggestions.php'); exit;
@@ -72,6 +89,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
 
   if($a==='import_defaults'){
+    if(!$isSuperAdmin){
+      $err='Der Import globaler Standard-Vorschläge ist Superadministrator:innen vorbehalten. Legen Sie schulbezogene Vorschläge bitte direkt mit Schulformauswahl an.';
+    } else {
     $file=__DIR__.'/../data/criteria_suggestions_defaults.json';
     if(!file_exists($file)){
       $err='Default-Datei fehlt.';
@@ -109,9 +129,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $msg='Standard-Vorschläge importiert (fehlende Einträge ergänzt).';
       }
     }
+    }
   }
   if($a==='archive' || $a==='restore'){
     $id=(int)$_POST['id'];
+    require_admin_criteria_suggestion_access($pdo,$u,$id);
     $arch = ($a==='archive') ? 1 : 0;
     $st=$pdo->prepare("UPDATE criteria_suggestions SET archived=?, updated_at=? WHERE id=?");
     $st->execute([$arch,date('Y-m-d H:i:s'),$id]);
@@ -121,6 +143,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
   if($a==='toggle_active'){
     $id=(int)$_POST['id'];
+    require_admin_criteria_suggestion_access($pdo,$u,$id);
     $st=$pdo->prepare("UPDATE criteria_suggestions SET active=1-active, updated_at=? WHERE id=?");
     $st->execute([date('Y-m-d H:i:s'),$id]);
     emit_event('admin_suggestion_toggled',['target_id'=>$id]);
@@ -129,6 +152,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
   if($a==='delete'){
     $id=(int)$_POST['id'];
+    require_admin_criteria_suggestion_access($pdo,$u,$id);
     emit_event('admin_suggestion_deleted',['target_id'=>$id]);
     del('criteria_suggestions',$id);
     header('Location: '.$bp.'/admin/suggestions.php'); exit;
@@ -137,8 +161,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
 $edit=null;
 if(!empty($_GET['edit'])){
+  $editId=(int)$_GET['edit'];
+  require_admin_criteria_suggestion_access($pdo,$u,$editId);
   $st=$pdo->prepare("SELECT * FROM criteria_suggestions WHERE id=?");
-  $st->execute([(int)$_GET['edit']]);
+  $st->execute([$editId]);
   $edit=$st->fetch();
 }
 $selectedSchoolFormIds=$edit ? criteria_suggestion_school_form_ids($pdo,(int)$edit['id']) : [];
@@ -150,8 +176,18 @@ if($filter_subject!==''){
   $params[]=$filter_subject;
 }
 if($filter_school_form_id>0){
+  require_admin_school_form_access($pdo,$u,$filter_school_form_id);
   $where[]="EXISTS (SELECT 1 FROM criteria_suggestion_school_forms cssf_filter WHERE cssf_filter.suggestion_id=cs.id AND cssf_filter.school_form_id=?)";
   $params[]=$filter_school_form_id;
+}
+if(!$isSuperAdmin && $allowedSchoolIds){
+  $where[]="EXISTS (
+    SELECT 1 FROM criteria_suggestion_school_forms cssf_scope
+    JOIN school_forms sf_scope ON sf_scope.id=cssf_scope.school_form_id
+    WHERE cssf_scope.suggestion_id=cs.id
+      AND sf_scope.school_id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")
+  )";
+  $params=array_merge($params,$allowedSchoolIds);
 }
 if($q!==''){
   $where[]="(label LIKE ? OR category LIKE ? OR subject_code LIKE ?)";

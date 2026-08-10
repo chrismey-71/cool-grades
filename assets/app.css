@@ -1108,25 +1108,73 @@ html[data-entry-contrast="high"] .nav a.active{
 
 /* Configurable, teacher-owned weighting for grade suggestions */
 .assessment-weight-panel{
-  padding:16px;
-  background:linear-gradient(135deg,#f3faf5,#fff);
+  padding:24px;
+  background:transparent;
 }
 .assessment-weight-accordion{
-  border-color:#b9c9be;
-  background:#fbfdfb;
+  border:1px solid rgba(228,231,236,.78);
+  border-radius:14px;
+  background:var(--card);
+  box-shadow:var(--shadow);
 }
 .assessment-weight-accordion > summary{
   display:flex;
   justify-content:space-between;
   gap:12px;
   align-items:center;
-  background:#f3f7f4;
+  padding:14px 16px;
+  background:var(--card);
 }
 .assessment-weight-accordion[open] > summary{
-  border-bottom:1px solid #cbd8cf;
+  border-bottom:1px solid var(--border);
 }
 .assessment-weight-accordion > .acc-body{
   padding:0;
+}
+.assessment-weight-summary-copy{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+  gap:3px;
+}
+.assessment-weight-summary-copy .acc-title{font-size:17px}
+.assessment-weight-summary-action{
+  flex:0 0 auto;
+  padding:5px 9px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:var(--bg);
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+/* The weighting tool sits above the card grid. Give it the same strong anchor as
+   the management cards when teachers explicitly choose the high-contrast mode. */
+html[data-entry-contrast="high"] .assessment-weight-accordion{
+  --weight-accent:#2F6F8F;
+  --weight-border:#9FC9E2;
+  --weight-bg:#EEF8FD;
+  border:2px solid var(--weight-border);
+  border-left:8px solid var(--weight-accent);
+  background:linear-gradient(135deg,var(--weight-bg) 0%,#fff 100%);
+  box-shadow:0 12px 28px rgba(33,88,120,.13);
+}
+html[data-entry-contrast="high"] .assessment-weight-accordion > summary{
+  background:#DCEBFF;
+}
+html[data-entry-contrast="high"] .assessment-weight-accordion[open] > summary{
+  border-bottom-color:var(--weight-border);
+}
+html[data-entry-contrast="high"] .assessment-weight-summary-copy .acc-title{
+  color:#17364A;
+}
+html[data-entry-contrast="high"] .assessment-weight-summary-copy .muted{
+  color:#35465B;
+}
+html[data-entry-contrast="high"] .assessment-weight-summary-action{
+  border-color:var(--weight-border);
+  background:#fff;
+  color:#17364A;
 }
 .assessment-weight-heading{
   display:flex;
@@ -1134,12 +1182,76 @@ html[data-entry-contrast="high"] .nav a.active{
   align-items:flex-start;
   gap:12px;
 }
+.assessment-weight-lead{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:flex-start;
+  border:1px solid #d5e1d9;
+  border-radius:14px;
+  padding:15px 16px;
+  background:#f8fbf9;
+}
+.assessment-weight-lead strong{
+  display:block;
+  margin-bottom:4px;
+  font-size:17px;
+}
 .assessment-weight-legal{
   border:1px solid #c8d6df;
-  border-left:5px solid #4e7891;
-  border-radius:14px;
-  padding:12px 14px;
+  border-left:4px solid #4e7891;
+  border-radius:12px;
+  padding:0;
   background:#f5f9fc;
+}
+.assessment-weight-legal > summary{
+  padding:10px 12px;
+  background:transparent;
+}
+.assessment-weight-legal > .acc-body{
+  padding:0 12px 12px;
+}
+.assessment-weight-step{
+  border:1px solid #d6e0dc;
+  border-radius:16px;
+  padding:16px;
+  margin-top:14px;
+  background:#fff;
+}
+.assessment-weight-step-head{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:12px;
+}
+.assessment-weight-step-head span{
+  display:inline-flex;
+  width:28px;
+  height:28px;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  background:#2f6f8f;
+  color:#fff;
+  font-weight:900;
+  line-height:1;
+}
+.assessment-weight-step-head strong{
+  display:block;
+  line-height:1.2;
+}
+.assessment-weight-step-head small{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+}
+.assessment-weight-step-head.compact{
+  margin-bottom:10px;
+}
+.assessment-weight-step-head.compact span{
+  width:24px;
+  height:24px;
+  font-size:12px;
 }
 .assessment-weight-context{
   display:grid;
@@ -1163,9 +1275,28 @@ html[data-entry-contrast="high"] .nav a.active{
 .assessment-weight-form{
   border:1px solid #c7d8cc;
   border-radius:16px;
-  padding:14px;
+  padding:18px;
   background:rgba(255,255,255,.82);
 }
+.assessment-weight-preset-row{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) auto;
+  gap:12px;
+  align-items:end;
+  margin-bottom:14px;
+}
+.assessment-weight-sum-display{
+  min-width:112px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:9px 12px;
+  background:#fff;
+  text-align:center;
+}
+.assessment-weight-sum-display span{display:block;font-size:12px}
+.assessment-weight-sum-display strong{display:block;font-size:20px}
+.assessment-weight-sum-display strong.ok{color:#2f6f3a}
+.assessment-weight-sum-display strong.warn{color:#a15f00}
 .assessment-weight-grid{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -1187,6 +1318,48 @@ html[data-entry-contrast="high"] .nav a.active{
 .assessment-weight-input .input{width:110px;font-size:18px;font-weight:900;text-align:right}
 .assessment-weight-input span{font-weight:900}
 .assessment-weight-sum-error{margin-top:9px;font-weight:900}
+.assessment-weight-existing{
+  border:1px solid #c8d6df;
+  border-radius:14px;
+  padding:10px;
+  background:#f7fafc;
+}
+.assessment-weight-existing-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.assessment-weight-existing-grid span{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:8px 10px;
+  background:#fff;
+  color:var(--muted);
+  font-size:13px;
+}
+.assessment-weight-existing-grid strong{
+  color:var(--text);
+}
+.assessment-weight-hint{
+  margin-top:8px;
+  border-left:5px solid #4e7891;
+}
+.assessment-weight-hint-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.assessment-weight-support{
+  border:1px solid #d8e1e6;
+  border-radius:16px;
+  padding:14px;
+  margin-top:14px;
+  background:#fbfdff;
+}
 .assessment-year-weighting{
   border:1px solid #d7bf81;
   border-radius:14px;
@@ -1258,7 +1431,7 @@ html[data-entry-contrast="high"] .nav a.active{
 }
 @media (max-width:900px){
   .assessment-weight-context{grid-template-columns:1fr}
-  .assessment-weight-grid,.assessment-year-weight-grid,.final-weight-area-grid{grid-template-columns:1fr}
+  .assessment-weight-grid,.assessment-year-weight-grid,.final-weight-area-grid,.assessment-weight-preset-row,.assessment-weight-existing-grid{grid-template-columns:1fr}
   .assessment-weight-context-action .btn{width:100%}
 }
 @media (max-width:1400px){

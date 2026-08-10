@@ -7,7 +7,8 @@ require_once __DIR__.'/../lib/schools.php';
 $u = require_role('admin');
 $pdo = db();
 $bp = cfg()['base_path'] ?? '';
-$schools=schools_load($pdo,true);
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$schools=admin_schools_load($pdo,$u,true);
 
 $err = '';
 
@@ -17,6 +18,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   $passwordConfirm = (string)($_POST['backup_password_confirm'] ?? '');
   $backupScope=(string)($_POST['backup_scope'] ?? 'all');
   $schoolId=(int)($_POST['school_id'] ?? 0);
+  if(!$isSuperAdmin) $backupScope='school';
 
   if($password !== $passwordConfirm){
     $err = 'Die Kennwörter stimmen nicht überein.';
@@ -25,6 +27,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
       $stamp = date('Y-m-d_H-i-s');
       if($backupScope==='school'){
         if($schoolId<=0) throw new RuntimeException('Bitte eine Schule für die schulbezogene Sicherung auswählen.');
+        require_admin_school_access($pdo,$u,$schoolId);
         $export=backup_school_export($pdo,$schoolId);
         $schoolName=(string)($export['metadata']['school_name'] ?? 'schule');
         $safeSchool=preg_replace('/[^a-z0-9]+/i','-',strtolower($schoolName)) ?: 'schule';
@@ -35,6 +38,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         backup_send_zip($filename,[$dataFilename=>json_encode($export,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),'README.txt'=>$readme],$password);
         exit;
       }
+      if(!$isSuperAdmin) throw new RuntimeException('Eine Gesamtsicherung ist Superadministrator:innen vorbehalten.');
       $filename = 'cool-grades-gesamtsicherung-' . $stamp . '.zip';
       $sqlFilename = 'cool-grades-backup-' . $stamp . '.sql';
       $readme = "COOL-Grades Gesamtsicherung\n"
@@ -83,7 +87,9 @@ render_header('Datenbanksicherung', $u);
             <div class="settings-panel-title">Umfang der Sicherung</div>
             <label class="muted">Sicherungstyp</label>
             <select class="input" name="backup_scope" id="backup-scope">
+              <?php if($isSuperAdmin): ?>
               <option value="all">Gesamtsicherung aller Schulen</option>
+              <?php endif; ?>
               <option value="school">Sicherung einer Schule</option>
             </select>
             <div style="height:10px"></div>

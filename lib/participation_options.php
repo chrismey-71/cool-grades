@@ -37,7 +37,7 @@ function participation_option_teacher_context_exists(PDO $pdo, int $teacher_id, 
 }
 
 function participation_option_exact_rows(PDO $pdo, string $type, string $scope, ?int $teacher_id, ?int $subject_id): array {
-  $sql = "SELECT id,opt_type,scope,subject_id,teacher_id,label,pedagogical_hint_mode,active,sort,IFNULL(archived,0) AS archived
+  $sql = "SELECT id,opt_type,scope,subject_id,teacher_id,label,pedagogical_hint_mode,impact_kind,active,sort,IFNULL(archived,0) AS archived
           FROM participation_options
           WHERE opt_type=? AND scope=?";
   $params = [$type, $scope];
@@ -182,8 +182,8 @@ function materialize_teacher_participation_options(PDO $pdo, int $teacher_id, in
   }
 
   $insert = $pdo->prepare("INSERT INTO participation_options
-    (opt_type,scope,teacher_id,subject_id,label,pedagogical_hint_mode,sort,active,archived,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?)");
+    (opt_type,scope,teacher_id,subject_id,label,pedagogical_hint_mode,impact_kind,sort,active,archived,created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)");
   $now = now_iso();
   $created = 0;
 
@@ -202,6 +202,7 @@ function materialize_teacher_participation_options(PDO $pdo, int $teacher_id, in
       $target_subject_id,
       (string)$row['label'],
       (string)($row['pedagogical_hint_mode'] ?? ''),
+      (string)($row['impact_kind'] ?? ''),
       (int)($row['sort'] ?? 0),
       (int)($row['active'] ?? 1),
       (int)($row['archived'] ?? 0),
@@ -246,6 +247,7 @@ function load_participation_options(PDO $pdo, int $teacher_id, int $subject_id, 
       'id' => (int)$row['id'],
       'label' => (string)$row['label'],
       'pedagogical_hint_mode' => (string)($row['pedagogical_hint_mode'] ?? ''),
+      'impact_kind' => (string)($row['impact_kind'] ?? ''),
     ];
   }, $rows);
 }

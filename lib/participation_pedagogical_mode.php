@@ -101,6 +101,30 @@ function participation_pedagogical_mode_suggestion(array $reasons, array $phases
   return participation_pedagogical_mode_suggestion_from_labels($reason_label, $phase_label);
 }
 
+function participation_impact_kind_choices(): array {
+  return [
+    'positive' => 'positiv',
+    'neutral' => 'neutral',
+    'negative' => 'negativ',
+    'unrated' => 'ohne Wertung',
+  ];
+}
+
+function participation_impact_kind_normalize(?string $value): string {
+  $value = trim((string)$value);
+  return array_key_exists($value, participation_impact_kind_choices()) ? $value : '';
+}
+
+function participation_impact_kind_label(?string $value): string {
+  $value = participation_impact_kind_normalize($value);
+  $choices = participation_impact_kind_choices();
+  return $choices[$value] ?? '';
+}
+
+function participation_impact_kind_is_formative_compatible(?string $value): bool {
+  return participation_impact_kind_normalize($value) !== 'negative';
+}
+
 function participation_impact_kind_from_label(?string $label): string {
   $label = trim((string)$label);
   if($label === '') return '';
@@ -116,7 +140,9 @@ function participation_impact_kind_from_label(?string $label): string {
     str_contains($lower, 'negativ') ||
     str_contains($lower, 'nicht genügend') ||
     str_contains($ascii, 'nicht genuegend') ||
-    preg_match('/(^|[[:space:]])-(-)?($|[[:space:]])/u', $lower)
+    str_contains($ascii, 'kaum nachweisbar') ||
+    str_contains($ascii, 'nicht nachweisbar') ||
+    preg_match('/(^|[^[:alnum:]])-+([^[:alnum:]]|$)/u', $lower)
   ){
     return 'negative';
   }
@@ -132,7 +158,15 @@ function participation_impact_kind_from_label(?string $label): string {
     return 'positive';
   }
 
+  if(str_contains($lower, 'nur beobachtet') || str_contains($lower, 'ohne wertung')) return 'unrated';
+
   return 'neutral';
+}
+
+function participation_impact_kind_from_option(array $option): string {
+  $stored = participation_impact_kind_normalize((string)($option['impact_kind'] ?? ''));
+  if($stored !== '') return $stored;
+  return participation_impact_kind_from_label((string)($option['label'] ?? ''));
 }
 
 function participation_pedagogical_hint(string $suggestedMode, string $impactKind=''): array {

@@ -33,7 +33,7 @@ render_header('Admin',$u);
         <a class="btn" href="<?php echo h($bp); ?>/admin/subjects.php">Fächer</a>
         <a class="btn" href="<?php echo h($bp); ?>/admin/assignments.php">Zuweisungen</a>
         <a class="btn" href="<?php echo h($bp); ?>/admin/students.php">Schüler:innen</a>
-        <a class="btn" href="<?php echo h($bp); ?>/admin/teachers.php">Lehrer:innen</a>
+        <a class="btn" href="<?php echo h($bp); ?>/admin/teachers.php">Personen & Rollen</a>
       </div>
     </div>
   </div>

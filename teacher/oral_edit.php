@@ -2,8 +2,10 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/participation_presets.php';
+require_once __DIR__.'/../lib/participation_pedagogical_mode.php';
 require_once __DIR__.'/../lib/oral_assessments.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/assessment_weights.php';
 
 $u=require_role('teacher');
 $pdo=db();
@@ -30,7 +32,11 @@ $subject_id=(int)$oral['subject_id'];
 $students=load_class_students($pdo,$class_id,false);
 $impacts=load_participation_options($pdo,(int)$u['id'],$subject_id,'impact');
 $impact_labels=[];
-foreach($impacts as $o){ $impact_labels[(int)$o['id']] = (string)$o['label']; }
+$impact_kinds=[];
+foreach($impacts as $o){
+  $impact_labels[(int)$o['id']] = (string)$o['label'];
+  $impact_kinds[(int)$o['id']] = participation_impact_kind_from_option($o);
+}
 
 $form_type=oral_assessment_normalize_type((string)$oral['assessment_type']);
 $form_student_id=(int)$oral['student_id'];
@@ -40,6 +46,7 @@ $form_topic_area=(string)($oral['topic_area'] ?? '');
 $form_questions=(string)($oral['questions'] ?? '');
 $form_category=(string)($oral['category'] ?? '');
 $form_title=(string)($oral['title'] ?? '');
+$form_weight=assessment_weight_multiplier_normalize($oral['weight_multiplier'] ?? 1);
 
 $msg='';
 $err='';
@@ -76,12 +83,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $form_questions=trim((string)($_POST['questions'] ?? ''));
     $form_category=trim((string)($_POST['category'] ?? ''));
     $form_title=trim((string)($_POST['title'] ?? ''));
+    $form_weight=assessment_weight_multiplier_normalize($_POST['weight_multiplier'] ?? $form_weight);
 
     if(!$form_student_id) $err='Bitte Schüler:in wählen.';
     elseif(!$form_date) $err='Bitte Datum wählen.';
     elseif(!$form_impact_id) $err='Bitte Eindruck/Relevanz wählen.';
 
     $impact_label=$impact_labels[$form_impact_id] ?? '';
+    $impact_kind=$impact_kinds[$form_impact_id] ?? participation_impact_kind_from_label($impact_label);
     if($err==='' && $impact_label==='') $err='Ungültiger Eindruck/Relevanz.';
 
     if($err===''){
@@ -97,11 +106,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if($err===''){
       try{
         $pdo->prepare("UPDATE oral_assessments
-                       SET student_id=?, assessment_type=?, assessment_date=?, impact_option_id=?, impact_label=?,
+                       SET student_id=?, assessment_type=?, assessment_date=?, impact_option_id=?, impact_label=?, impact_kind=?, weight_multiplier=?,
                            topic_area=?, questions=?, category=?, title=?
                        WHERE id=? AND teacher_id=?")
           ->execute([
-            $form_student_id,$form_type,$form_date,$form_impact_id,$impact_label,
+            $form_student_id,$form_type,$form_date,$form_impact_id,$impact_label,$impact_kind,$form_weight,
             $form_type==='ORAL_EXAM' ? $form_topic_area : null,
             $form_type==='ORAL_EXAM' ? $form_questions : null,
             $form_type==='ORAL_EXERCISE' ? $form_category : null,
@@ -137,6 +146,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $form_questions=(string)($oral['questions'] ?? '');
         $form_category=(string)($oral['category'] ?? '');
         $form_title=(string)($oral['title'] ?? '');
+        $form_weight=assessment_weight_multiplier_normalize($oral['weight_multiplier'] ?? 1);
       }catch(Exception $e){
         $err='Fehler beim Speichern: '.$e->getMessage();
       }
@@ -152,6 +162,7 @@ $summary_tooltip_map=[
   'ORAL_EXAM'=>oral_assessment_summary_tooltip('ORAL_EXAM'),
   'ORAL_EXERCISE'=>oral_assessment_summary_tooltip('ORAL_EXERCISE'),
 ];
+$weight_multiplier_options = assessment_weight_multiplier_options();
 
 render_header('Besondere mündliche Leistungsfeststellung bearbeiten',$u);
 ?>
@@ -197,6 +208,15 @@ render_header('Besondere mündliche Leistungsfeststellung bearbeiten',$u);
             <option value="<?php echo $sid; ?>" <?php echo $sid===$form_student_id?'selected':''; ?>><?php echo h($s['last_name'].', '.$s['first_name']); ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
+      <div>
+        <label class="muted">Gewicht</label>
+        <select class="input" name="weight_multiplier" style="max-width:140px">
+          <?php foreach($weight_multiplier_options as $weightValue => $weightLabel): ?>
+            <option value="<?php echo h($weightValue); ?>" <?php echo abs($form_weight-(float)$weightValue)<0.001?'selected':''; ?>><?php echo h($weightLabel); ?></option>
+          <?php endforeach; ?>
+        </select>
+        <div class="small muted">Optional für Umfang und Schwierigkeit.</div>
       </div>
     </div>
 

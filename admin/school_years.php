@@ -7,10 +7,11 @@ require_once __DIR__.'/../lib/schools.php';
 $u = require_role('admin');
 $bp = cfg()['base_path'] ?? '';
 $pdo=db();
-$schools=schools_load($pdo,true);
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$schools=admin_schools_load($pdo,$u,true);
 $schoolNames=[];
 foreach($schools as $school) $schoolNames[(int)$school['id']]=(string)$school['name'];
-$schoolFilter=(int)($_REQUEST['school_id'] ?? 0);
+$schoolFilter=admin_filter_school_id($pdo,$u,(int)($_REQUEST['school_id'] ?? 0),$isSuperAdmin);
 
 $msg = '';
 $err = '';
@@ -34,7 +35,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $semester2From = trim((string)($_POST['semester2_from'] ?? $semester2From));
     $semester2To = trim((string)($_POST['semester2_to'] ?? $semester2To));
 
-    if(
+    if(!$isSuperAdmin && $schoolId<=0){
+      $err='Bitte eine Schule aus Ihrer Schulzuordnung auswählen.';
+    } elseif($schoolId>0 && !admin_can_access_school($pdo,$u,$schoolId)){
+      $err='Keine Berechtigung für diese Schule.';
+    } elseif(
       !preg_match('/^\d{4}-\d{2}-\d{2}$/', $semester1From) ||
       !preg_match('/^\d{4}-\d{2}-\d{2}$/', $semester1To) ||
       !preg_match('/^\d{4}-\d{2}-\d{2}$/', $semester2From) ||
@@ -73,20 +78,32 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   } elseif($action === 'archive_school_period'){
     $periodId = (int)($_POST['period_id'] ?? 0);
     if($periodId > 0){
-      app_school_period_archive($periodId);
-      $msg = 'Schuljahr aus der Auswahl entfernt.';
+      if(admin_can_access_school_period($pdo,$u,$periodId,false)){
+        app_school_period_archive($periodId);
+        $msg = 'Schuljahr aus der Auswahl entfernt.';
+      } else {
+        $err='Keine Berechtigung für dieses Schuljahr.';
+      }
     }
   } elseif($action === 'restore_school_period'){
     $periodId = (int)($_POST['period_id'] ?? 0);
     if($periodId > 0){
-      app_school_period_restore($periodId);
-      $msg = 'Schuljahr wieder in die Auswahl aufgenommen.';
+      if(admin_can_access_school_period($pdo,$u,$periodId,false)){
+        app_school_period_restore($periodId);
+        $msg = 'Schuljahr wieder in die Auswahl aufgenommen.';
+      } else {
+        $err='Keine Berechtigung für dieses Schuljahr.';
+      }
     }
   } elseif($action === 'set_current_school_period'){
     $periodId = (int)($_POST['period_id'] ?? 0);
     if($periodId > 0){
-      school_year_set_current(db(), $periodId);
-      $msg = 'Aktuelles Schuljahr wurde gesetzt.';
+      if(admin_can_access_school_period($pdo,$u,$periodId,false)){
+        school_year_set_current(db(), $periodId);
+        $msg = 'Aktuelles Schuljahr wurde gesetzt.';
+      } else {
+        $err='Keine Berechtigung für dieses Schuljahr.';
+      }
     }
   }
 }
@@ -114,7 +131,7 @@ render_header('Schuljahre und Semester', $u);
       <?php if($err): ?><div class="flash error"><?php echo h($err); ?></div><?php endif; ?>
 
       <form method="get" class="row" style="align-items:end;margin-top:12px">
-        <div class="school-selection" data-school-selection style="max-width:420px"><label class="school-selection-label">Schule</label><select class="input school-select" name="school_id" onchange="this.form.submit()"><option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen und globale Schuljahre</option><?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?></select><div class="school-selection-note">Filtert die angezeigten Schuljahre und Semestertermine.</div></div>
+        <div class="school-selection" data-school-selection style="max-width:420px"><label class="school-selection-label">Schule</label><select class="input school-select" name="school_id" onchange="this.form.submit()"><?php if($isSuperAdmin): ?><option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen und globale Schuljahre</option><?php endif; ?><?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?></select><div class="school-selection-note">Filtert die angezeigten Schuljahre und Semestertermine.</div></div>
       </form>
 
       <div class="report-focus-block" style="margin-top:12px">
@@ -188,7 +205,9 @@ render_header('Schuljahre und Semester', $u);
                 <div class="school-selection" data-school-selection>
                 <label class="school-selection-label">Schule</label>
                 <select class="input school-select" name="school_id">
+                  <?php if($isSuperAdmin): ?>
                   <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>global / alle Schulen</option>
+                  <?php endif; ?>
                   <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
                 </select>
                 <div class="school-selection-note">Wählen Sie eine Schule, wenn sie eigene Semestertermine führt. Globale Schuljahre bleiben für alle Schulen verwendbar.</div>

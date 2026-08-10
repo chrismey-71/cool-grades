@@ -8,8 +8,9 @@ $u=require_role('admin');
 $pdo=db();
 $bp=cfg()['base_path'] ?? '';
 
-$schools=schools_load($pdo,true);
-$schoolId=(int)($_REQUEST['school_id'] ?? 0);
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$schools=admin_schools_load($pdo,$u,true);
+$schoolId=admin_filter_school_id($pdo,$u,(int)($_REQUEST['school_id'] ?? 0),false);
 $schoolYears=load_school_years($pdo,true,$schoolId,$schoolId>0);
 $currentSchoolYearId=school_year_current_id($pdo,$schoolId);
 
@@ -75,7 +76,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $statusClassId=(int)($_POST['status_class_id'] ?? 0);
     $newStatus=trim((string)($_POST['class_status'] ?? 'active'));
     if(!in_array($newStatus, ['active','archived','departed'], true)) $newStatus='active';
-    if($statusClassId <= 0 || ($schoolId>0 && class_school_id($pdo,$statusClassId)!==$schoolId)){
+    if($statusClassId <= 0 || !admin_can_access_class($pdo,$u,$statusClassId) || ($schoolId>0 && class_school_id($pdo,$statusClassId)!==$schoolId)){
       $err='Bitte eine Klasse für die Statusänderung auswählen.';
     } else {
       $values=_transition_status_values($newStatus);
@@ -91,9 +92,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $sourceClass=class_context($pdo,$sourceClassId);
   $targetYear=null;
   foreach($schoolYears as $sy){ if((int)$sy['id']===$targetYearId){ $targetYear=$sy; break; } }
-  if($schoolId<=0){
+  if($schoolId<=0 || !admin_can_access_school($pdo,$u,$schoolId)){
     $err='Bitte zuerst eine Schule auswählen.';
-  } elseif(!$sourceClass || class_school_id($pdo,$sourceClassId)!==$schoolId){
+  } elseif(!$sourceClass || !admin_can_access_class($pdo,$u,$sourceClassId) || class_school_id($pdo,$sourceClassId)!==$schoolId){
     $err='Bitte eine Ausgangsklasse der ausgewählten Schule auswählen.';
   } elseif($transitionMode === 'promote' && (!$targetYear || $targetClassName==='')) {
     $err='Bitte Ausgangsklasse, Zielschuljahr und Zielklasse vollständig auswählen.';
@@ -134,6 +135,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $pdo->beginTransaction();
       try{
         $target=$existingTarget;
+        require_admin_school_period_access($pdo,$u,$targetYearId,true);
         if($transitionMode === 'promote' && !$target){
           $ins=$pdo->prepare("INSERT INTO classes(school_period_set_id,name,school_type,school_form_id,year,label,assessment_system,predecessor_class_id,is_archived,is_departed)
                               VALUES(?,?,?,?,?,?,?,?,?,0)");
@@ -170,7 +172,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           $st=$pdo->prepare("SELECT school_period_set_id FROM classes WHERE id=?");
           $st->execute([$dest]);
             $destYear=(int)($st->fetchColumn() ?: $targetYearId);
-            if($schoolId>0 && class_school_id($pdo,$dest)!==$schoolId) throw new RuntimeException('Zielklasse für Klassenwechsel gehört nicht zur ausgewählten Schule.');
+            if(!admin_can_access_class($pdo,$u,$dest) || ($schoolId>0 && class_school_id($pdo,$dest)!==$schoolId)) throw new RuntimeException('Zielklasse für Klassenwechsel gehört nicht zur ausgewählten Schule.');
             $enroll->execute([(int)$student['id'],$dest,$destYear,'transferred',$now,$now]);
             $setCurrent->execute([$dest,(int)$student['id']]);
           }

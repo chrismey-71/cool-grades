@@ -6,6 +6,7 @@ require_once __DIR__.'/../lib/schools.php';
 $u=require_role('admin');
 $pdo=db();
 $bp=cfg()['base_path'] ?? '';
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
 
 $msg='';
 $err='';
@@ -18,21 +19,19 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $id=(int)($_POST['id'] ?? 0);
     if($id<=0){
       $err='Bitte eine Schule zum Löschen auswählen.';
+    } elseif(!admin_can_access_school($pdo,$u,$id)){
+      $err='Keine Berechtigung für diese Schule.';
     } else {
       $st=$pdo->prepare("SELECT COUNT(*) FROM school_forms WHERE school_id=?");
       $st->execute([$id]);
       $formCount=(int)$st->fetchColumn();
-      $st=$pdo->prepare("SELECT COUNT(*) FROM teacher_schools WHERE school_id=?");
-      $st->execute([$id]);
-      $teacherCount=(int)$st->fetchColumn();
-      if($formCount>0 || $teacherCount>0){
-        $err=$formCount>0
-          ? 'Diese Schule kann nicht gelöscht werden, weil noch Schulformen zugeordnet sind.'
-          : 'Diese Schule kann nicht gelöscht werden, weil sie noch Lehrkräften zugeordnet ist.';
+      if($formCount>0){
+        $err='Diese Schule kann nicht gelöscht werden, weil noch Schulformen zugeordnet sind.';
       } else {
         $nameSt=$pdo->prepare("SELECT name FROM schools WHERE id=?");
         $nameSt->execute([$id]);
         $schoolName=(string)($nameSt->fetchColumn() ?: '');
+        $pdo->prepare("DELETE FROM teacher_schools WHERE school_id=?")->execute([$id]);
         $del=$pdo->prepare("DELETE FROM schools WHERE id=?");
         $del->execute([$id]);
         emit_event('admin_school_deleted',['target_id'=>$id,'target_name'=>$schoolName]);
@@ -46,6 +45,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $active=isset($_POST['active']) && (int)$_POST['active'] === 1 ? 1 : 0;
     if($name===''){
       $err='Bitte einen Schulnamen eingeben.';
+    } elseif($id>0 && !admin_can_access_school($pdo,$u,$id)){
+      $err='Keine Berechtigung für diese Schule.';
     } else {
       try{
         if($id>0){
@@ -56,7 +57,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         } else {
           $st=$pdo->prepare("INSERT INTO schools(name,address,active,created_at,updated_at) VALUES(?,?,?,NOW(),NOW())");
           $st->execute([$name,$address,$active]);
-          emit_event('admin_school_created',['target_id'=>(int)$pdo->lastInsertId(),'target_name'=>$name]);
+          $newSchoolId=(int)$pdo->lastInsertId();
+          if(!$isSuperAdmin){
+            $pdo->prepare("INSERT IGNORE INTO teacher_schools(teacher_id,school_id) VALUES(?,?)")->execute([(int)$u['id'],$newSchoolId]);
+          }
+          emit_event('admin_school_created',['target_id'=>$newSchoolId,'target_name'=>$name]);
           $msg='Schule angelegt.';
         }
       }catch(Throwable $e){
@@ -71,6 +76,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $active=isset($_POST['active']) && (int)$_POST['active'] === 1 ? 1 : 0;
     if($schoolId<=0 || $code==='' || $name===''){
       $err='Bitte Schule, Kürzel und Bezeichnung der Schulform vollständig eingeben.';
+    } elseif(!admin_can_access_school($pdo,$u,$schoolId)){
+      $err='Keine Berechtigung für diese Schule.';
+    } elseif($id>0 && !admin_can_access_school_form($pdo,$u,$id)){
+      $err='Keine Berechtigung für diese Schulform.';
     } elseif(!preg_match('/^[A-Z0-9_-]{1,32}$/', $code)){
       $err='Das Kürzel darf nur Großbuchstaben, Zahlen, Unterstrich oder Bindestrich enthalten.';
     } else {
@@ -93,26 +102,30 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   }
 }
 
-$schools=schools_load($pdo,true);
-$forms=school_forms_load($pdo,true);
+$schools=admin_schools_load($pdo,$u,true);
+$forms=admin_school_forms_load($pdo,$u,true);
 $formCountBySchool=[];
 foreach($forms as $form){
   $schoolId=(int)($form['school_id'] ?? 0);
   $formCountBySchool[$schoolId]=($formCountBySchool[$schoolId] ?? 0) + 1;
 }
-$teacherCountBySchool=[];
-foreach($pdo->query("SELECT school_id,COUNT(*) AS teacher_count FROM teacher_schools GROUP BY school_id")->fetchAll() as $row){
-  $teacherCountBySchool[(int)$row['school_id']]=(int)$row['teacher_count'];
+$userCountBySchool=[];
+foreach($pdo->query("SELECT school_id,COUNT(*) AS user_count FROM teacher_schools GROUP BY school_id")->fetchAll() as $row){
+  $userCountBySchool[(int)$row['school_id']]=(int)$row['user_count'];
 }
 $editSchool=null;
 if(!empty($_GET['edit_school'])){
+  $editSchoolId=(int)$_GET['edit_school'];
+  require_admin_school_access($pdo,$u,$editSchoolId);
   $st=$pdo->prepare("SELECT * FROM schools WHERE id=?");
-  $st->execute([(int)$_GET['edit_school']]);
+  $st->execute([$editSchoolId]);
   $editSchool=$st->fetch() ?: null;
 }
 $editForm=null;
 if(!empty($_GET['edit_form'])){
-  $editForm=school_form_find($pdo,(int)$_GET['edit_form']);
+  $editFormId=(int)$_GET['edit_form'];
+  require_admin_school_form_access($pdo,$u,$editFormId);
+  $editForm=school_form_find($pdo,$editFormId);
 }
 
 render_header('Schulen und Schulformen',$u);
@@ -197,7 +210,7 @@ render_header('Schulen und Schulformen',$u);
         <tbody>
           <?php foreach($schools as $school): ?>
             <?php $assignedForms=(int)($formCountBySchool[(int)$school['id']] ?? 0); ?>
-            <?php $assignedTeachers=(int)($teacherCountBySchool[(int)$school['id']] ?? 0); ?>
+            <?php $assignedUsers=(int)($userCountBySchool[(int)$school['id']] ?? 0); ?>
             <tr>
               <td><?php echo h($school['name']); ?></td>
               <td><?php echo nl2br(h((string)$school['address'])); ?></td>
@@ -205,7 +218,7 @@ render_header('Schulen und Schulformen',$u);
               <td><?php echo ((int)$school['active']===1)?'<span class="badge ok">aktiv</span>':'<span class="badge off">inaktiv</span>'; ?></td>
               <td style="white-space:nowrap">
                 <a class="btn small secondary" href="<?php echo h($bp); ?>/admin/schools.php?edit_school=<?php echo (int)$school['id']; ?>">Bearbeiten</a>
-                <?php if($assignedForms===0 && $assignedTeachers===0): ?>
+                <?php if($assignedForms===0): ?>
                   <form method="post" style="display:inline" onsubmit="return confirm('Schule wirklich löschen?');" data-dirty-ignore="1">
                     <?php echo csrf_input(); ?>
                     <input type="hidden" name="action" value="delete_school">
@@ -213,7 +226,7 @@ render_header('Schulen und Schulformen',$u);
                     <button class="btn small danger">Löschen</button>
                   </form>
                 <?php else: ?>
-                  <span class="muted" style="font-size:13px">Löschen erst ohne Schulformen und Lehrkraft-Zuordnungen möglich</span>
+                  <span class="muted" style="font-size:13px">Löschen erst ohne Schulformen möglich</span>
                 <?php endif; ?>
               </td>
             </tr>

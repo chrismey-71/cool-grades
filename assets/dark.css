@@ -106,7 +106,14 @@ html[data-theme="dark"] .multi-item{
 html[data-theme="dark"] .school-selection{
   background:linear-gradient(135deg,var(--school-soft),rgba(15,26,43,.96));
 }
+html[data-theme="dark"] .dashboard-school-selection{
+  background:linear-gradient(135deg,var(--school-soft),rgba(15,26,43,.96));
+}
 html[data-theme="dark"] .school-selection .school-select{
+  background:rgba(255,255,255,.045);
+  border-color:var(--school-line);
+}
+html[data-theme="dark"] .dashboard-school-selection .school-select{
   background:rgba(255,255,255,.045);
   border-color:var(--school-line);
 }
@@ -391,22 +398,55 @@ html[data-theme="dark"] .final-overview-table th{background:#294035}
 html[data-theme="dark"] .final-overview-row-draft{background:#342d1f}
 html[data-theme="dark"] .final-overview-row-open{background:#252a31}
 html[data-theme="dark"] .assessment-weight-panel{
-  background:linear-gradient(135deg,#182b1e,#20252c);
+  background:transparent;
 }
 html[data-theme="dark"] .assessment-weight-accordion,
 html[data-theme="dark"] .assessment-weight-accordion > summary{
-  background:#20252c;
-  border-color:#477654;
+  background:var(--card);
+  border-color:rgba(255,255,255,.12);
+}
+html[data-theme="dark"][data-entry-contrast="high"] .assessment-weight-accordion{
+  border:2px solid #477896;
+  border-left:8px solid #76B6D9;
+  background:linear-gradient(135deg,#15293a 0%,var(--card) 100%);
+  box-shadow:0 12px 28px rgba(0,0,0,.3);
+}
+html[data-theme="dark"][data-entry-contrast="high"] .assessment-weight-accordion > summary{
+  background:#1B3A50;
+}
+html[data-theme="dark"][data-entry-contrast="high"] .assessment-weight-accordion[open] > summary{
+  border-bottom-color:#477896;
+}
+html[data-theme="dark"][data-entry-contrast="high"] .assessment-weight-summary-copy .acc-title,
+html[data-theme="dark"][data-entry-contrast="high"] .assessment-weight-summary-action{
+  color:#E4F4FF;
+}
+html[data-theme="dark"][data-entry-contrast="high"] .assessment-weight-summary-copy .muted{
+  color:#C0D6E6;
+}
+html[data-theme="dark"][data-entry-contrast="high"] .assessment-weight-summary-action{
+  border-color:#477896;
+  background:#142A3B;
 }
 html[data-theme="dark"] .assessment-weight-legal,
+html[data-theme="dark"] .assessment-weight-lead,
+html[data-theme="dark"] .assessment-weight-step,
+html[data-theme="dark"] .assessment-weight-support,
 html[data-theme="dark"] .assessment-semester-model-note{
   background:#202d36;
   border-color:#466273;
   color:#dbe8f1;
 }
+html[data-theme="dark"] .assessment-weight-step-head span{
+  background:#76B6D9;
+  color:#102536;
+}
 html[data-theme="dark"] .assessment-weight-form,
 html[data-theme="dark"] .assessment-weight-model-row span,
 html[data-theme="dark"] .assessment-weight-field,
+html[data-theme="dark"] .assessment-weight-sum-display,
+html[data-theme="dark"] .assessment-weight-existing,
+html[data-theme="dark"] .assessment-weight-existing-grid span,
 html[data-theme="dark"] .final-weight-area{
   background:#20252c;
   border-color:#3d4652;

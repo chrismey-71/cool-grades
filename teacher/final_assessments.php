@@ -110,12 +110,14 @@ function _fa_written_assessment_display(array $writtenRows): array {
       ];
     }
     $symbol = report_eval_grade_symbol($grade, (string)($row['tendency'] ?? ''));
+    $weight = assessment_weight_multiplier_normalize($row['weight_multiplier'] ?? 1);
+    $weightSuffix = abs($weight - 1.0) > 0.001 ? ' · '.number_format($weight, 1, ',', '.').'x' : '';
     $byType[$type]['count']++;
-    $byType[$type]['grades'][] = $symbol;
+    $byType[$type]['grades'][] = $symbol.$weightSuffix;
     $detail = trim((string)($row['exam_date'] ?? ''));
     $title = trim((string)($row['title'] ?? ''));
     if($title !== '') $detail .= ($detail !== '' ? ' · ' : '').$title;
-    $detail .= ($detail !== '' ? ': ' : '').$symbol;
+    $detail .= ($detail !== '' ? ': ' : '').$symbol.$weightSuffix;
     $byType[$type]['details'][] = $detail;
   }
 

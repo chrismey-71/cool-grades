@@ -27,6 +27,7 @@ if($scope==='subject' && !$subject_id && $subjects){ $subject_id=(int)$subjects[
 
 $show_archived = isset($_GET['show_archived']) && (string)$_GET['show_archived']==='1';
 $reason_mode_choices=participation_reason_mode_choices();
+$impact_kind_choices=participation_impact_kind_choices();
 
 function option_used_count(PDO $pdo, int $id, string $type): int {
   switch($type){
@@ -88,11 +89,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   if($a==='add'){
     $label=trim($_POST['label']??'');
     $pedagogical_hint_mode=($type==='reason') ? participation_reason_mode_normalize((string)($_POST['pedagogical_hint_mode'] ?? 'auto')) : 'auto';
+    $impact_kind=$type==='impact' ? participation_impact_kind_normalize((string)($_POST['impact_kind'] ?? '')) : '';
     if($label==='') $err='Bitte Bezeichnung eingeben.';
+    elseif($type==='impact' && $impact_kind==='') $err='Bitte die Wertungsrichtung für Eindruck/Relevanz auswählen.';
     else{
       $sort=next_admin_option_sort($pdo,$type,$scope,$sub?:0);
-      $st=$pdo->prepare("INSERT INTO participation_options (opt_type,scope,teacher_id,subject_id,label,pedagogical_hint_mode,sort,active,archived) VALUES (?,?,?,?,?,?,?,1,0)");
-      $st->execute([$type,$scope,null,$sub?:null,$label,$type==='reason' ? $pedagogical_hint_mode : null,$sort]);
+      $st=$pdo->prepare("INSERT INTO participation_options (opt_type,scope,teacher_id,subject_id,label,pedagogical_hint_mode,impact_kind,sort,active,archived) VALUES (?,?,?,?,?,?,?,?,1,0)");
+      $st->execute([$type,$scope,null,$sub?:null,$label,$type==='reason' ? $pedagogical_hint_mode : null,$type==='impact' ? $impact_kind : null,$sort]);
       emit_event('admin_option_created',['type'=>$type,'scope'=>$scope,'subject_id'=>$sub?:null,'label'=>$label]);
       $msg='Option angelegt.';
     }
@@ -102,10 +105,12 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $id=(int)($_POST['id']??0);
     $label=trim($_POST['label']??'');
     $pedagogical_hint_mode=($type==='reason') ? participation_reason_mode_normalize((string)($_POST['pedagogical_hint_mode'] ?? 'auto')) : 'auto';
+    $impact_kind=$type==='impact' ? participation_impact_kind_normalize((string)($_POST['impact_kind'] ?? '')) : '';
     if($label==='') $err='Bitte Bezeichnung eingeben.';
+    elseif($type==='impact' && $impact_kind==='') $err='Bitte die Wertungsrichtung für Eindruck/Relevanz auswählen.';
     else{
-      $st=$pdo->prepare("UPDATE participation_options SET label=?, pedagogical_hint_mode=? WHERE id=? AND scope=?");
-      $st->execute([$label,$type==='reason' ? $pedagogical_hint_mode : null,$id,$scope]);
+      $st=$pdo->prepare("UPDATE participation_options SET label=?, pedagogical_hint_mode=?, impact_kind=? WHERE id=? AND scope=?");
+      $st->execute([$label,$type==='reason' ? $pedagogical_hint_mode : null,$type==='impact' ? $impact_kind : null,$id,$scope]);
       emit_event('admin_option_updated',['id'=>$id,'type'=>$type,'scope'=>$scope]);
       $msg='Option gespeichert.';
     }
@@ -195,6 +200,9 @@ render_header('Picklisten (Admin)',$u);
   </div>
 
   <div style="height:12px"></div>
+  <?php if($type==='impact'): ?>
+    <div class="flash info">Die <b>Wertungsrichtung</b> steuert Auswertung und Hinweise: <b>negativ</b> ist nur für summative Situationen geeignet. Positiv, neutral und ohne Wertung können formativ verwendet werden. Die sichtbare Bezeichnung allein entscheidet nicht mehr.</div>
+  <?php endif; ?>
   <form method="post" class="card" style="border-style:dashed;background:rgba(71,142,79,.06)" <?php echo dirty_form_attrs(); ?>>
     <?php echo csrf_input(); ?>
     <input type="hidden" name="action" value="add">
@@ -216,6 +224,16 @@ render_header('Picklisten (Admin)',$u);
         </select>
       </div>
       <?php endif; ?>
+      <?php if($type==='impact'): ?>
+      <div style="min-width:190px">
+        <label class="muted">Wertungsrichtung</label>
+        <select class="input" name="impact_kind" required>
+          <?php foreach($impact_kind_choices as $kindValue=>$kindLabel): ?>
+            <option value="<?php echo h($kindValue); ?>" <?php echo $kindValue==='neutral'?'selected':''; ?>><?php echo h($kindLabel); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <?php endif; ?>
       <div style="flex:0 0 auto">
         <label class="muted">Reihenfolge</label>
         <div class="muted" style="font-size:12px;padding:10px 0">per Drag &amp; Drop</div>
@@ -227,12 +245,13 @@ render_header('Picklisten (Admin)',$u);
   <div style="height:10px"></div>
   <?php if($options): ?>
     <table class="table">
-      <thead><tr><th style="width:44px">&nbsp;</th><th>Bezeichnung</th><?php if($type==='reason'): ?><th>Tendenz</th><?php endif; ?><th>Status</th><th>Aktion</th></tr></thead>
+      <thead><tr><th style="width:44px">&nbsp;</th><th>Bezeichnung</th><?php if($type==='reason'): ?><th>Tendenz</th><?php endif; ?><?php if($type==='impact'): ?><th>Wertungsrichtung</th><th>Formativ</th><?php endif; ?><th>Status</th><th>Aktion</th></tr></thead>
       <tbody id="adminOptionsBody">
       <?php foreach($options as $o): ?>
         <?php
           $arch=(int)($o['archived']??0)===1;
           $modeValue=participation_reason_mode_normalize((string)($o['pedagogical_hint_mode'] ?? 'auto'));
+          $impactKind=participation_impact_kind_from_option($o);
         ?>
         <tr data-id="<?php echo (int)$o['id']; ?>" <?php echo $arch?'':'draggable="true" class="sortable-row"'; ?>>
           <td style="width:44px"><?php if(!$arch): ?><span class="drag-handle" title="Ziehen">☰</span><?php else: ?><span class="muted">–</span><?php endif; ?></td>
@@ -252,6 +271,13 @@ render_header('Picklisten (Admin)',$u);
                   <?php endforeach; ?>
                 </select>
               <?php endif; ?>
+              <?php if($type==='impact'): ?>
+                <select class="input" name="impact_kind" style="min-width:170px" <?php echo $arch?'disabled':''; ?> required>
+                  <?php foreach($impact_kind_choices as $kindValue=>$kindLabel): ?>
+                    <option value="<?php echo h($kindValue); ?>" <?php echo $impactKind===$kindValue?'selected':''; ?>><?php echo h($kindLabel); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              <?php endif; ?>
               <?php if(!$arch): ?><button class="btn small secondary">Speichern</button><?php endif; ?>
             </form>
           </td>
@@ -259,6 +285,10 @@ render_header('Picklisten (Admin)',$u);
           <td data-label="Tendenz">
             <span class="muted"><?php echo h($reason_mode_choices[$modeValue] ?? $reason_mode_choices['auto']); ?></span>
           </td>
+          <?php endif; ?>
+          <?php if($type==='impact'): ?>
+          <td data-label="Wertungsrichtung"><span class="badge <?php echo $impactKind==='negative'?'danger':($impactKind==='positive'?'ok':''); ?>"><?php echo h(participation_impact_kind_label($impactKind)); ?></span></td>
+          <td data-label="Formativ"><?php echo participation_impact_kind_is_formative_compatible($impactKind)?'<span class="badge ok">zulässig</span>':'<span class="badge warn">nur summativ</span>'; ?></td>
           <?php endif; ?>
           <td data-label="Status">
             <?php

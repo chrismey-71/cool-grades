@@ -5,10 +5,20 @@ require_once __DIR__.'/../lib/teacher_assignments.php';
 require_once __DIR__.'/../lib/schools.php';
 require_once __DIR__.'/../lib/events.php';
 $u=require_role('admin'); $pdo=db(); $bp=cfg()['base_path'];
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$allowedSchoolIds=admin_assigned_school_ids($pdo,$u);
 
 $filter_teacher=(int)($_GET['teacher_id'] ?? 0);
 $currentSchoolYearId=school_year_current_id($pdo);
 $schoolYearFilter=(int)($_GET['school_period_set_id'] ?? $currentSchoolYearId);
+$schoolYears=array_values(array_filter(load_school_years($pdo,true),static function(array $sy) use ($isSuperAdmin,$allowedSchoolIds): bool {
+  if($isSuperAdmin) return true;
+  $schoolId=(int)($sy['school_id'] ?? 0);
+  return $schoolId===0 || in_array($schoolId,$allowedSchoolIds,true);
+}));
+if(!admin_can_access_school_period($pdo,$u,$schoolYearFilter,true)){
+  $schoolYearFilter=(int)($schoolYears[0]['id'] ?? 0);
+}
 $show=(string)($_GET['show'] ?? 'all');
 if(!in_array($show,['all','active','ended'],true)) $show='all';
 $msg=(string)($_GET['msg'] ?? '');
@@ -37,8 +47,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $teacherOk->execute([$postTeacherId]);
     $classOk=$pdo->prepare("SELECT 1 FROM classes WHERE id=? AND school_period_set_id=?");
     $classOk->execute([$classId,$postSchoolYearId]);
-    if(!$teacherOk->fetchColumn() || !$classOk->fetchColumn()){
+    if(!$teacherOk->fetchColumn() || !$classOk->fetchColumn() || !admin_can_access_class($pdo,$u,$classId)){
       assignment_redirect($bp,$postTeacherId,$postSchoolYearId,$postShow,'','Bitte Lehrkraft, Klasse und Fach aus dem gewählten Schuljahr auswählen.');
+    }
+    if(!admin_can_manage_user($pdo,$u,$postTeacherId)){
+      assignment_redirect($bp,$postTeacherId,$postSchoolYearId,$postShow,'','Keine Berechtigung für diese Lehrkraft.');
     }
     if(!teacher_assignment_context_allowed($pdo,$postTeacherId,$classId,$subjectId)){
       assignment_redirect($bp,$postTeacherId,$postSchoolYearId,$postShow,'','Diese Zuweisung ist nicht zulässig: Die Lehrkraft ist der Schule oder das Fach der Schulform dieser Klasse nicht zugeordnet.');
@@ -59,6 +72,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   if(!$assignment){
     assignment_redirect($bp,$postTeacherId,$postSchoolYearId,$postShow,'','Die Zuweisung wurde nicht gefunden.');
   }
+  require_admin_class_access($pdo,$u,(int)$assignment['class_id']);
+  require_admin_user_manage_access($pdo,$u,(int)$assignment['teacher_id']);
   $assignmentTeacherId=(int)$assignment['teacher_id'];
   $summaryMap=teacher_assignment_documentation_map($pdo,[$assignment]);
   $summary=$summaryMap[$assignmentTeacherId.':'.(int)$assignment['class_id'].':'.(int)$assignment['subject_id']] ?? ['has_documentation'=>false];
@@ -104,8 +119,20 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   assignment_redirect($bp,$assignmentTeacherId,$postSchoolYearId,$postShow,'','Unbekannte Aktion.');
 }
 
-$teachers=$pdo->query("SELECT id,first_name,last_name FROM users WHERE role='teacher' AND is_active=1 ORDER BY last_name,first_name")->fetchAll();
-$schoolYears=load_school_years($pdo,true);
+$teacherSql="SELECT id,first_name,last_name FROM users WHERE role='teacher' AND is_active=1";
+$teacherParams=[];
+if(!$isSuperAdmin && $allowedSchoolIds){
+  $teacherSql.=" AND EXISTS (
+                  SELECT 1 FROM teacher_schools ts_scope
+                  WHERE ts_scope.teacher_id=users.id
+                    AND ts_scope.school_id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")
+                )";
+  $teacherParams=$allowedSchoolIds;
+}
+$teacherSql.=" ORDER BY last_name,first_name";
+$st=$pdo->prepare($teacherSql);
+$st->execute($teacherParams);
+$teachers=$st->fetchAll();
 $assignableClasses=[];
 $assignableSubjects=[];
 $subjectFormMap=[];
@@ -116,8 +143,9 @@ if($filter_teacher>0){
                      JOIN schools s ON s.id=sf.school_id
                      JOIN teacher_schools ts ON ts.school_id=s.id AND ts.teacher_id=?
                      WHERE c.school_period_set_id=? AND c.is_archived=0 AND c.is_departed=0
+                     ".(!$isSuperAdmin && $allowedSchoolIds ? "AND s.id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")" : "")."
                      ORDER BY s.name,sf.code,c.name");
-  $st->execute([$filter_teacher,$schoolYearFilter]);
+  $st->execute(array_merge([$filter_teacher,$schoolYearFilter],(!$isSuperAdmin && $allowedSchoolIds)?$allowedSchoolIds:[]));
   $assignableClasses=$st->fetchAll();
   $formIds=array_values(array_unique(array_map(static fn(array $row): int => (int)$row['school_form_id'],$assignableClasses)));
   if($formIds){
@@ -148,6 +176,10 @@ $sql="SELECT ta.id,ta.teacher_id,t.last_name,t.first_name,ta.class_id,c.name AS 
       LEFT JOIN users ended ON ended.id=ta.ended_by
       WHERE c.school_period_set_id=?";
 $params=[$schoolYearFilter];
+if(!$isSuperAdmin && $allowedSchoolIds){
+  $sql.=" AND school.id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")";
+  $params=array_merge($params,$allowedSchoolIds);
+}
 if($filter_teacher){ $sql.=" AND ta.teacher_id=?"; $params[]=$filter_teacher; }
 if($show==='active'){ $sql.=" AND ta.status='active'"; }
 if($show==='ended'){ $sql.=" AND ta.status='ended'"; }

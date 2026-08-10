@@ -2,8 +2,10 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/participation_presets.php';
+require_once __DIR__.'/../lib/participation_pedagogical_mode.php';
 require_once __DIR__.'/../lib/oral_assessments.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/assessment_weights.php';
 
 $u=require_role('teacher');
 $pdo=db();
@@ -26,7 +28,11 @@ require_class_writable($pdo,$class_id);
 $students=load_class_students($pdo,$class_id,false);
 $impacts=load_participation_options($pdo,(int)$u['id'],$subject_id,'impact');
 $impact_labels=[];
-foreach($impacts as $o){ $impact_labels[(int)$o['id']] = (string)$o['label']; }
+$impact_kinds=[];
+foreach($impacts as $o){
+  $impact_labels[(int)$o['id']] = (string)$o['label'];
+  $impact_kinds[(int)$o['id']] = participation_impact_kind_from_option($o);
+}
 
 $msg='';
 $err='';
@@ -43,6 +49,7 @@ $form_topic_area=trim((string)($_POST['topic_area'] ?? ''));
 $form_questions=trim((string)($_POST['questions'] ?? ''));
 $form_category=trim((string)($_POST['category'] ?? ''));
 $form_title=trim((string)($_POST['title'] ?? ''));
+$form_weight=assessment_weight_multiplier_normalize($_POST['weight_multiplier'] ?? 1);
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
@@ -52,6 +59,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   elseif(!$form_impact_id){ $err='Bitte Eindruck/Relevanz wählen.'; $fieldErrors['impact_option_id']='Bitte Eindruck/Relevanz wählen.'; }
 
   $impact_label=$impact_labels[$form_impact_id] ?? '';
+  $impact_kind=$impact_kinds[$form_impact_id] ?? participation_impact_kind_from_label($impact_label);
   if($err==='' && $impact_label===''){ $err='Ungültiger Eindruck/Relevanz.'; $fieldErrors['impact_option_id']='Dieser Eindruck ist nicht gültig.'; }
 
   if($err===''){
@@ -67,11 +75,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   if($err===''){
     try{
       $pdo->prepare("INSERT INTO oral_assessments
-        (class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,impact_option_id,impact_label,topic_area,questions,category,title,created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        (class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,impact_option_id,impact_label,impact_kind,weight_multiplier,topic_area,questions,category,title,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
         ->execute([
           $class_id,$subject_id,(int)$u['id'],$form_student_id,$assessment_type,$form_date,
-          $form_impact_id,$impact_label,
+          $form_impact_id,$impact_label,$impact_kind,$form_weight,
           $assessment_type==='ORAL_EXAM' ? $form_topic_area : null,
           $assessment_type==='ORAL_EXAM' ? $form_questions : null,
           $assessment_type==='ORAL_EXERCISE' ? $form_category : null,
@@ -111,6 +119,7 @@ $summary_tooltip_map=[
   'ORAL_EXAM'=>oral_assessment_summary_tooltip('ORAL_EXAM'),
   'ORAL_EXERCISE'=>oral_assessment_summary_tooltip('ORAL_EXERCISE'),
 ];
+$weight_multiplier_options = assessment_weight_multiplier_options();
 $compact_forms = compact_entry_forms_enabled($u);
 
 render_header('Besondere mündliche Leistungsfeststellung',$u);
@@ -159,6 +168,15 @@ render_header('Besondere mündliche Leistungsfeststellung',$u);
       <?php endforeach; ?>
     </select>
     <?php if(!empty($fieldErrors['student_id'])): ?><div class="field-error"><?php echo h($fieldErrors['student_id']); ?></div><?php endif; ?>
+  </div>
+  <div>
+    <label class="muted">Gewicht</label>
+    <select class="input" name="weight_multiplier" style="max-width:140px">
+      <?php foreach($weight_multiplier_options as $weightValue => $weightLabel): ?>
+        <option value="<?php echo h($weightValue); ?>" <?php echo abs($form_weight-(float)$weightValue)<0.001?'selected':''; ?>><?php echo h($weightLabel); ?></option>
+      <?php endforeach; ?>
+    </select>
+    <div class="small muted">Optional für Umfang und Schwierigkeit.</div>
   </div>
 </div>
 <?php accordion_section_end($compact_forms); ?>

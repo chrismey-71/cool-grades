@@ -2,6 +2,7 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/assessment_summaries.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/assessment_weights.php';
 $u=require_role('teacher');
 $pdo=db();
 $bp=cfg()['base_path'];
@@ -22,6 +23,7 @@ $written_summary_map = [
   'ALL' => written_assessment_summary('ALL'),
   'SA' => written_assessment_summary('SA'),
   'TEST' => written_assessment_summary('TEST'),
+  'DICTATION' => written_assessment_summary('DICTATION'),
   'REVIEW' => written_assessment_summary('REVIEW'),
   'TASK' => written_assessment_summary('TASK'),
   'OTHER' => written_assessment_summary('OTHER'),
@@ -30,6 +32,7 @@ $written_tooltip_map = [
   'ALL' => written_assessment_summary_tooltip('ALL'),
   'SA' => written_assessment_summary_tooltip('SA'),
   'TEST' => written_assessment_summary_tooltip('TEST'),
+  'DICTATION' => written_assessment_summary_tooltip('DICTATION'),
   'REVIEW' => written_assessment_summary_tooltip('REVIEW'),
   'TASK' => written_assessment_summary_tooltip('TASK'),
   'OTHER' => written_assessment_summary_tooltip('OTHER'),
@@ -51,7 +54,7 @@ if($class_id && $subject_id){
   $classContext=class_context($pdo,$class_id);
   $assignmentReadOnly=!teacher_can_edit_assignment((int)$u['id'],$class_id,$subject_id) || ($classContext && class_is_readonly($classContext));
 
-  $sql="SELECT e.id,e.exam_date,e.title, e.exam_type
+  $sql="SELECT e.id,e.exam_date,e.title, e.exam_type, e.weight_multiplier
         FROM exams e
         WHERE e.teacher_id=? AND e.class_id=? AND e.subject_id=?
           AND e.exam_date BETWEEN ? AND ?";
@@ -153,7 +156,7 @@ render_header('Besondere schriftliche Leistungsfeststellungen',$u);
   <?php if($exams): ?>
     <div style="height:12px"></div>
     <table class="table">
-      <thead><tr><th>Datum</th><th>Art</th><th>Titel</th><th>Noten</th><th>Aktion</th></tr></thead>
+      <thead><tr><th>Datum</th><th>Art</th><th>Titel</th><th>Gewicht</th><th>Noten</th><th>Aktion</th></tr></thead>
       <tbody>
         <?php foreach($exams as $ex):
           $t=written_assessment_normalize_type((string)($ex['exam_type'] ?? 'SA'));
@@ -163,6 +166,7 @@ render_header('Besondere schriftliche Leistungsfeststellungen',$u);
             <td><?php echo h($ex['exam_date']); ?></td>
             <td><?php echo h($tlabel); ?></td>
             <td><?php echo h($ex['title']); ?></td>
+            <td><?php echo h(number_format(assessment_weight_multiplier_normalize($ex['weight_multiplier'] ?? 1), 1, ',', '.')); ?> x</td>
             <td><?php echo (int)($ex['cnt'] ?? 0); ?></td>
             <td><a class="btn small" href="<?php echo h($bp); ?>/teacher/exam_edit.php?id=<?php echo (int)$ex['id']; ?>">Bearbeiten</a></td>
           </tr>

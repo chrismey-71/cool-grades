@@ -57,9 +57,44 @@ function teacher_school_context_label(?array $u = null): string {
   if($teacherId <= 0) return '';
 
   static $cache = [];
-  if(isset($cache[$teacherId])) return $cache[$teacherId];
+  $selectedSchoolId=(int)($_SESSION['teacher_school_context_id'] ?? 0);
+  $cacheKey=$teacherId.':'.$selectedSchoolId;
+  if(isset($cache[$cacheKey])) return $cache[$cacheKey];
 
   try{
+    if($selectedSchoolId>0){
+      $st=db()->prepare("SELECT s.name
+                         FROM teacher_schools ts
+                         JOIN schools s ON s.id=ts.school_id
+                         WHERE ts.teacher_id=? AND ts.school_id=? AND IFNULL(s.active,1)=1
+                         LIMIT 1");
+      $st->execute([$teacherId,$selectedSchoolId]);
+      $selectedName=trim((string)($st->fetchColumn() ?: ''));
+      if($selectedName !== ''){
+        $cache[$cacheKey]=$selectedName;
+        return $cache[$cacheKey];
+      }
+
+      // Legacy fallback: some existing installations derive school access
+      // from class assignments until teacher_schools has been populated.
+      $st=db()->prepare("SELECT DISTINCT s.name
+                         FROM teacher_assignments ta
+                         JOIN classes c ON c.id=ta.class_id
+                         JOIN school_forms sf ON sf.id=c.school_form_id
+                         JOIN schools s ON s.id=sf.school_id
+                         WHERE ta.teacher_id=? AND sf.school_id=? AND IFNULL(s.active,1)=1
+                         LIMIT 1");
+      $st->execute([$teacherId,$selectedSchoolId]);
+      $selectedName=trim((string)($st->fetchColumn() ?: ''));
+      if($selectedName !== ''){
+        $cache[$cacheKey]=$selectedName;
+        return $cache[$cacheKey];
+      }
+
+      // Do not keep displaying a school that is no longer assigned.
+      unset($_SESSION['teacher_school_context_id']);
+    }
+
     $st = db()->prepare("SELECT DISTINCT s.name
                          FROM teacher_assignments ta
                          JOIN classes c ON c.id=ta.class_id
@@ -73,12 +108,12 @@ function teacher_school_context_label(?array $u = null): string {
       $fallback = db()->query("SELECT name FROM schools WHERE active=1 ORDER BY name LIMIT 1")->fetchColumn();
       if($fallback !== false) $names[] = trim((string)$fallback);
     }
-    $cache[$teacherId] = $names ? implode(' · ', array_unique($names)) : '';
+    $cache[$cacheKey] = $names ? implode(' · ', array_unique($names)) : '';
   }catch(Throwable $e){
-    $cache[$teacherId] = '';
+    $cache[$cacheKey] = '';
   }
 
-  return $cache[$teacherId];
+  return $cache[$cacheKey];
 }
 
 function teacher_assignment_pairs(int $teacherId): array {

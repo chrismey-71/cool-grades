@@ -144,6 +144,7 @@ function written_assessment_types(): array {
   return [
     'SA' => 'Schularbeit',
     'TEST' => 'Test',
+    'DICTATION' => 'Diktat',
     'REVIEW' => 'Schriftliche Wiederholung',
     'TASK' => 'Arbeitsauftrag',
     'OTHER' => 'Sonstige schriftliche Leistung',
@@ -167,6 +168,7 @@ function written_assessment_type_short_label(string $type): string {
   $map = [
     'SA' => 'SA',
     'TEST' => 'Test',
+    'DICTATION' => 'Diktat',
     'REVIEW' => 'Wdh.',
     'TASK' => 'Auftrag',
     'OTHER' => 'Sonst.',

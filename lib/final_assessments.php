@@ -551,8 +551,8 @@ function final_assessment_year_trend(?array $semester1Summary, ?array $semester2
 }
 
 function final_assessment_compute_proposal(array $summary, array $subjectContext, string $scope = 'semester1', array $yearTrend = []): array {
-  $settings = assessment_weight_settings_resolve(null, null);
-  return assessment_weight_compute_area_proposal($summary, $settings);
+  $settings = assessment_weight_settings_resolve(null, null, $subjectContext);
+  return assessment_weight_compute_area_proposal($summary, $settings, $subjectContext);
 }
 
 function final_assessment_snapshot_payload(array $summary, array $proposal, array $subjectContext, array $periodMeta, ?array $yearTrend = null, array $semesterContext = []): array {
@@ -603,7 +603,8 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
     $classId,
     $subjectId,
     (int)$periodMeta['school_period_set_id'],
-    is_string($assessmentSystem) ? $assessmentSystem : null
+    is_string($assessmentSystem) ? $assessmentSystem : null,
+    $subjectContext
   );
   $existingCurrent = final_assessment_existing_map($pdo, $classId, $subjectId, (int)$periodMeta['school_period_set_id'], $scope);
   $summaries = report_build_student_summaries($pdo, $classId, $subjectId, (string)$periodMeta['from'], (string)$periodMeta['to']);
@@ -666,8 +667,8 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
     }
 
     if($scope === 'year' && $assessmentSystem === 'yearly'){
-      $firstSemesterProposal = assessment_weight_compute_area_proposal($semester1Map[$sid] ?? [], $weightSettings);
-      $currentYearProposal = assessment_weight_compute_area_proposal($semester2Map[$sid] ?? [], $weightSettings);
+      $firstSemesterProposal = assessment_weight_compute_area_proposal($semester1Map[$sid] ?? [], $weightSettings, $subjectContext);
+      $currentYearProposal = assessment_weight_compute_area_proposal($semester2Map[$sid] ?? [], $weightSettings, $subjectContext);
       $proposal = assessment_weight_compute_yearly_proposal(
         $firstSemesterProposal,
         $currentYearProposal,
@@ -677,7 +678,7 @@ function final_assessment_build_rows(PDO $pdo, int $classId, int $subjectId, arr
     } elseif($scope === 'year' && in_array($assessmentSystem, ['sost','nost'], true)){
       $proposal = assessment_weight_semester_model_year_notice($assessmentSystem);
     } else {
-      $proposal = assessment_weight_compute_area_proposal($summary, $weightSettings);
+      $proposal = assessment_weight_compute_area_proposal($summary, $weightSettings, $subjectContext);
     }
     $existing = $existingCurrent[$sid] ?? null;
 

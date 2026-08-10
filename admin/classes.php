@@ -1,33 +1,47 @@
 <?php
 require_once __DIR__.'/../lib/layout.php'; require_once __DIR__.'/../lib/events.php'; require_once __DIR__.'/_crud.php'; require_once __DIR__.'/../lib/assessment_systems.php'; require_once __DIR__.'/../lib/school_years.php'; require_once __DIR__.'/../lib/schools.php';
 $u=require_role('admin'); $pdo=db(); $bp=cfg()['base_path'];
-$schoolYears=load_school_years($pdo,true);
-$schoolForms=school_forms_load($pdo,true);
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$allowedSchoolIds=admin_assigned_school_ids($pdo,$u);
+$schoolYears=array_values(array_filter(load_school_years($pdo,true),static function(array $sy) use ($isSuperAdmin,$allowedSchoolIds): bool {
+  if($isSuperAdmin) return true;
+  $schoolId=(int)($sy['school_id'] ?? 0);
+  return $schoolId===0 || in_array($schoolId,$allowedSchoolIds,true);
+}));
+$schoolForms=admin_school_forms_load($pdo,$u,true);
 $schoolFormsById=school_forms_by_id($schoolForms);
 $schoolNamesById=[];
 foreach($schoolForms as $schoolFormRow) $schoolNamesById[(int)$schoolFormRow['school_id']]=(string)$schoolFormRow['school_name'];
 $currentSchoolYearId=school_year_current_id($pdo);
 $schoolYearFilter=(int)($_GET['school_period_set_id'] ?? $currentSchoolYearId);
+if(!admin_can_access_school_period($pdo,$u,$schoolYearFilter,true)){
+  $schoolYearFilter=(int)($schoolYears[0]['id'] ?? 0);
+}
 $err='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
   $a=$_POST['action']??'';
   if($a==='save'){ $id=$_POST['id']? (int)$_POST['id']:null;
     $name=trim($_POST['name']??''); $schoolFormId=(int)($_POST['school_form_id'] ?? 0); $year=(int)($_POST['year']??1); $label=trim($_POST['label']??'');
+    if($id!==null) require_admin_class_access($pdo,$u,$id);
     $schoolForm=school_form_find($pdo,$schoolFormId);
-    if(!$schoolForm){
-      $schoolFormId=school_form_default_id($pdo);
+    if(!$schoolForm || !admin_can_access_school_form($pdo,$u,$schoolFormId)){
+      $schoolFormId=(int)($schoolForms[0]['id'] ?? 0);
       $schoolForm=school_form_find($pdo,$schoolFormId);
     }
+    if(!$schoolForm) $err='Bitte zuerst eine Schulform in einer berechtigten Schule anlegen.';
     $type=(string)($schoolForm['code'] ?? 'HLS');
     $schoolPeriodSetId=(int)($_POST['school_period_set_id'] ?? $currentSchoolYearId);
+    if(!admin_can_access_school_period($pdo,$u,$schoolPeriodSetId,true)){
+      $err='Keine Berechtigung für dieses Schuljahr.';
+    }
     $periodSchoolId=0;
     if($schoolPeriodSetId>0){
       $periodSt=$pdo->prepare("SELECT school_id FROM school_period_sets WHERE id=?");
       $periodSt->execute([$schoolPeriodSetId]);
       $periodSchoolId=(int)($periodSt->fetchColumn() ?: 0);
     }
-    if($periodSchoolId>0 && $periodSchoolId!==(int)($schoolForm['school_id'] ?? 0)){
+    if($err==='' && $periodSchoolId>0 && $periodSchoolId!==(int)($schoolForm['school_id'] ?? 0)){
       $err='Das gewählte Schuljahr gehört zu einer anderen Schule. Wählen Sie ein globales oder ein zur Schulform passendes Schuljahr.';
     }
     $assessmentSystem=trim((string)($_POST['assessment_system'] ?? 'yearly'));
@@ -45,10 +59,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       emit_event($id?'admin_class_updated':'admin_class_created',['target_id'=>$nid,'target_name'=>$name,'school_period_set_id'=>$schoolPeriodSetId]); header('Location: '.$bp.'/admin/classes.php?school_period_set_id='.$schoolPeriodSetId); exit;
     }
   }
-  if($a==='delete'){ $id=(int)$_POST['id']; emit_event('admin_class_deleted',['target_id'=>$id]); del('classes',$id); header('Location: '.$bp.'/admin/classes.php'); exit; }
+  if($a==='delete'){ $id=(int)$_POST['id']; require_admin_class_access($pdo,$u,$id); emit_event('admin_class_deleted',['target_id'=>$id]); del('classes',$id); header('Location: '.$bp.'/admin/classes.php'); exit; }
 }
-$classes=load_classes_for_admin($pdo,$schoolYearFilter,true);
-$edit=null; if(!empty($_GET['edit'])){ $st=$pdo->prepare("SELECT * FROM classes WHERE id=?");$st->execute([(int)$_GET['edit']]);$edit=$st->fetch(); }
+$classes=load_classes_for_admin($pdo,$schoolYearFilter,true,0,$isSuperAdmin?[]:$allowedSchoolIds);
+$edit=null; if(!empty($_GET['edit'])){ $editId=(int)$_GET['edit']; require_admin_class_access($pdo,$u,$editId); $st=$pdo->prepare("SELECT * FROM classes WHERE id=?");$st->execute([$editId]);$edit=$st->fetch(); }
 render_header('Klassen',$u);
 ?>
 <div class="grid">
@@ -122,7 +136,7 @@ render_header('Klassen',$u);
             }
           }
         }
-        if($selectedFormId<=0) $selectedFormId=school_form_default_id($pdo);
+        if($selectedFormId<=0) $selectedFormId=(int)($schoolForms[0]['id'] ?? 0);
       ?>
       <?php foreach($schoolForms as $form): ?>
         <option value="<?php echo (int)$form['id']; ?>" data-school-id="<?php echo (int)$form['school_id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$form['school_id'])); ?>" <?php echo $selectedFormId===(int)$form['id']?'selected':''; ?>><?php echo h(school_form_label($form).(((int)$form['active']===1)?'':' · inaktiv')); ?></option>

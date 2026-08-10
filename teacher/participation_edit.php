@@ -60,8 +60,12 @@ $homeworks=load_participation_options($pdo,(int)$u['id'],$subject_id,'homework')
 
 // Build id->label maps
 $optLabel=[];
+$impactKindById=[];
 foreach([$reasons,$impacts,$perfs,$groups,$socials,$phases,$homeworks] as $arr){
   foreach($arr as $o){ $optLabel[(int)$o['id']] = (string)$o['label']; }
+}
+foreach($impacts as $impactOption){
+  $impactKindById[(int)$impactOption['id']]=participation_impact_kind_from_option($impactOption);
 }
 $critLabel=[];
 foreach($criteria as $c){ $critLabel[(int)$c['id']] = (string)(($c['category']?($c['category'].': '):'').$c['label']); }
@@ -203,6 +207,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if($err===''){
       $reason_label = $optLabel[$reason_id] ?? '';
       $impact_label = $optLabel[$impact_id] ?? '';
+      $impact_kind = $impactKindById[$impact_id] ?? participation_impact_kind_from_label($impact_label);
       if($reason_label==='') $err='Ungültiger Grund.';
       elseif($impact_label==='') $err='Ungültiger Eindruck.';
     }
@@ -213,14 +218,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $pdo->prepare("UPDATE participation_events
           SET student_id=?, event_date=?, lesson_id=?,
               reason_option_id=?, reason_label=?,
-              impact_option_id=?, rating=?,
+              impact_option_id=?, rating=?, impact_kind=?,
               social_form_option_id=?, phase_option_id=?, homework_option_id=?,
               reason_text=?, note=?
           WHERE id=? AND teacher_id=?")
           ->execute([
             $new_student_id, $event_date, $new_lesson_id,
             $reason_id, $reason_label,
-            $impact_id, $impact_label,
+            $impact_id, $impact_label, $impact_kind,
             ($social_id?:null), ($phase_id?:null), ($hw_id?:null),
             ($reason_text?:null), ($note?:null),
             $id, (int)$u['id']
@@ -341,13 +346,15 @@ $main_form_dirty_initial = ($_SERVER['REQUEST_METHOD']==='POST' && ($action==='s
 $details_open = $form_social_id>0 || $form_phase_id>0 || $form_hw_id>0 || trim($form_note)!=='' || !empty($selCriteria);
 $current_suggested_mode=participation_pedagogical_mode_suggestion($reasons,$phases,$form_reason_id,$form_phase_id);
 $current_impact_label='';
+$current_impact_kind='';
 foreach($impacts as $impactOption){
   if((int)($impactOption['id'] ?? 0)===$form_impact_id){
     $current_impact_label=(string)($impactOption['label'] ?? '');
+    $current_impact_kind=participation_impact_kind_from_option($impactOption);
     break;
   }
 }
-$current_hint=participation_pedagogical_hint($current_suggested_mode, participation_impact_kind_from_label($current_impact_label));
+$current_hint=participation_pedagogical_hint($current_suggested_mode, $current_impact_kind);
 
 $student_name='';
 foreach($students as $s){
@@ -425,7 +432,7 @@ render_header('Mitarbeit bearbeiten',$u);
         <select class="input" name="impact_option_id" id="impactSelect" required>
           <option value="0">Bitte wählen…</option>
           <?php foreach($impacts as $o): ?>
-            <?php $impact_kind=participation_impact_kind_from_label((string)$o['label']); ?>
+            <?php $impact_kind=participation_impact_kind_from_option($o); ?>
             <option value="<?php echo (int)$o['id']; ?>" data-impact-kind="<?php echo h($impact_kind); ?>" <?php echo ($form_impact_id===(int)$o['id'])?'selected':''; ?>><?php echo h($o['label']); ?></option>
           <?php endforeach; ?>
         </select>

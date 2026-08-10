@@ -244,6 +244,13 @@ function _ensure_schema(PDO $pdo): void {
   }catch(Exception $e){ /* ignore */ }
 
   try{
+    $st=$pdo->query("SHOW COLUMNS FROM exams LIKE 'weight_multiplier'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE exams ADD COLUMN weight_multiplier DECIMAL(3,1) NOT NULL DEFAULT 1.0 AFTER exam_type");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
     $st=$pdo->query("SHOW TABLES LIKE 'oral_assessments'");
     $has=$st->fetch();
     if(!$has){
@@ -257,6 +264,7 @@ function _ensure_schema(PDO $pdo): void {
         assessment_date DATE NOT NULL,
         impact_option_id INT NULL,
         impact_label VARCHAR(128) NULL,
+        impact_kind VARCHAR(16) NULL,
         topic_area VARCHAR(255) NULL,
         questions TEXT NULL,
         category VARCHAR(120) NULL,
@@ -270,6 +278,13 @@ function _ensure_schema(PDO $pdo): void {
         INDEX idx_oral_teacher_date (teacher_id, assessment_date),
         INDEX idx_oral_class_subject_date (class_id, subject_id, assessment_date)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    $st=$pdo->query("SHOW COLUMNS FROM oral_assessments LIKE 'weight_multiplier'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE oral_assessments ADD COLUMN weight_multiplier DECIMAL(3,1) NOT NULL DEFAULT 1.0 AFTER impact_kind");
     }
   }catch(Exception $e){ /* ignore */ }
 
@@ -874,6 +889,51 @@ function _ensure_schema(PDO $pdo): void {
     if(!$has){
       $pdo->exec("ALTER TABLE participation_options ADD COLUMN pedagogical_hint_mode VARCHAR(16) NULL AFTER label");
     }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    $st=$pdo->query("SHOW COLUMNS FROM participation_options LIKE 'impact_kind'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE participation_options ADD COLUMN impact_kind VARCHAR(16) NULL AFTER pedagogical_hint_mode");
+    }
+    $pdo->exec("UPDATE participation_options
+                SET impact_kind=CASE
+                  WHEN LOWER(label) LIKE '%kaum nachweisbar%' OR LOWER(label) LIKE '%nicht nachweisbar%' OR LOWER(label) LIKE '%negativ%' OR LOWER(label) LIKE '%kritisch%' OR LOWER(label) LIKE '%unsicher%' OR LOWER(label) LIKE '%nicht genügend%' OR label REGEXP '(^|[^[:alnum:]])-+([^[:alnum:]]|$)' THEN 'negative'
+                  WHEN LOWER(label) LIKE '%nur beobachtet%' OR LOWER(label) LIKE '%ohne wertung%' THEN 'unrated'
+                  WHEN LOWER(label) LIKE '%positiv%' OR LOWER(label) LIKE '%sehr gut%' OR LOWER(label) LIKE '%sicher%' OR label REGEXP '\\\\+' THEN 'positive'
+                  ELSE 'neutral'
+                END
+                WHERE opt_type='impact' AND (impact_kind IS NULL OR impact_kind='')");
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    $st=$pdo->query("SHOW COLUMNS FROM participation_events LIKE 'impact_kind'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE participation_events ADD COLUMN impact_kind VARCHAR(16) NULL AFTER rating");
+    }
+    $pdo->exec("UPDATE participation_events
+                SET impact_kind=CASE
+                  WHEN LOWER(rating) LIKE '%kaum nachweisbar%' OR LOWER(rating) LIKE '%nicht nachweisbar%' OR LOWER(rating) LIKE '%negativ%' OR LOWER(rating) LIKE '%kritisch%' OR LOWER(rating) LIKE '%unsicher%' OR LOWER(rating) LIKE '%nicht genügend%' OR rating REGEXP '(^|[^[:alnum:]])-+([^[:alnum:]]|$)' THEN 'negative'
+                  WHEN LOWER(rating) LIKE '%nur beobachtet%' OR LOWER(rating) LIKE '%ohne wertung%' THEN 'unrated'
+                  WHEN LOWER(rating) LIKE '%positiv%' OR LOWER(rating) LIKE '%sehr gut%' OR LOWER(rating) LIKE '%sicher%' OR rating REGEXP '\\\\+' THEN 'positive'
+                  ELSE 'neutral'
+                END
+                WHERE impact_kind IS NULL OR impact_kind=''");
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    $st=$pdo->query("SHOW COLUMNS FROM oral_assessments LIKE 'impact_kind'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE oral_assessments ADD COLUMN impact_kind VARCHAR(16) NULL AFTER impact_label");
+    }
+    $pdo->exec("UPDATE oral_assessments
+                SET impact_kind=CASE
+                  WHEN LOWER(impact_label) LIKE '%kaum nachweisbar%' OR LOWER(impact_label) LIKE '%nicht nachweisbar%' OR LOWER(impact_label) LIKE '%negativ%' OR LOWER(impact_label) LIKE '%kritisch%' OR LOWER(impact_label) LIKE '%unsicher%' OR LOWER(impact_label) LIKE '%nicht genügend%' OR impact_label REGEXP '(^|[^[:alnum:]])-+([^[:alnum:]]|$)' THEN 'negative'
+                  WHEN LOWER(impact_label) LIKE '%nur beobachtet%' OR LOWER(impact_label) LIKE '%ohne wertung%' THEN 'unrated'
+                  WHEN LOWER(impact_label) LIKE '%positiv%' OR LOWER(impact_label) LIKE '%sehr gut%' OR LOWER(impact_label) LIKE '%sicher%' OR impact_label REGEXP '\\\\+' THEN 'positive'
+                  ELSE 'neutral'
+                END
+                WHERE impact_kind IS NULL OR impact_kind=''");
   }catch(Exception $e){ /* ignore */ }
 
   try{

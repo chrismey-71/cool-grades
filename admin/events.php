@@ -4,7 +4,9 @@ require_once __DIR__.'/../lib/settings.php';
 require_once __DIR__.'/../lib/schools.php';
 $u=require_role('admin'); 
 $pdo=db();
-$schools=schools_load($pdo,true);
+$isSuperAdmin=admin_is_superadmin($pdo,$u);
+$allowedSchoolIds=admin_assigned_school_ids($pdo,$u);
+$schools=admin_schools_load($pdo,$u,true);
 
 /**
  * admin/events.php
@@ -187,7 +189,16 @@ if($eventRetentionDays>0){
 
 // --- Lookup Maps (IDs -> Namen) ---
 $classes = []; $subjects = []; $users = []; $students = []; $sets = []; $criteria = [];
-try { foreach($pdo->query("SELECT c.id,CONCAT(COALESCE(s.name,'Unbekannte Schule'),' · ',c.name) AS name FROM classes c LEFT JOIN school_forms sf ON sf.id=c.school_form_id LEFT JOIN schools s ON s.id=sf.school_id") as $r)  $classes[(int)$r['id']] = $r['name']; } catch(Throwable $e) {}
+try {
+  $classSql="SELECT c.id,CONCAT(COALESCE(s.name,'Unbekannte Schule'),' · ',c.name) AS name FROM classes c LEFT JOIN school_forms sf ON sf.id=c.school_form_id LEFT JOIN schools s ON s.id=sf.school_id";
+  $classParams=[];
+  if(!$isSuperAdmin && $allowedSchoolIds){
+    $classSql.=" WHERE sf.school_id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")";
+    $classParams=$allowedSchoolIds;
+  }
+  $st=$pdo->prepare($classSql); $st->execute($classParams);
+  foreach($st->fetchAll() as $r)  $classes[(int)$r['id']] = $r['name'];
+} catch(Throwable $e) {}
 try { foreach($pdo->query("SELECT id, CONCAT(code,' ',name) AS n FROM subjects") as $r) $subjects[(int)$r['id']] = trim($r['n']); } catch(Throwable $e) {}
 try { foreach($pdo->query("SELECT id, CONCAT(last_name,', ',first_name,' (',role,')') AS n FROM users") as $r) $users[(int)$r['id']] = $r['n']; } catch(Throwable $e) {}
 try { foreach($pdo->query("SELECT id, CONCAT(last_name,', ',first_name) AS n FROM students") as $r) $students[(int)$r['id']] = $r['n']; } catch(Throwable $e) {}
@@ -201,6 +212,7 @@ $from = trim($_GET['from'] ?? '');
 $to = trim($_GET['to'] ?? '');
 $q = trim($_GET['q'] ?? '');
 $schoolFilter=(int)($_GET['school_id'] ?? 0);
+if($schoolFilter>0 && !admin_can_access_school($pdo,$u,$schoolFilter)) $schoolFilter=0;
 $limit = (int)($_GET['limit'] ?? 300);
 if ($limit < 50) $limit = 50;
 if ($limit > 1000) $limit = 1000;
@@ -213,6 +225,7 @@ if ($actor !== '') { $where[] = "e.actor_user_id=?"; $params[] = (int)$actor; }
 if ($from !== '') { $where[] = "e.created_at>=?"; $params[] = $from.' 00:00:00'; }
 if ($to !== '') { $where[] = "e.created_at<=?"; $params[] = $to.' 23:59:59'; }
 if($schoolFilter>0){ $where[]="e.school_id=?"; $params[]=$schoolFilter; }
+elseif(!$isSuperAdmin && $allowedSchoolIds){ $where[]="e.school_id IN (".implode(',',array_fill(0,count($allowedSchoolIds),'?')).")"; $params=array_merge($params,$allowedSchoolIds); }
 if ($q !== '') {
   $where[] = "(e.type LIKE ? OR e.payload_json LIKE ? OR u.username LIKE ?)";
   $params[] = "%$q%"; $params[] = "%$q%"; $params[] = "%$q%";
@@ -226,6 +239,7 @@ if ($where) $sql .= " WHERE ".implode(" AND ", $where);
 $sql .= " ORDER BY e.id DESC LIMIT ".$limit;
 
 $scopeWhere=$schoolFilter>0 ? ' WHERE e.school_id='.(int)$schoolFilter : '';
+if($scopeWhere==='' && !$isSuperAdmin && $allowedSchoolIds) $scopeWhere=' WHERE e.school_id IN ('.implode(',',array_map('intval',$allowedSchoolIds)).')';
 $types = $pdo->query("SELECT e.type, COUNT(*) c FROM events e".$scopeWhere." GROUP BY e.type ORDER BY c DESC")->fetchAll();
 $actors = $pdo->query("SELECT u.id, u.username, CONCAT(u.last_name,', ',u.first_name) AS n, COUNT(*) c
                        FROM events e JOIN users u ON u.id=e.actor_user_id".$scopeWhere."
@@ -270,7 +284,7 @@ render_header('Eventauswertungen',$u);
     <div class="school-selection" data-school-selection>
       <label class="school-selection-label">Schule</label>
       <select class="input school-select" name="school_id" onchange="this.form.submit()">
-        <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>Alle Schulen</option>
+        <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>><?php echo $isSuperAdmin?'Alle Schulen':'Alle zugeordneten Schulen'; ?></option>
         <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
       </select>
       <div class="school-selection-note">Zeigt nur Ereignisse der gewählten Schule.</div>

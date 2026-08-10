@@ -3,6 +3,7 @@ require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/assessment_summaries.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/assessment_weights.php';
 
 $u=require_role('teacher');
 $pdo=db();
@@ -58,6 +59,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $date=$_POST['exam_date'] ?? $ex['exam_date'];
     $title=trim((string)($_POST['title'] ?? $ex['title']));
     $exam_type=written_assessment_normalize_type((string)($_POST['exam_type'] ?? ($ex['exam_type'] ?? 'SA')));
+    $weight_multiplier=assessment_weight_multiplier_normalize($_POST['weight_multiplier'] ?? ($ex['weight_multiplier'] ?? 1));
 
     if(!$date) $err='Bitte Datum wählen.';
     elseif($title==='') $err='Bitte Titel eingeben.';
@@ -67,8 +69,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       try{
         // Update exam (exam_type column exists in current schema via ensure_schema)
         try{
-          $pdo->prepare("UPDATE exams SET exam_date=?, title=?, exam_type=? WHERE id=? AND teacher_id=?")
-              ->execute([$date,$title,$exam_type,$id,(int)$u['id']]);
+          $pdo->prepare("UPDATE exams SET exam_date=?, title=?, exam_type=?, weight_multiplier=? WHERE id=? AND teacher_id=?")
+              ->execute([$date,$title,$exam_type,$weight_multiplier,$id,(int)$u['id']]);
         } catch(PDOException $pex){
           // Fallback if exam_type column not available
           $pdo->prepare("UPDATE exams SET exam_date=?, title=? WHERE id=? AND teacher_id=?")
@@ -126,6 +128,7 @@ $typeNow = written_assessment_normalize_type((string)($ex['exam_type'] ?? 'SA'))
 $written_summary_map = [
   'SA' => written_assessment_summary('SA'),
   'TEST' => written_assessment_summary('TEST'),
+  'DICTATION' => written_assessment_summary('DICTATION'),
   'REVIEW' => written_assessment_summary('REVIEW'),
   'TASK' => written_assessment_summary('TASK'),
   'OTHER' => written_assessment_summary('OTHER'),
@@ -133,11 +136,14 @@ $written_summary_map = [
 $written_tooltip_map = [
   'SA' => written_assessment_summary_tooltip('SA'),
   'TEST' => written_assessment_summary_tooltip('TEST'),
+  'DICTATION' => written_assessment_summary_tooltip('DICTATION'),
   'REVIEW' => written_assessment_summary_tooltip('REVIEW'),
   'TASK' => written_assessment_summary_tooltip('TASK'),
   'OTHER' => written_assessment_summary_tooltip('OTHER'),
 ];
 $written_type_options = written_assessment_types();
+$weight_multiplier_options = assessment_weight_multiplier_options();
+$weight_multiplier_now = assessment_weight_multiplier_normalize($ex['weight_multiplier'] ?? 1);
 
 render_header('Besondere schriftliche Leistungsfeststellung bearbeiten',$u);
 ?>
@@ -175,6 +181,15 @@ render_header('Besondere schriftliche Leistungsfeststellung bearbeiten',$u);
             <option value="<?php echo h($typeValue); ?>" <?php echo $typeNow===$typeValue?'selected':''; ?>><?php echo h($typeLabel); ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
+      <div>
+        <label class="muted">Gewicht</label>
+        <select class="input" name="weight_multiplier" style="max-width:140px">
+          <?php foreach($weight_multiplier_options as $weightValue => $weightLabel): ?>
+            <option value="<?php echo h($weightValue); ?>" <?php echo abs($weight_multiplier_now-(float)$weightValue)<0.001?'selected':''; ?>><?php echo h($weightLabel); ?></option>
+          <?php endforeach; ?>
+        </select>
+        <div class="small muted">Optional für Umfang und Schwierigkeit.</div>
       </div>
       <div style="flex:1">
         <label class="muted">Titel</label>

@@ -90,7 +90,7 @@ function load_school_years(PDO $pdo, bool $includeArchived = true, int $schoolId
   return $rows;
 }
 
-function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDeparted = true, int $schoolId = 0): array {
+function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDeparted = true, int $schoolId = 0, array $schoolIds = []): array {
   $sql = "SELECT c.*, sp.label AS school_year_label,
                  pc.name AS predecessor_name,
                  COUNT(DISTINCT CASE WHEN ce.status IN ('active','repeated','transferred') THEN ce.student_id END) AS student_count,
@@ -103,7 +103,16 @@ function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDe
           WHERE 1=1";
   $params = [];
   if($schoolYearId > 0){ $sql .= " AND c.school_period_set_id=?"; $params[] = $schoolYearId; }
-  if($schoolId > 0){ $sql .= " AND sf.school_id=?"; $params[]=$schoolId; }
+  if($schoolId > 0){
+    $sql .= " AND sf.school_id=?";
+    $params[]=$schoolId;
+  } elseif($schoolIds){
+    $schoolIds=array_values(array_unique(array_filter(array_map('intval',$schoolIds),static fn(int $id): bool => $id>0)));
+    if($schoolIds){
+      $sql .= " AND sf.school_id IN (".implode(',',array_fill(0,count($schoolIds),'?')).")";
+      $params=array_merge($params,$schoolIds);
+    }
+  }
   if(!$includeDeparted){ $sql .= " AND c.is_departed=0"; }
   $sql .= " GROUP BY c.id ORDER BY sp.semester1_from DESC, c.school_type, c.year, c.name";
   $st = $pdo->prepare($sql);
@@ -111,14 +120,16 @@ function load_classes_for_admin(PDO $pdo, int $schoolYearId = 0, bool $includeDe
   return $st->fetchAll();
 }
 
-function load_teacher_classes(PDO $pdo, int $teacherId, int $schoolYearId = 0, bool $includeArchived = false, bool $includeDeparted = false, bool $includeEndedAssignments = true): array {
+function load_teacher_classes(PDO $pdo, int $teacherId, int $schoolYearId = 0, bool $includeArchived = false, bool $includeDeparted = false, bool $includeEndedAssignments = true, int $schoolId = 0): array {
   $sql = "SELECT DISTINCT c.*, sp.label AS school_year_label, sp.archived AS school_year_archived
           FROM teacher_assignments ta
           JOIN classes c ON c.id=ta.class_id
           LEFT JOIN school_period_sets sp ON sp.id=c.school_period_set_id
+          LEFT JOIN school_forms sf ON sf.id=c.school_form_id
           WHERE ta.teacher_id=?";
   $params = [$teacherId];
   if($schoolYearId > 0){ $sql .= " AND c.school_period_set_id=?"; $params[] = $schoolYearId; }
+  if($schoolId > 0){ $sql .= " AND sf.school_id=?"; $params[] = $schoolId; }
   if(!$includeArchived){ $sql .= " AND c.is_archived=0"; }
   if(!$includeDeparted){ $sql .= " AND c.is_departed=0"; }
   if(!$includeEndedAssignments){ $sql .= " AND ta.status='active'"; }

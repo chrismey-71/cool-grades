@@ -3,6 +3,7 @@ require_once __DIR__.'/helpers.php';
 require_once __DIR__.'/oral_assessments.php';
 require_once __DIR__.'/school_years.php';
 require_once __DIR__.'/assessment_summaries.php';
+require_once __DIR__.'/participation_pedagogical_mode.php';
 
 function report_eval_normalize_rating_label(?string $label): array {
   $label = trim((string)$label);
@@ -21,7 +22,15 @@ function report_eval_normalize_rating_label(?string $label): array {
   ];
 }
 
-function report_eval_rating_classification(?string $label): ?string {
+/**
+ * Resolves the saved direction first. The label parser is only a legacy
+ * fallback for records that predate the explicit impact_kind snapshot.
+ */
+function report_eval_rating_classification(?string $label, ?string $impactKind = null): ?string {
+  $explicitKind = participation_impact_kind_normalize($impactKind);
+  if($explicitKind === 'unrated') return null;
+  if($explicitKind !== '') return $explicitKind;
+
   $parts = report_eval_normalize_rating_label($label);
   $norm = $parts['norm'];
   $ascii = $parts['ascii'];
@@ -87,8 +96,8 @@ function report_eval_rating_classification(?string $label): ?string {
   return null;
 }
 
-function report_eval_rating_score(?string $label): ?int {
-  $classification = report_eval_rating_classification($label);
+function report_eval_rating_score(?string $label, ?string $impactKind = null): ?int {
+  $classification = report_eval_rating_classification($label, $impactKind);
   if($classification === null) return null;
   if($classification === 'neutral') return 0;
 
@@ -342,23 +351,33 @@ function report_eval_written_summary(array $writtenRows): array {
   });
   $symbols = [];
   $grades = [];
+  $weightedSum = 0.0;
+  $weightSum = 0.0;
   $typeCounts = [];
   foreach($writtenRows as $row){
     $grade = (int)$row['grade'];
     if($grade <= 0) continue;
     $grades[] = $grade;
+    $weight = function_exists('assessment_weight_multiplier_normalize')
+      ? assessment_weight_multiplier_normalize($row['weight_multiplier'] ?? 1)
+      : max(0.0, (float)($row['weight_multiplier'] ?? 1));
+    if($weight <= 0) $weight = 1.0;
+    $weightedSum += $grade * $weight;
+    $weightSum += $weight;
     $type = written_assessment_normalize_type((string)($row['exam_type'] ?? 'SA'));
     $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
-    $symbols[] = written_assessment_type_short_label($type).' '.report_eval_grade_symbol($grade, (string)($row['tendency'] ?? ''));
+    $weightSuffix = abs($weight - 1.0) > 0.001 ? ' · '.number_format($weight, 1, ',', '.').'x' : '';
+    $symbols[] = written_assessment_type_short_label($type).' '.report_eval_grade_symbol($grade, (string)($row['tendency'] ?? '')).$weightSuffix;
   }
   $count = count($symbols);
-  $avg = $grades ? array_sum($grades) / count($grades) : null;
+  $avg = $weightSum > 0 ? $weightedSum / $weightSum : null;
   return [
     'count' => $count,
     'text' => $count ? ($count.': '.implode(', ', array_slice($symbols, 0, 4)).($count > 4 ? ', …' : '')) : '–',
     'avg' => $avg,
     'grades' => $grades,
     'type_counts' => $typeCounts,
+    'weight_sum' => $weightSum,
   ];
 }
 
@@ -381,7 +400,7 @@ function report_eval_oral_summary(array $oralRows): array {
   $negative = 0;
   foreach($oralRows as $row){
     $label = trim((string)($row['impact_label'] ?? ''));
-    $classification = report_eval_rating_classification($label);
+    $classification = report_eval_rating_classification($label, (string)($row['impact_kind'] ?? ''));
     if($classification === 'positive') $positive++;
     elseif($classification === 'negative') $negative++;
     elseif($classification === 'neutral') $neutral++;
@@ -545,7 +564,7 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
   if($dateFrom !== ''){ $where .= " AND pe.event_date >= ?"; $params[] = $dateFrom; }
   if($dateTo !== ''){ $where .= " AND pe.event_date <= ?"; $params[] = $dateTo; }
 
-  $st = $pdo->prepare("SELECT pe.id, pe.student_id, pe.event_date, pe.reason_label, pe.rating, pe.reason_text, pe.note,
+  $st = $pdo->prepare("SELECT pe.id, pe.student_id, pe.event_date, pe.reason_label, pe.rating, pe.impact_kind, pe.reason_text, pe.note,
                               so.label AS social_label, ph.label AS phase_label, hw.label AS homework_label
                        FROM participation_events pe
                        LEFT JOIN participation_options so ON so.id=pe.social_form_option_id
@@ -574,8 +593,8 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
       $summaries[$sid]['focus_counts'][(string)$event['homework_label']] = ($summaries[$sid]['focus_counts'][(string)$event['homework_label']] ?? 0) + 1;
     }
 
-    $classification = report_eval_rating_classification((string)$event['rating']);
-    $score = report_eval_rating_score((string)$event['rating']);
+    $classification = report_eval_rating_classification((string)$event['rating'], (string)($event['impact_kind'] ?? ''));
+    $score = report_eval_rating_score((string)$event['rating'], (string)($event['impact_kind'] ?? ''));
     if($classification === 'positive') $summaries[$sid]['positive_count']++;
     elseif($classification === 'negative') $summaries[$sid]['negative_count']++;
     elseif($classification === 'neutral') $summaries[$sid]['neutral_count']++;
@@ -648,7 +667,7 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
   $paramsWritten = [$classId, $subjectId];
   if($dateFrom !== ''){ $whereWritten .= " AND e.exam_date >= ?"; $paramsWritten[] = $dateFrom; }
   if($dateTo !== ''){ $whereWritten .= " AND e.exam_date <= ?"; $paramsWritten[] = $dateTo; }
-  $st = $pdo->prepare("SELECT eg.student_id, e.exam_date, e.exam_type, e.title, eg.grade, eg.tendency, eg.remark
+  $st = $pdo->prepare("SELECT eg.student_id, e.exam_date, e.exam_type, e.title, e.weight_multiplier, eg.grade, eg.tendency, eg.remark
                        FROM exams e
                        JOIN exam_grades eg ON eg.exam_id=e.id
                        WHERE $whereWritten
@@ -672,7 +691,7 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
   $paramsOral = [$classId, $subjectId];
   if($dateFrom !== ''){ $whereOral .= " AND oa.assessment_date >= ?"; $paramsOral[] = $dateFrom; }
   if($dateTo !== ''){ $whereOral .= " AND oa.assessment_date <= ?"; $paramsOral[] = $dateTo; }
-  $st = $pdo->prepare("SELECT oa.student_id, oa.assessment_date, oa.assessment_type, oa.impact_label, oa.topic_area, oa.questions, oa.category, oa.title
+  $st = $pdo->prepare("SELECT oa.student_id, oa.assessment_date, oa.assessment_type, oa.impact_label, oa.impact_kind, oa.weight_multiplier, oa.topic_area, oa.questions, oa.category, oa.title
                        FROM oral_assessments oa
                        WHERE $whereOral
                        ORDER BY oa.assessment_date DESC, oa.id DESC");
@@ -681,7 +700,7 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
     $sid = (int)$row['student_id'];
     if(!isset($summaries[$sid])) continue;
     $summaries[$sid]['oral_rows'][] = $row;
-    $classification = report_eval_rating_classification((string)($row['impact_label'] ?? ''));
+    $classification = report_eval_rating_classification((string)($row['impact_label'] ?? ''), (string)($row['impact_kind'] ?? ''));
     if($classification === 'positive') $summaries[$sid]['oral_positive_count']++;
     elseif($classification === 'negative') $summaries[$sid]['oral_negative_count']++;
     elseif($classification === 'neutral') $summaries[$sid]['oral_neutral_count']++;

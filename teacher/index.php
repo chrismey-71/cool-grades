@@ -2,22 +2,87 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/assessment_summaries.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
 $u=require_role('teacher'); $pdo=db(); $bp=cfg()['base_path'];
 
-$currentSchoolYearId=school_year_current_id($pdo);
-$classes=load_teacher_classes($pdo,(int)$u['id'],$currentSchoolYearId,false,false,false);
+$teacherId=(int)$u['id'];
+$assignedSchoolIds=teacher_school_ids($pdo,$teacherId);
+if(!$assignedSchoolIds){
+  // Safe fallback for legacy installations before teacher_schools was populated.
+  $st=$pdo->prepare("SELECT DISTINCT sf.school_id
+                     FROM teacher_assignments ta
+                     JOIN classes c ON c.id=ta.class_id
+                     JOIN school_forms sf ON sf.id=c.school_form_id
+                     WHERE ta.teacher_id=? AND sf.school_id IS NOT NULL
+                     ORDER BY sf.school_id");
+  $st->execute([$teacherId]);
+  $assignedSchoolIds=array_map('intval',array_column($st->fetchAll(),'school_id'));
+}
 
-$st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? AND ta.status='active' ORDER BY s.code");
-$st->execute([(int)$u['id']]); $subjects=$st->fetchAll();
+$teacherSchools=[];
+if($assignedSchoolIds){
+  $in=implode(',',array_fill(0,count($assignedSchoolIds),'?'));
+  $st=$pdo->prepare("SELECT id,name FROM schools WHERE active=1 AND id IN ($in) ORDER BY name");
+  $st->execute($assignedSchoolIds);
+  $teacherSchools=$st->fetchAll();
+}
+
+$allowedSchoolIds=array_map('intval',array_column($teacherSchools,'id'));
+$requestedSchoolId=(int)($_GET['school_id'] ?? 0);
+$storedSchoolId=(int)($_SESSION['teacher_school_context_id'] ?? 0);
+if($requestedSchoolId>0 && in_array($requestedSchoolId,$allowedSchoolIds,true)){
+  // A direct choice in the dashboard deliberately changes the working context.
+  $selectedSchoolId=$requestedSchoolId;
+} elseif(in_array($storedSchoolId,$allowedSchoolIds,true)){
+  // Navigation back to the dashboard must keep the teacher's last choice.
+  $selectedSchoolId=$storedSchoolId;
+} else {
+  $selectedSchoolId=count($teacherSchools) ? (int)$teacherSchools[0]['id'] : 0;
+}
+$selectedSchoolName='';
+foreach($teacherSchools as $school){
+  if((int)$school['id']===$selectedSchoolId){
+    $selectedSchoolName=(string)$school['name'];
+    break;
+  }
+}
+
+// The selected school is a personal, temporary working context for the header
+// and subsequent teacher pages. It is always validated again before display.
+if($selectedSchoolId>0){
+  $_SESSION['teacher_school_context_id']=$selectedSchoolId;
+} else {
+  unset($_SESSION['teacher_school_context_id']);
+}
+
+$currentSchoolYearId=school_year_current_id($pdo,$selectedSchoolId);
+$classes=load_teacher_classes($pdo,$teacherId,$currentSchoolYearId,false,false,false,$selectedSchoolId);
+
+$subjectSql="SELECT DISTINCT s.id,s.code,s.name
+             FROM teacher_assignments ta
+             JOIN classes c ON c.id=ta.class_id
+             JOIN school_forms sf ON sf.id=c.school_form_id
+             JOIN subjects s ON s.id=ta.subject_id
+             WHERE ta.teacher_id=? AND ta.status='active' AND c.school_period_set_id=? AND c.is_archived=0 AND c.is_departed=0";
+$subjectParams=[$teacherId,$currentSchoolYearId];
+if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+$subjectSql.=" ORDER BY s.code";
+$st=$pdo->prepare($subjectSql);
+$st->execute($subjectParams);
+$subjects=$st->fetchAll();
 
 // Class+Subject combinations for quick-entry buttons
 $st=$pdo->prepare("SELECT c.id AS class_id,c.name AS class_name,s.id AS subject_id,s.code AS subject_code,s.name AS subject_name
   FROM teacher_assignments ta
   JOIN classes c ON c.id=ta.class_id
+  JOIN school_forms sf ON sf.id=c.school_form_id
   JOIN subjects s ON s.id=ta.subject_id
-  WHERE ta.teacher_id=? AND ta.status='active' AND c.school_period_set_id=? AND c.is_archived=0 AND c.is_departed=0
+  WHERE ta.teacher_id=? AND ta.status='active' AND c.school_period_set_id=? AND c.is_archived=0 AND c.is_departed=0".
+  ($selectedSchoolId>0 ? " AND sf.school_id=?" : '')."
   ORDER BY c.name,s.code");
-$st->execute([(int)$u['id'],$currentSchoolYearId]);
+$comboParams=[$teacherId,$currentSchoolYearId];
+if($selectedSchoolId>0) $comboParams[]=$selectedSchoolId;
+$st->execute($comboParams);
 $combos=$st->fetchAll();
 $comboCount=count($combos);
 $written_type_options = written_assessment_types();
@@ -33,6 +98,22 @@ render_header('Dashboard',$u);
     <div class="card">
       <h1>Dashboard</h1>
       <p class="muted">Wähle den passenden Arbeitsbereich: Leistungen erfassen, Einträge bearbeiten, Abschlussbeurteilungen festlegen oder Berichte und Auswertungen öffnen.</p>
+
+      <?php if(count($teacherSchools)>1): ?>
+        <form method="get" class="dashboard-school-selection" data-school-selection style="margin-top:14px">
+          <div>
+            <label class="school-selection-label" for="dashboard-school-id">Arbeitsbereich Schule</label>
+            <select class="input school-select" id="dashboard-school-id" name="school_id" onchange="this.form.submit()">
+              <?php foreach($teacherSchools as $school): ?>
+                <option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $selectedSchoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="school-selection-note">Klassen, Fächer und Schnellzugriffe dieses Dashboards werden auf die gewählte Schule beschränkt.</div>
+        </form>
+      <?php elseif($selectedSchoolName!==''): ?>
+        <div class="dashboard-school-single" style="margin-top:14px"><span>Arbeitsbereich Schule</span><b><?php echo h($selectedSchoolName); ?></b></div>
+      <?php endif; ?>
 
       <div class="grid" style="margin-top:14px">
         <div class="col-12 col-md-6">

@@ -202,6 +202,7 @@ $notice_code=(string)($_GET['msg'] ?? '');
 $saved_count=(int)($_GET['saved_count'] ?? 0);
 if(isset($_GET['err']) && $_GET['err']!=='') $err=(string)$_GET['err'];
 if($saved_count>0) $msg='Gespeichert für '.$saved_count.' Schüler:in(nen).';
+elseif($notice_code==='lesson_deleted') $msg='Stunde gelöscht. Du kannst nun eine andere Stunde auswählen oder eine neue Stunde anlegen.';
 elseif($selectedStudentGroup) $msg='Gruppe vorausgewählt: '.$selectedStudentGroup['name'];
 
 // keep selections on validation errors
@@ -363,7 +364,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   // resolve labels (snapshot)
   $reason_label='';
   foreach($reasons as $r){ if((int)$r['id']===$reason_id){$reason_label=$r['label'];break;} }
-  $impact_label=''; foreach($impacts as $r){ if((int)$r['id']===$impact_id){$impact_label=$r['label'];break;} }
+  $impact_label='';
+  $impact_kind='';
+  foreach($impacts as $r){
+    if((int)$r['id']===$impact_id){
+      $impact_label=(string)$r['label'];
+      // Save the explicitly maintained direction, not a later label interpretation.
+      $impact_kind=participation_impact_kind_from_option($r);
+      break;
+    }
+  }
   $sel_group_ids=array_values(array_unique(array_filter(array_map('intval',(array)$sel_group_ids), fn($v)=>$v>0)));
 
   if($form_action==='save_entry' && $err===''){
@@ -389,16 +399,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $pdo->beginTransaction();
     try{
       $ins=$pdo->prepare("INSERT INTO participation_events
-        (student_id,teacher_id,class_id,subject_id,lesson_id,event_date,reason_option_id,reason_label,impact_option_id,rating,
+        (student_id,teacher_id,class_id,subject_id,lesson_id,event_date,reason_option_id,reason_label,impact_option_id,rating,impact_kind,
          social_form_option_id,phase_option_id,homework_option_id,reason_text,note,created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
       $linkC=$pdo->prepare("INSERT IGNORE INTO participation_event_criteria (event_id,criteria_id) VALUES (?,?)");
       $linkO=$pdo->prepare("INSERT IGNORE INTO participation_event_options (event_id,option_id) VALUES (?,?)");
 
       foreach($sel_student_ids as $sid){
         $ins->execute([
           (int)$sid,(int)$u['id'],$class_id,$subject_id,$lesson_id?:null,$date,
-          $reason_id,$reason_label,$impact_id,$impact_label,
+          $reason_id,$reason_label,$impact_id,$impact_label,$impact_kind,
           $social_id?:null,$phase_id?:null,$hw_id?:null,
           $reason_text?:null,$note?:null,now_iso()
         ]);
@@ -535,13 +545,15 @@ $current_phase_id=(int)($_POST['phase_option_id'] ?? 0);
 $current_impact_id=(int)($_POST['impact_option_id'] ?? 0);
 $current_suggested_mode=participation_pedagogical_mode_suggestion($reasons,$phases,$current_reason_id,$current_phase_id);
 $current_impact_label='';
+$current_impact_kind='';
 foreach($impacts as $impactOption){
   if((int)($impactOption['id'] ?? 0)===$current_impact_id){
     $current_impact_label=(string)($impactOption['label'] ?? '');
+    $current_impact_kind=participation_impact_kind_from_option($impactOption);
     break;
   }
 }
-$current_hint=participation_pedagogical_hint($current_suggested_mode, participation_impact_kind_from_label($current_impact_label));
+$current_hint=participation_pedagogical_hint($current_suggested_mode, $current_impact_kind);
 
 render_header('Mitarbeit',$u);
 ?>
@@ -603,7 +615,11 @@ render_header('Mitarbeit',$u);
         <form method="post" action="<?php echo h($bp); ?>/teacher/lesson_delete.php" onsubmit="return confirm('Diese Stunde wirklich löschen?');" style="margin:0">
           <?php echo csrf_input(); ?>
           <input type="hidden" name="lesson_id" value="<?php echo (int)$lesson_id; ?>">
-          <input type="hidden" name="return" value="<?php echo h($bp.'/teacher/lesson.php?msg=deleted'); ?>">
+          <input type="hidden" name="return" value="<?php echo h($bp.'/teacher/participation_new.php?'.http_build_query([
+            'class_id'=>$class_id,
+            'subject_id'=>$subject_id,
+            'msg'=>'lesson_deleted',
+          ])); ?>">
           <button class="btn danger small">Stunde löschen</button>
         </form>
       </div>
@@ -744,7 +760,7 @@ render_header('Mitarbeit',$u);
         <select class="input" name="impact_option_id" id="impactSelect" required>
           <option value="0">Bitte wählen…</option>
           <?php foreach($impacts as $o): ?>
-            <?php $impact_kind=participation_impact_kind_from_label((string)$o['label']); ?>
+            <?php $impact_kind=participation_impact_kind_from_option($o); ?>
             <option value="<?php echo (int)$o['id']; ?>" data-impact-kind="<?php echo h($impact_kind); ?>" <?php echo (isset($_POST['impact_option_id']) && (int)$_POST['impact_option_id']===(int)$o['id'])?'selected':''; ?>><?php echo h($o['label']); ?></option>
           <?php endforeach; ?>
         </select>
