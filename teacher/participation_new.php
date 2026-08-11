@@ -270,7 +270,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     }
   }
 
-  $date=$_POST['event_date'] ?? ($lesson['lesson_date'] ?? date('Y-m-d'));
+  $date=($lesson && !empty($lesson['lesson_date'])) ? (string)$lesson['lesson_date'] : ($_POST['event_date'] ?? date('Y-m-d'));
   $reason_id=(int)($_POST['reason_option_id'] ?? 0);
   $impact_id=(int)($_POST['impact_option_id'] ?? 0);
 
@@ -540,6 +540,7 @@ $context_section_open = (int)($_POST['social_form_option_id'] ?? 0)>0
 $group_section_open = !empty($checked_groups) || $_SERVER['REQUEST_METHOD']==='POST';
 $details_section_open = !empty($checked_criteria);
 $students_section_open = !empty($checked_students);
+$note_section_open = trim((string)($_POST['reason_text'] ?? '')) !== '';
 $current_reason_id=(int)($_POST['reason_option_id'] ?? 0);
 $current_phase_id=(int)($_POST['phase_option_id'] ?? 0);
 $current_impact_id=(int)($_POST['impact_option_id'] ?? 0);
@@ -554,6 +555,14 @@ foreach($impacts as $impactOption){
   }
 }
 $current_hint=participation_pedagogical_hint($current_suggested_mode, $current_impact_kind);
+$create_lesson_active = (string)($_POST['create_lesson'] ?? '') === '1';
+$event_date_value = (string)($_POST['event_date'] ?? ($lesson['lesson_date'] ?? date('Y-m-d')));
+if($lesson && !empty($lesson['lesson_date'])){
+  $event_date_value = (string)$lesson['lesson_date'];
+} elseif($create_lesson_active && isset($_POST['lesson_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$_POST['lesson_date'])){
+  $event_date_value = (string)$_POST['lesson_date'];
+}
+$event_date_locked = ($lesson && !empty($lesson['lesson_date'])) || $create_lesson_active;
 
 render_header('Mitarbeit',$u);
 ?>
@@ -566,6 +575,19 @@ render_header('Mitarbeit',$u);
     <div class="card" style="margin-top:10px;border-color:#cfe5ff;background:#eef6ff">
       <b>Vereinfachte Eingabe aktiv</b><br>
       Es wird nur die Alltagsebene der Mitarbeitserfassung angezeigt: Datum, Grund/Anlass, Eindruck/Relevanz, Beobachtungsbereich, Leistungsart, kurze Beobachtung und Schüler:innen. Die fachliche Tiefe mit Unterrichtskontext und Detailkriterien bleibt ausgeblendet.
+      <div class="small muted" style="margin-top:6px">
+        Einstellung ändern:
+        <a href="<?php echo h($bp); ?>/account.php#account-pref-simple-participation">Konto → Vereinfachte Eingabe bei Mitarbeit</a>
+      </div>
+    </div>
+  <?php else: ?>
+    <div class="card" style="margin-top:10px;border-color:#e2e8f0;background:#f8fafc">
+      <b>Vereinfachte Eingabe verfügbar</b><br>
+      Wenn du im Unterricht weniger Detailfelder sehen möchtest, kannst du die vereinfachte Mitarbeitserfassung im Konto aktivieren.
+      <div class="small muted" style="margin-top:6px">
+        Einstellung ändern:
+        <a href="<?php echo h($bp); ?>/account.php#account-pref-simple-participation">Konto → Vereinfachte Eingabe bei Mitarbeit</a>
+      </div>
     </div>
   <?php endif; ?>
   <?php if(legal_hints_enabled($u)): ?>
@@ -734,7 +756,11 @@ render_header('Mitarbeit',$u);
     <div class="row">
       <div>
         <label class="muted">Datum</label>
-        <input class="input" type="date" name="event_date" id="eventDate" value="<?php echo h($_POST['event_date'] ?? ($lesson['lesson_date'] ?? date('Y-m-d'))); ?>">
+        <input class="input" type="date" <?php echo $event_date_locked?'':'name="event_date"'; ?> id="eventDate" value="<?php echo h($event_date_value); ?>" <?php echo $event_date_locked?'disabled aria-disabled="true" data-lesson-locked="1"':''; ?>>
+        <input type="hidden" name="event_date" id="eventDateHidden" value="<?php echo h($event_date_value); ?>" <?php echo $event_date_locked?'':'disabled'; ?>>
+        <div id="eventDateLockHint" class="small muted" style="margin-top:5px;<?php echo $event_date_locked?'':'display:none'; ?>">
+          Datum wird aus dem Stundenkontext übernommen.
+        </div>
       </div>
 
       <div>
@@ -834,17 +860,22 @@ render_header('Mitarbeit',$u);
     </details>
     <?php endif; ?>
 
-    <div class="contrast-block section-context">
-      <label class="muted">Kurze Beobachtung / Anlass</label>
-      <textarea class="input" name="reason_text" rows="3" <?php echo $simple_entry_mode?'required':''; ?> placeholder="z.B. Fallbeispiel nachvollziehbar erklärt."><?php echo h($_POST['reason_text'] ?? ''); ?></textarea>
-      <div class="small muted" style="margin-top:6px">
-        <?php if($simple_entry_mode): ?>
-          Die vereinfachte Eingabe dokumentiert die laufende Beobachtung mit Anlass, Beobachtungsbereich und Leistungsart. Die fachliche Tiefe bleibt verborgen, damit die Erfassung im Unterricht schneller bleibt.
-        <?php else: ?>
-          Kurz und alltagsnah dokumentieren. Wenn du fachlich genauer festhalten möchtest, nutze darunter die optionalen fachlichen Details.
-        <?php endif; ?>
+    <details class="accordion contrast-panel section-context" <?php echo $note_section_open?'open':''; ?> style="margin-top:12px">
+      <summary><span class="acc-title">Kurze Beobachtung / Anlass</span></summary>
+      <div class="acc-body">
+        <div class="contrast-block section-context" style="margin-top:0">
+          <label class="muted">Kurze Beobachtung / Anlass</label>
+          <textarea class="input" name="reason_text" rows="3" <?php echo $simple_entry_mode?'required':''; ?> placeholder="z.B. Fallbeispiel nachvollziehbar erklärt."><?php echo h($_POST['reason_text'] ?? ''); ?></textarea>
+          <div class="small muted" style="margin-top:6px">
+            <?php if($simple_entry_mode): ?>
+              Die vereinfachte Eingabe dokumentiert die laufende Beobachtung mit Anlass, Beobachtungsbereich und Leistungsart. Die fachliche Tiefe bleibt verborgen, damit die Erfassung im Unterricht schneller bleibt.
+            <?php else: ?>
+              Kurz und alltagsnah dokumentieren. Wenn du fachlich genauer festhalten möchtest, nutze darunter die optionalen fachlichen Details.
+            <?php endif; ?>
+          </div>
+        </div>
       </div>
-    </div>
+    </details>
 
     <?php if(!$compact_forms): ?><div style="height:12px"></div><?php endif; ?>
     <?php accordion_section_start($compact_forms, 'Beobachtungsbereich', $group_section_open, 'margin-top:12px', '', 'contrast-panel section-context'); ?>
@@ -936,7 +967,10 @@ render_header('Mitarbeit',$u);
 
       <?php if($quick): ?>
         <div style="height:10px"></div>
-        <div class="muted"><b>Quick-Pick:</b> Schüler:innen mit den wenigsten oder keinen bisherigen Mitarbeitsbewertungen</div>
+        <div class="muted">
+          <b>Quick-Pick:</b> Schüler:innen mit den wenigsten oder keinen bisherigen Mitarbeitsbewertungen.
+          <span class="small">Einstellung ändern: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-pick">Konto → Quick-Pick in Mitarbeit erfassen</a></span>
+        </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
           <?php foreach($quick as $q): ?>
             <button type="button" class="btn small secondary" onclick="toggleStudent(<?php echo (int)$q['student_id']; ?>)"><?php echo h($q['last_name'].', '.$q['first_name']); ?></button>
@@ -1182,17 +1216,64 @@ render_header('Mitarbeit',$u);
     const fields=document.getElementById('createLessonFields');
     const sel=document.getElementById('lessonSelect');
     const eventDate=document.getElementById('eventDate');
+    const eventDateHidden=document.getElementById('eventDateHidden');
+    const eventDateLockHint=document.getElementById('eventDateLockHint');
     const lessonUnit=document.getElementById('lessonUnit');
+    const lessonDateInput=document.querySelector('input[name="lesson_date"]');
 
     function setCreateLessonEnabled(on){
       if(!lessonUnit) return;
       // Prevent hidden required fields from blocking submit: disable when not used
       lessonUnit.disabled = !on;
       lessonUnit.required = !!on;
-      const d = document.querySelector('input[name="lesson_date"]');
+      const d = lessonDateInput;
       if(d) d.disabled = !on;
       const t = document.querySelector('input[name="topic"]');
       if(t) t.disabled = !on;
+    }
+
+    function setEventDateLocked(locked, dateValue){
+      if(!eventDate) return;
+      if(dateValue) eventDate.value = dateValue;
+      if(eventDateHidden) eventDateHidden.value = eventDate.value;
+      if(locked){
+        eventDate.removeAttribute('name');
+        eventDate.disabled = true;
+        eventDate.setAttribute('aria-disabled', 'true');
+        if(eventDateHidden) eventDateHidden.disabled = false;
+      } else {
+        eventDate.name = 'event_date';
+        eventDate.disabled = false;
+        eventDate.removeAttribute('aria-disabled');
+        if(eventDateHidden) eventDateHidden.disabled = true;
+      }
+      eventDate.style.background = locked ? '#f1f5f9' : '';
+      eventDate.style.cursor = locked ? 'not-allowed' : '';
+      if(eventDateLockHint) eventDateLockHint.style.display = locked ? '' : 'none';
+    }
+
+    function selectedLessonDate(){
+      if(!sel || parseInt(sel.value || '0', 10) <= 0) return '';
+      const opt = sel.options[sel.selectedIndex];
+      return opt ? (opt.getAttribute('data-date') || '') : '';
+    }
+
+    function syncEventDateFromLessonContext(){
+      if(!eventDate) return;
+      if(toggle && toggle.checked){
+        setEventDateLocked(true, lessonDateInput ? lessonDateInput.value : '');
+        return;
+      }
+      const d = selectedLessonDate();
+      if(d){
+        setEventDateLocked(true, d);
+        return;
+      }
+      if(eventDate.getAttribute('data-lesson-locked') === '1'){
+        setEventDateLocked(true, eventDate.value);
+        return;
+      }
+      setEventDateLocked(false, '');
     }
 
     if(toggle && fields){
@@ -1200,6 +1281,7 @@ render_header('Mitarbeit',$u);
         fields.style.display = toggle.checked ? '' : 'none';
         if(toggle.checked && sel){ sel.value='0'; }
         setCreateLessonEnabled(toggle.checked);
+        syncEventDateFromLessonContext();
       });
       // init
       setCreateLessonEnabled(toggle.checked);
@@ -1207,15 +1289,15 @@ render_header('Mitarbeit',$u);
 
     if(sel && eventDate){
       sel.addEventListener('change', ()=>{
-        const opt = sel.options[sel.selectedIndex];
-        const d = opt ? opt.getAttribute('data-date') : '';
-        if(d && !(toggle && toggle.checked)){
-          // set date to lesson date (convenience)
-          eventDate.value = d;
-        }
+        syncEventDateFromLessonContext();
         updateAlreadyRatedStudents();
       });
     }
+    if(lessonDateInput){
+      lessonDateInput.addEventListener('input', syncEventDateFromLessonContext);
+      lessonDateInput.addEventListener('change', syncEventDateFromLessonContext);
+    }
+    syncEventDateFromLessonContext();
     updateAlreadyRatedStudents();
   })();
   </script>

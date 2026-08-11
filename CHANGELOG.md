@@ -16,6 +16,16 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.76] - 2026-08-11
+
+### Geändert
+
+- Hinweise zu kontoabhängigen Darstellungsoptionen verlinken nun direkt auf die passende Kontoeinstellung.
+- Die Mitarbeitserfassung zeigt auch bei ausgeschalteter vereinfachter Eingabe einen direkten Hinweis zur Aktivierung im Konto.
+- Das Feld `Kurze Beobachtung / Anlass` ist nun als Accordion dargestellt und beim Öffnen der vereinfachten Eingabe geschlossen.
+- Wird ein Stundenkontext ausgewählt oder neu angelegt, übernimmt die Mitarbeitserfassung das Datum aus diesem Kontext und sperrt das spätere Datumsfeld gegen manuelle Änderung.
+- Versionsnummer auf 1.76 erhöht.
+
 ## [1.74] - 2026-08-10
 
 ### Hinzugefügt

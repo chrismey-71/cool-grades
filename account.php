@@ -92,7 +92,7 @@ render_header('Konto',$u);
   </form>
 </div>
 
-<h2 style="margin-top:18px">Darstellung und Arbeitsweise</h2>
+<h2 id="account-display-workflow" style="margin-top:18px">Darstellung und Arbeitsweise</h2>
 <form method="post" <?php echo dirty_form_attrs(); ?>>
   <?php echo csrf_input(); ?>
   <input type="hidden" name="action" value="prefs">
@@ -100,7 +100,7 @@ render_header('Konto',$u);
   <div class="settings-grid">
     <div class="col-12"><div class="settings-section-heading">Ansicht</div></div>
     <div class="col-12 col-6">
-      <div class="settings-panel">
+      <div class="settings-panel" id="account-pref-theme">
         <div class="settings-panel-title">Theme <span class="setting-impact">nur Ansicht</span></div>
         <div class="row" style="gap:10px;align-items:center">
           <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
@@ -118,7 +118,7 @@ render_header('Konto',$u);
 
     <div class="col-12"><div class="settings-section-heading">Auswertung und Hinweise</div></div>
     <div class="col-12 col-6">
-      <div class="settings-panel">
+      <div class="settings-panel" id="account-pref-legal-hints">
         <div class="settings-panel-title">Gesetzeshinweise <span class="setting-impact">Hinweise</span></div>
         <div class="row" style="gap:10px;align-items:center">
           <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
@@ -137,7 +137,7 @@ render_header('Konto',$u);
     <?php if(($u['role'] ?? '')==='teacher'): ?>
     <div class="col-12"><div class="settings-section-heading">Erfassung</div></div>
     <div class="col-12 col-6">
-      <div class="settings-panel">
+      <div class="settings-panel" id="account-pref-compact-forms">
         <div class="settings-panel-title">Anzeige in Eingabefenstern <span class="setting-impact">Erfassung / Ansicht</span></div>
         <div class="row" style="gap:10px;align-items:center">
           <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
@@ -154,7 +154,7 @@ render_header('Konto',$u);
     </div>
 
     <div class="col-12 col-6">
-      <div class="settings-panel">
+      <div class="settings-panel" id="account-pref-visual-contrast">
         <div class="settings-panel-title">Farbliche Abhebung in Eingabebereichen und Menüs <span class="setting-impact">nur Ansicht</span></div>
         <div class="row" style="gap:10px;align-items:center">
           <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
@@ -171,7 +171,7 @@ render_header('Konto',$u);
     </div>
 
     <div class="col-12 col-6">
-      <div class="settings-panel">
+      <div class="settings-panel" id="account-pref-simple-participation">
         <div class="settings-panel-title">Vereinfachte Eingabe bei Mitarbeit <span class="setting-impact">Erfassung</span></div>
         <div class="row" style="gap:10px;align-items:center">
           <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
@@ -188,7 +188,7 @@ render_header('Konto',$u);
     </div>
 
     <div class="col-12 col-6">
-      <div class="settings-panel">
+      <div class="settings-panel" id="account-pref-quick-entry-ui">
         <div class="settings-panel-title">Schnellerfassung: Auswahlmodus <span class="setting-impact">nur Ansicht</span></div>
         <div class="row" style="gap:10px;align-items:center">
           <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
@@ -205,7 +205,7 @@ render_header('Konto',$u);
     </div>
 
     <div class="col-12 col-6">
-      <div class="settings-panel">
+      <div class="settings-panel" id="account-pref-quick-pick">
         <div class="settings-panel-title">Quick-Pick in Mitarbeit erfassen <span class="setting-impact">Erfassung</span></div>
         <div class="row" style="gap:10px;align-items:center">
           <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">

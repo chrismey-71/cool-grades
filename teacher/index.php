@@ -120,7 +120,7 @@ render_header('Dashboard',$u);
           <div class="card" style="padding:14px">
             <h2 style="margin:0 0 8px 0">Mitarbeit schnell erfassen</h2>
             <?php if($quickMode==='buttons'): ?>
-              <div class="small" style="margin-bottom:8px">Tippe eine Kombination an (Klasse + Fach). Einstellung: <a href="<?php echo h($bp); ?>/account.php">Konto</a>.</div>
+              <div class="small" style="margin-bottom:8px">Tippe eine Kombination an (Klasse + Fach). Einstellung: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-entry-ui">Konto → Schnellerfassung: Auswahlmodus</a>.</div>
               <?php if(!$combos): ?>
                 <div class="flash error">Keine Zuordnungen gefunden. Bitte im Admin unter „Lehrerzuordnung“ Klasse/Fach zuweisen.</div>
               <?php else: ?>
@@ -152,7 +152,7 @@ render_header('Dashboard',$u);
                   <button class="btn" style="min-width:190px">Mitarbeit erfassen</button>
                 </div>
               </form>
-              <div class="small" style="margin-top:8px">Du kannst hier auch Buttons verwenden: <a href="<?php echo h($bp); ?>/account.php">Konto → Darstellung</a>.</div>
+              <div class="small" style="margin-top:8px">Du kannst hier auch Buttons verwenden: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-entry-ui">Konto → Schnellerfassung: Auswahlmodus</a>.</div>
             <?php endif; ?>
 
             <div class="muted" style="margin-top:10px;font-size:13px">
