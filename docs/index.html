@@ -298,8 +298,23 @@
       display: block;
       width: 100%;
       height: auto;
+      background: #eef2ef;
+    }
+
+    .screenshot-zoom-trigger {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: 0;
       border-bottom: 1px solid var(--line);
       background: #eef2ef;
+      color: inherit;
+      cursor: zoom-in;
+    }
+
+    .screenshot-zoom-trigger:focus-visible {
+      outline: 3px solid rgba(47, 95, 74, .45);
+      outline-offset: -3px;
     }
 
     .screenshot-card figcaption {
@@ -315,6 +330,77 @@
       margin: 0;
       color: var(--muted);
       font-size: .96rem;
+    }
+
+    .screenshot-hint {
+      margin-top: 8px;
+      color: var(--quiet);
+      font-size: .88rem;
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      padding: 24px;
+      background: rgba(20, 29, 33, .78);
+    }
+
+    .lightbox.is-open {
+      display: grid;
+      place-items: center;
+    }
+
+    .lightbox-panel {
+      width: min(1180px, 100%);
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+
+    .lightbox-header {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .96);
+    }
+
+    .lightbox-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 760;
+    }
+
+    .lightbox-close {
+      min-width: 38px;
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .lightbox-close:hover {
+      background: var(--surface-soft);
+    }
+
+    .lightbox-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #eef2ef;
     }
 
     .panel {
@@ -467,6 +553,14 @@
         padding-top: 0;
         overflow-wrap: anywhere;
       }
+
+      .lightbox {
+        padding: 10px;
+      }
+
+      .lightbox-panel {
+        max-height: calc(100vh - 20px);
+      }
     }
   </style>
 </head>
@@ -555,11 +649,14 @@
       <div class="section-header">
         <h2>Einblicke in die Arbeit mit COOL-Grades</h2>
         <p>Die Screenshots zeigen typische Arbeitssituationen mit Demo-Daten. Sie sollen einen schnellen Eindruck vermitteln, wie Lehrer:innen im Alltag mit der App arbeiten.</p>
+        <p class="screenshot-hint">Hinweis: Screenshots anklicken, um sie vergrößert anzusehen.</p>
       </div>
       <div class="screenshot-grid">
         <article class="screenshot-card">
           <figure>
-            <img src="screenshots/lehrerhandbuch/01-dashboard.png" alt="Dashboard von COOL-Grades mit den wichtigsten Arbeitsbereichen" loading="lazy">
+            <button class="screenshot-zoom-trigger" type="button" data-full="screenshots/lehrerhandbuch/01-dashboard.png" data-title="Dashboard für den Unterrichtsalltag" aria-label="Screenshot Dashboard vergrößern">
+              <img src="screenshots/lehrerhandbuch/01-dashboard.png" alt="Dashboard von COOL-Grades mit den wichtigsten Arbeitsbereichen" loading="lazy">
+            </button>
             <figcaption>
               <h3>Dashboard für den Unterrichtsalltag</h3>
               <p>Von hier aus wechseln Lehrer:innen zu Mitarbeit, besonderen Leistungsfeststellungen, Abschlussbeurteilung, Auswertungen und Verwaltung.</p>
@@ -568,7 +665,9 @@
         </article>
         <article class="screenshot-card">
           <figure>
-            <img src="screenshots/lehrerhandbuch/05-schnell-mitarbeit-ausgefueellt.png" alt="Ausgefülltes Formular zur schnellen Mitarbeitserfassung" loading="lazy">
+            <button class="screenshot-zoom-trigger" type="button" data-full="screenshots/lehrerhandbuch/05-schnell-mitarbeit-ausgefueellt.png" data-title="Schnelle Mitarbeitserfassung" aria-label="Screenshot Schnell-Mitarbeitserfassung vergrößern">
+              <img src="screenshots/lehrerhandbuch/05-schnell-mitarbeit-ausgefueellt.png" alt="Ausgefülltes Formular zur schnellen Mitarbeitserfassung" loading="lazy">
+            </button>
             <figcaption>
               <h3>Schnelle Mitarbeitserfassung</h3>
               <p>Beobachtungen werden mit Datum, Anlass, Eindruck, Leistungsart und Schüler:innenbezug dokumentiert, ohne daraus Einzelnoten zu machen.</p>
@@ -577,7 +676,9 @@
         </article>
         <article class="screenshot-card">
           <figure>
-            <img src="screenshots/lehrerhandbuch/07-besondere-muendliche-leistung.png" alt="Erfassung einer besonderen mündlichen Leistungsfeststellung" loading="lazy">
+            <button class="screenshot-zoom-trigger" type="button" data-full="screenshots/lehrerhandbuch/07-besondere-muendliche-leistung.png" data-title="Besondere mündliche Leistungen" aria-label="Screenshot besondere mündliche Leistungen vergrößern">
+              <img src="screenshots/lehrerhandbuch/07-besondere-muendliche-leistung.png" alt="Erfassung einer besonderen mündlichen Leistungsfeststellung" loading="lazy">
+            </button>
             <figcaption>
               <h3>Besondere mündliche Leistungen</h3>
               <p>Mündliche Wiederholungen, Präsentationen oder Kurzleistungen werden getrennt von der laufenden Mitarbeit erfasst und bleiben in Auswertungen nachvollziehbar.</p>
@@ -586,7 +687,9 @@
         </article>
         <article class="screenshot-card">
           <figure>
-            <img src="screenshots/lehrerhandbuch/08-besondere-schriftliche-leistung.png" alt="Erfassung einer besonderen schriftlichen Leistungsfeststellung" loading="lazy">
+            <button class="screenshot-zoom-trigger" type="button" data-full="screenshots/lehrerhandbuch/08-besondere-schriftliche-leistung.png" data-title="Schriftliche Leistungsfeststellungen" aria-label="Screenshot schriftliche Leistungsfeststellungen vergrößern">
+              <img src="screenshots/lehrerhandbuch/08-besondere-schriftliche-leistung.png" alt="Erfassung einer besonderen schriftlichen Leistungsfeststellung" loading="lazy">
+            </button>
             <figcaption>
               <h3>Schriftliche Leistungsfeststellungen</h3>
               <p>Schularbeit, Test, Diktat oder andere schriftliche Leistungen können fachlich getrennt dokumentiert und später gesondert ausgewiesen werden.</p>
@@ -595,7 +698,9 @@
         </article>
         <article class="screenshot-card">
           <figure>
-            <img src="screenshots/lehrerhandbuch/19-auswertung-tabelle.png" alt="Auswertungstabelle mit Mitarbeit und besonderen Leistungsfeststellungen" loading="lazy">
+            <button class="screenshot-zoom-trigger" type="button" data-full="screenshots/lehrerhandbuch/19-auswertung-tabelle.png" data-title="Auswertung als Entscheidungsgrundlage" aria-label="Screenshot Auswertung vergrößern">
+              <img src="screenshots/lehrerhandbuch/19-auswertung-tabelle.png" alt="Auswertungstabelle mit Mitarbeit und besonderen Leistungsfeststellungen" loading="lazy">
+            </button>
             <figcaption>
               <h3>Auswertung als Entscheidungsgrundlage</h3>
               <p>Die Auswertung bündelt positive, neutrale und negative Beobachtungen, Datenlage, besondere Leistungen und Hinweise pro Schüler:in.</p>
@@ -604,7 +709,9 @@
         </article>
         <article class="screenshot-card">
           <figure>
-            <img src="screenshots/lehrerhandbuch/25-abschlussbeurteilung-details.png" alt="Detailansicht der Abschlussbeurteilung mit Notenvorschlag und finaler Note" loading="lazy">
+            <button class="screenshot-zoom-trigger" type="button" data-full="screenshots/lehrerhandbuch/25-abschlussbeurteilung-details.png" data-title="Abschlussbeurteilung bewusst festlegen" aria-label="Screenshot Abschlussbeurteilung vergrößern">
+              <img src="screenshots/lehrerhandbuch/25-abschlussbeurteilung-details.png" alt="Detailansicht der Abschlussbeurteilung mit Notenvorschlag und finaler Note" loading="lazy">
+            </button>
             <figcaption>
               <h3>Abschlussbeurteilung bewusst festlegen</h3>
               <p>Die App zeigt einen transparenten Notenvorschlag. Die finale Schulnachricht, Semester- oder Jahresbeurteilung wird ausdrücklich von der Lehrkraft gespeichert.</p>
@@ -679,5 +786,54 @@
       </p>
     </div>
   </footer>
+  <div class="lightbox" id="screenshot-lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" hidden>
+    <div class="lightbox-panel" role="document">
+      <div class="lightbox-header">
+        <p class="lightbox-title" id="lightbox-title">Screenshot</p>
+        <button class="lightbox-close" type="button" aria-label="Große Screenshot-Ansicht schließen">Schließen</button>
+      </div>
+      <img class="lightbox-image" src="" alt="">
+    </div>
+  </div>
+  <script>
+    const lightbox = document.querySelector('#screenshot-lightbox');
+    const lightboxImage = lightbox?.querySelector('.lightbox-image');
+    const lightboxTitle = lightbox?.querySelector('.lightbox-title');
+    const closeButton = lightbox?.querySelector('.lightbox-close');
+    let lastTrigger = null;
+
+    function closeLightbox() {
+      if (!lightbox || !lightboxImage) return;
+      lightbox.classList.remove('is-open');
+      lightbox.hidden = true;
+      lightboxImage.src = '';
+      lightboxImage.alt = '';
+      document.body.style.overflow = '';
+      lastTrigger?.focus();
+    }
+
+    document.querySelectorAll('.screenshot-zoom-trigger').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        if (!lightbox || !lightboxImage || !lightboxTitle) return;
+        const image = trigger.querySelector('img');
+        lastTrigger = trigger;
+        lightboxImage.src = trigger.dataset.full || image?.src || '';
+        lightboxImage.alt = image?.alt || '';
+        lightboxTitle.textContent = trigger.dataset.title || 'Screenshot';
+        lightbox.hidden = false;
+        lightbox.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        closeButton?.focus();
+      });
+    });
+
+    closeButton?.addEventListener('click', closeLightbox);
+    lightbox?.addEventListener('click', (event) => {
+      if (event.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && lightbox && !lightbox.hidden) closeLightbox();
+    });
+  </script>
 </body>
 </html>
