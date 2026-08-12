@@ -238,14 +238,12 @@ else render_header('Berichte & Auswertungen',$u);
 
 <?php if(!$is_print && legal_hints_enabled($u)): ?>
   <div class="report-focus-block" style="margin-top:12px">
-    <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
-      <div>
-        <strong>LBV-orientierte Entscheidungshilfe</strong>
-        <div class="muted" style="margin-top:6px">
-          Die Auswertung unterstützt die Beurteilung auf Basis der erfassten Mitarbeit und besonderer Leistungsfeststellungen. Die endgültige Note wird nicht automatisch festgelegt, sondern bleibt eine pädagogische Entscheidung der Lehrkraft gemäß LBV.
-        </div>
+    <div>
+      <strong>LBV-orientierte Entscheidungshilfe</strong>
+      <div class="muted" style="margin-top:6px">
+        Die Auswertung unterstützt die Beurteilung auf Basis der erfassten Mitarbeit und besonderer Leistungsfeststellungen. Die endgültige Note wird nicht automatisch festgelegt, sondern bleibt eine pädagogische Entscheidung der Lehrkraft gemäß LBV.
+        Weitere Informationen: <a href="https://www.jusline.at/gesetz/lbv" target="_blank" rel="noopener">Leistungsbeurteilungsverordnung öffnen</a>.
       </div>
-      <div><a class="btn secondary small" href="https://www.jusline.at/gesetz/lbv" target="_blank" rel="noopener">LBV öffnen</a></div>
     </div>
   </div>
 <?php endif; ?>

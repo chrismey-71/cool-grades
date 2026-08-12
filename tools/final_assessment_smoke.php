@@ -77,6 +77,20 @@ fa_smoke_assert_same('year', final_assessment_default_scope([
   'semester2_from' => '2026-02-01',
   'semester2_to' => '2026-08-31',
 ], '2026-05-10', 'yearly'), 'Im Jahresmodell darf der Sommerzeitraum nicht als eigenständige 2. Semesterbeurteilung vorausgewählt werden.');
+fa_smoke_assert_same('semester1', final_assessment_default_scope([
+  'semester1_from' => '2026-09-07',
+  'semester1_to' => '2027-02-06',
+  'semester2_from' => '2027-02-08',
+  'semester2_to' => '2027-07-02',
+  'is_current' => 1,
+], '2026-08-12'), 'Wenn in den Ferien bereits das neue Schuljahr aktuell gesetzt ist, soll das 1. Semester vorausgewählt werden.');
+fa_smoke_assert_same('semester1', final_assessment_default_scope([
+  'semester1_from' => '2026-09-07',
+  'semester1_to' => '2027-02-06',
+  'semester2_from' => '2027-02-08',
+  'semester2_to' => '2027-07-02',
+  'is_current' => 1,
+], '2026-08-12', 'yearly'), 'Im Jahresmodell soll bei aktuell gesetztem neuem Schuljahr in den Ferien die Schulnachricht vorausgewählt werden.');
 fa_smoke_assert_same(2, final_assessment_default_period_set_id([
   ['id' => 3, 'semester1_from' => '2026-09-01', 'semester2_to' => '2027-08-31'],
   ['id' => 2, 'semester1_from' => '2025-09-01', 'semester2_to' => '2026-08-31'],

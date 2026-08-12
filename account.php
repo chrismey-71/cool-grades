@@ -79,97 +79,27 @@ render_header('Konto',$u);
 <div class="muted">Username: <b><?php echo h($u['username']); ?></b></div>
 <?php if($msg): ?><div class="card" style="border-color:#bfe5cd;background:#e8f5ee;margin-top:10px"><?php echo h($msg); ?></div><?php endif; ?>
 <?php if($err): ?><div class="card" style="border-color:#ffc6c0;background:#ffeceb;margin-top:10px"><?php echo h($err); ?></div><?php endif; ?>
-<h2 style="margin-top:14px">Passwort ändern</h2>
-<div class="settings-panel" style="margin-top:12px">
-  <form method="post" <?php echo dirty_form_attrs(); ?>>
-    <?php echo csrf_input(); ?>
-    <input type="hidden" name="action" value="password">
-    <div class="settings-panel-title">Neues Passwort</div>
-    <label class="muted">Neues Passwort</label>
-    <input class="input" type="password" name="new_password" required>
-    <div class="small muted settings-panel-note">Erforderlich: <?php echo h(password_policy_summary()); ?>.</div>
-    <div style="height:12px"></div><button class="btn">Speichern</button>
-  </form>
-</div>
 
-<h2 id="account-display-workflow" style="margin-top:18px">Darstellung und Arbeitsweise</h2>
+<h2 id="account-display-workflow" style="margin-top:18px">Persönliche Einstellungen</h2>
+<div class="muted" style="margin-top:4px">
+  Diese Einstellungen verändern Darstellung, Hinweise und Arbeitsweise der App. Sie ändern keine gespeicherten Leistungsdaten.
+</div>
 <form method="post" <?php echo dirty_form_attrs(); ?>>
   <?php echo csrf_input(); ?>
   <input type="hidden" name="action" value="prefs">
+  <div class="settings-panel" style="margin-top:12px;border-color:#cfe5ff;background:#f8fbff">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div class="settings-panel-title">Einstellungen speichern</div>
+        <div class="small muted">Diese Taste speichert nur die unten gewählten Konto-Einstellungen. Das Passwort wird in einem eigenen Sicherheitsbereich geändert.</div>
+      </div>
+      <button class="btn">Persönliche Einstellungen speichern</button>
+    </div>
+  </div>
 
   <div class="settings-grid">
-    <div class="col-12"><div class="settings-section-heading">Ansicht</div></div>
-    <div class="col-12 col-6">
-      <div class="settings-panel" id="account-pref-theme">
-        <div class="settings-panel-title">Theme <span class="setting-impact">nur Ansicht</span></div>
-        <div class="row" style="gap:10px;align-items:center">
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_theme" value="light" style="width:auto" <?php echo (($u['pref_theme'] ?? '')!=='dark')?'checked':''; ?>>
-            <span>Hell</span>
-          </label>
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_theme" value="dark" style="width:auto" <?php echo (($u['pref_theme'] ?? '')==='dark')?'checked':''; ?>>
-            <span>Darkmode</span>
-          </label>
-        </div>
-        <div class="small muted settings-panel-note">Der Darkmode wirkt auf alle Bereiche der Oberfläche. Gespeicherte Daten, Auswertungen und PDF-Dateien werden dadurch nicht verändert.</div>
-      </div>
-    </div>
-
-    <div class="col-12"><div class="settings-section-heading">Auswertung und Hinweise</div></div>
-    <div class="col-12 col-6">
-      <div class="settings-panel" id="account-pref-legal-hints">
-        <div class="settings-panel-title">Gesetzeshinweise <span class="setting-impact">Hinweise</span></div>
-        <div class="row" style="gap:10px;align-items:center">
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_legal_hints_enabled" value="1" style="width:auto" <?php echo ((string)($u['pref_legal_hints_enabled'] ?? '1')!=='0')?'checked':''; ?>>
-            <span>Anzeigen</span>
-          </label>
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_legal_hints_enabled" value="0" style="width:auto" <?php echo ((string)($u['pref_legal_hints_enabled'] ?? '1')==='0')?'checked':''; ?>>
-            <span>Ausblenden</span>
-          </label>
-        </div>
-        <div class="small muted settings-panel-note">Blendet die eingebauten Gesetzeshinweise in Erfassungs- und Auswertungsseiten ein oder aus. Die gespeicherten Leistungsdaten werden dadurch nicht verändert.</div>
-      </div>
-    </div>
-
     <?php if(($u['role'] ?? '')==='teacher'): ?>
-    <div class="col-12"><div class="settings-section-heading">Erfassung</div></div>
-    <div class="col-12 col-6">
-      <div class="settings-panel" id="account-pref-compact-forms">
-        <div class="settings-panel-title">Anzeige in Eingabefenstern <span class="setting-impact">Erfassung / Ansicht</span></div>
-        <div class="row" style="gap:10px;align-items:center">
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_compact_forms_enabled" value="0" style="width:auto" <?php echo ((string)($u['pref_compact_forms_enabled'] ?? '0')!=='1')?'checked':''; ?>>
-            <span>Normal</span>
-          </label>
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_compact_forms_enabled" value="1" style="width:auto" <?php echo ((string)($u['pref_compact_forms_enabled'] ?? '0')==='1')?'checked':''; ?>>
-            <span>Kompakt</span>
-          </label>
-        </div>
-        <div class="small muted settings-panel-note">Kompakt bündelt Eingabebereiche in Accordions. Normal belässt die Formulare wie bisher. Die gespeicherten Daten bleiben gleich.</div>
-      </div>
-    </div>
-
-    <div class="col-12 col-6">
-      <div class="settings-panel" id="account-pref-visual-contrast">
-        <div class="settings-panel-title">Farbliche Abhebung in Eingabebereichen und Menüs <span class="setting-impact">nur Ansicht</span></div>
-        <div class="row" style="gap:10px;align-items:center">
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_visual_contrast" value="normal" style="width:auto" <?php echo (($u['pref_visual_contrast'] ?? 'normal')!=='high')?'checked':''; ?>>
-            <span>Normal</span>
-          </label>
-          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
-            <input type="radio" name="pref_visual_contrast" value="high" style="width:auto" <?php echo (($u['pref_visual_contrast'] ?? 'normal')==='high')?'checked':''; ?>>
-            <span>Kontrastreich</span>
-          </label>
-        </div>
-        <div class="small muted settings-panel-note">Hebt Eingabebereiche und Menükarten farblich deutlicher voneinander ab. Die Auswahl verändert keine gespeicherten Daten.</div>
-      </div>
-    </div>
-
+    <div class="col-12"><div class="settings-section-heading">Schnelle Mitarbeitserfassung</div></div>
     <div class="col-12 col-6">
       <div class="settings-panel" id="account-pref-simple-participation">
         <div class="settings-panel-title">Vereinfachte Eingabe bei Mitarbeit <span class="setting-impact">Erfassung</span></div>
@@ -223,11 +153,114 @@ render_header('Konto',$u);
         <div class="small muted settings-panel-note">Zeigt in der Mitarbeit-Erfassung Schüler:innen mit den wenigsten oder keinen bisherigen Bewertungen in diesem Fach und dieser Klasse. Der Quick-Pick ist nur ein Vorschlag und speichert noch keine Auswahl.</div>
       </div>
     </div>
+
+    <div class="col-12"><div class="settings-section-heading">Formulare und Darstellung</div></div>
+    <div class="col-12 col-6">
+      <div class="settings-panel" id="account-pref-compact-forms">
+        <div class="settings-panel-title">Anzeige in Eingabefenstern <span class="setting-impact">Erfassung / Ansicht</span></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_compact_forms_enabled" value="0" style="width:auto" <?php echo ((string)($u['pref_compact_forms_enabled'] ?? '0')!=='1')?'checked':''; ?>>
+            <span>Normal</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_compact_forms_enabled" value="1" style="width:auto" <?php echo ((string)($u['pref_compact_forms_enabled'] ?? '0')==='1')?'checked':''; ?>>
+            <span>Kompakt</span>
+          </label>
+        </div>
+        <div class="small muted settings-panel-note">Kompakt bündelt Eingabebereiche in Accordions. Normal belässt die Formulare wie bisher. Die gespeicherten Daten bleiben gleich.</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-6">
+      <div class="settings-panel" id="account-pref-visual-contrast">
+        <div class="settings-panel-title">Farbliche Abhebung in Eingabebereichen und Menüs <span class="setting-impact">nur Ansicht</span></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_visual_contrast" value="normal" style="width:auto" <?php echo (($u['pref_visual_contrast'] ?? 'normal')!=='high')?'checked':''; ?>>
+            <span>Normal</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_visual_contrast" value="high" style="width:auto" <?php echo (($u['pref_visual_contrast'] ?? 'normal')==='high')?'checked':''; ?>>
+            <span>Kontrastreich</span>
+          </label>
+        </div>
+        <div class="small muted settings-panel-note">Hebt Eingabebereiche und Menükarten farblich deutlicher voneinander ab. Die Auswahl verändert keine gespeicherten Daten.</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-6">
+      <div class="settings-panel" id="account-pref-theme">
+        <div class="settings-panel-title">Theme <span class="setting-impact">nur Ansicht</span></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_theme" value="light" style="width:auto" <?php echo (($u['pref_theme'] ?? '')!=='dark')?'checked':''; ?>>
+            <span>Hell</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_theme" value="dark" style="width:auto" <?php echo (($u['pref_theme'] ?? '')==='dark')?'checked':''; ?>>
+            <span>Darkmode</span>
+          </label>
+        </div>
+        <div class="small muted settings-panel-note">Der Darkmode wirkt auf alle Bereiche der Oberfläche. Gespeicherte Daten, Auswertungen und PDF-Dateien werden dadurch nicht verändert.</div>
+      </div>
+    </div>
+    <?php else: ?>
+    <div class="col-12"><div class="settings-section-heading">Ansicht</div></div>
+
+    <div class="col-12 col-6">
+      <div class="settings-panel" id="account-pref-theme">
+        <div class="settings-panel-title">Theme <span class="setting-impact">nur Ansicht</span></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_theme" value="light" style="width:auto" <?php echo (($u['pref_theme'] ?? '')!=='dark')?'checked':''; ?>>
+            <span>Hell</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_theme" value="dark" style="width:auto" <?php echo (($u['pref_theme'] ?? '')==='dark')?'checked':''; ?>>
+            <span>Darkmode</span>
+          </label>
+        </div>
+        <div class="small muted settings-panel-note">Der Darkmode wirkt auf alle Bereiche der Oberfläche. Gespeicherte Daten, Auswertungen und PDF-Dateien werden dadurch nicht verändert.</div>
+      </div>
+    </div>
     <?php endif; ?>
+
+    <div class="col-12"><div class="settings-section-heading">Hinweise und Auswertung</div></div>
+    <div class="col-12 col-6">
+      <div class="settings-panel" id="account-pref-legal-hints">
+        <div class="settings-panel-title">Gesetzeshinweise <span class="setting-impact">Hinweise</span></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_legal_hints_enabled" value="1" style="width:auto" <?php echo ((string)($u['pref_legal_hints_enabled'] ?? '1')!=='0')?'checked':''; ?>>
+            <span>Anzeigen</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_legal_hints_enabled" value="0" style="width:auto" <?php echo ((string)($u['pref_legal_hints_enabled'] ?? '1')==='0')?'checked':''; ?>>
+            <span>Ausblenden</span>
+          </label>
+        </div>
+        <div class="small muted settings-panel-note">Blendet die eingebauten Gesetzeshinweise in Erfassungs- und Auswertungsseiten ein oder aus. Die gespeicherten Leistungsdaten werden dadurch nicht verändert.</div>
+      </div>
+    </div>
   </div>
 
   <div style="height:12px"></div>
-  <button class="btn">Einstellungen speichern</button>
+  <button class="btn">Persönliche Einstellungen speichern</button>
 </form>
+
+<h2 id="account-password" style="margin-top:22px">Sicherheit</h2>
+<div class="settings-panel" style="margin-top:12px;border-color:#ffe3b0;background:#fffaf0">
+  <form method="post" <?php echo dirty_form_attrs(); ?>>
+    <?php echo csrf_input(); ?>
+    <input type="hidden" name="action" value="password">
+    <div class="settings-panel-title">Passwort ändern <span class="setting-impact">Sicherheit</span></div>
+    <div class="small muted settings-panel-note">Dieser Bereich ändert ausschließlich dein Passwort. Persönliche Einstellungen werden oben separat gespeichert.</div>
+    <label class="muted">Neues Passwort</label>
+    <input class="input" type="password" name="new_password" required autocomplete="new-password">
+    <div class="small muted settings-panel-note">Erforderlich: <?php echo h(password_policy_summary()); ?>.</div>
+    <div style="height:12px"></div><button class="btn secondary">Passwort ändern</button>
+  </form>
+</div>
 </div></div></div>
 <?php render_footer(); ?>

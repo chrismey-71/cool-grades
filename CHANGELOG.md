@@ -16,6 +16,16 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.77] - 2026-08-12
+
+### Geändert
+
+- Die Abschlussbeurteilung berücksichtigt bei der automatischen Zeitraum-Vorauswahl nun das im Adminbereich als aktuell markierte Schuljahr.
+- Wenn ein neues Schuljahr bereits während der Ferien als aktuell gesetzt ist, wird für dieses Schuljahr das 1. Semester bzw. im Jahresmodell die Schulnachricht vorausgewählt.
+- Die Konto-Seite trennt persönliche Einstellungen und Passwortänderung klarer; die Speichern-Tasten sind eindeutig beschriftet und die Einstellungen praxisnäher gruppiert.
+- Smoke-Tests sichern den Ferienfall zwischen altem Schuljahrende und neuem Schuljahrbeginn ab.
+- Versionsnummer auf 1.77 erhöht.
+
 ## [1.76] - 2026-08-11
 
 ### Geändert

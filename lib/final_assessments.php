@@ -38,6 +38,12 @@ function final_assessment_default_scope(?array $periodSet = null, ?string $date 
       if($assessmentSystem === 'yearly') return 'year';
       return 'semester2';
     }
+    if((int)($periodSet['is_current'] ?? 0) === 1 && $semester1From !== '' && $date < $semester1From){
+      return 'semester1';
+    }
+    if((int)($periodSet['is_current'] ?? 0) === 1 && $semester2To !== '' && $date > $semester2To){
+      return $assessmentSystem === 'yearly' ? 'year' : 'semester2';
+    }
   }
 
   $month = (int)date('n', strtotime($date) ?: time());
