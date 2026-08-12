@@ -1,8 +1,27 @@
 # COOL-Grades
 
-COOL-Grades ist eine PHP/MySQL-Web-App zur dokumentierten Mitarbeitsbewertung und pädagogischen Abschlussbeurteilung. Die App unterstützt Lehrkräfte bei laufenden Mitarbeitseinträgen, besonderen mündlichen und schriftlichen Leistungsfeststellungen, Auswertungen und PDF-Berichten.
+COOL-Grades ist eine Web-App für österreichische Lehrkräfte und Schulen zur LBV-orientierten Dokumentation von Mitarbeit, besonderen Leistungsfeststellungen und Abschlussbeurteilungen.
+
+Die App unterstützt Lehrer:innen bei der laufenden Mitarbeitsbewertung nach österreichischer Leistungsbeurteilung, bei besonderen mündlichen und schriftlichen Leistungsfeststellungen, bei Auswertungen für Klassen und Fächer sowie bei PDF-Berichten für Schulnachricht, Semesterbeurteilung oder Jahresbeurteilung.
 
 Die Software ersetzt keine pädagogische Entscheidung. Notenvorschläge und Auswertungen sind Entscheidungshilfen; die finale Beurteilung bleibt bei der Lehrkraft.
+
+## Für wen ist COOL-Grades gedacht?
+
+COOL-Grades richtet sich an österreichische Lehrer:innen, Schulen und schulische Administrator:innen, die Leistungsbeurteilung nachvollziehbar und datensparsam dokumentieren möchten.
+
+Typische Einsatzbereiche:
+
+- Mitarbeit im Unterricht nach LBV dokumentieren
+- positive, neutrale und negative Mitarbeitseinträge nachvollziehbar erfassen
+- besondere mündliche Leistungsfeststellungen festhalten
+- besondere schriftliche Leistungsfeststellungen wie Schularbeit, Test oder Diktat dokumentieren
+- Schulnachricht, Semesterbeurteilung und Jahresbeurteilung vorbereiten
+- Notenvorschläge als pädagogische Entscheidungshilfe verwenden
+- Auswertungen und PDF-Berichte für Klasse, Fach, Schuljahr oder Semester erzeugen
+- Schuljahreswechsel mit Archivierung alter Klassen abbilden
+
+Die App ist besonders für Schulen in Österreich gedacht, die Begriffe wie Leistungsbeurteilungsverordnung, LBV, Mitarbeit, Schulnachricht, Semesterbeurteilung, Jahreszeugnis, Schularbeitsfach, SOST, NOST oder Jahresmodell im schulischen Alltag verwenden.
 
 ## Funktionen
 
@@ -14,6 +33,30 @@ Die Software ersetzt keine pädagogische Entscheidung. Notenvorschläge und Ausw
 - Abschlussbeurteilungen als Entwurf oder final speichern
 - Auswertungen und PDF-Berichte für Klassen, Fächer und Zeiträume
 - Schuljahreswechsel mit Archivierung alter Klassen
+
+## Was COOL-Grades nicht macht
+
+- COOL-Grades vergibt keine automatische Endnote.
+- COOL-Grades ersetzt keine pädagogische Gesamtbeurteilung.
+- COOL-Grades gibt keine rechtsverbindliche Interpretation der Leistungsbeurteilungsverordnung.
+- COOL-Grades ist keine WebUntis-Erweiterung; ein möglicher iCal-Import ist als spätere Weiterentwicklung vorgemerkt.
+
+Die App soll Lehrkräfte bei einer sachlichen, transparenten und nachvollziehbaren Dokumentation unterstützen. Die endgültige Beurteilung erfolgt weiterhin durch die Lehrkraft auf Grundlage der geltenden schulrechtlichen Rahmenbedingungen, des Lehrplans, des Unterrichtsverlaufs und der dokumentierten Leistungsfeststellungen.
+
+## Suchbegriffe und fachlicher Kontext
+
+COOL-Grades bewegt sich im Umfeld folgender Themen:
+
+- österreichische Leistungsbeurteilung
+- Leistungsbeurteilungsverordnung, LBV und LBVO
+- Mitarbeitsbewertung und Mitarbeit im Unterricht
+- besondere mündliche Leistungsfeststellungen
+- besondere schriftliche Leistungsfeststellungen
+- Schularbeit, Test, Diktat und schriftliche Wiederholung
+- Schulnachricht, Semesterbeurteilung und Jahresbeurteilung
+- Notenvorschlag und Abschlussbeurteilung
+- Schulverwaltung, Klassenverwaltung, Fächer, Schuljahre und Semester
+- Lehrer:innen-Workflow für Unterrichtsdokumentation und PDF-Auswertung
 
 ## Technische Voraussetzungen
 
