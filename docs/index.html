@@ -277,6 +277,46 @@
       gap: 14px;
     }
 
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .screenshot-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .screenshot-card figure {
+      margin: 0;
+    }
+
+    .screenshot-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-bottom: 1px solid var(--line);
+      background: #eef2ef;
+    }
+
+    .screenshot-card figcaption {
+      padding: 14px 16px 16px;
+    }
+
+    .screenshot-card h3 {
+      margin: 0 0 6px;
+      font-size: 1.02rem;
+    }
+
+    .screenshot-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .96rem;
+    }
+
     .panel {
       padding: 18px;
       border: 1px solid var(--line);
@@ -314,6 +354,41 @@
       background: #fbfcfb;
     }
 
+    .handbook-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .handbook-link {
+      display: block;
+      min-height: 100%;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .handbook-link:hover {
+      border-color: var(--line-strong);
+      background: var(--surface-soft);
+      text-decoration: none;
+    }
+
+    .handbook-link strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--accent);
+      font-size: 1.02rem;
+    }
+
+    .handbook-link span {
+      color: var(--muted);
+    }
+
     .keywords {
       display: flex;
       flex-wrap: wrap;
@@ -344,13 +419,20 @@
     @media (max-width: 860px) {
       .nav,
       .intro,
-      .two-columns {
+      .two-columns,
+      .screenshot-grid,
+      .handbook-list {
         grid-template-columns: 1fr;
       }
 
       .nav {
+        flex-direction: column;
         align-items: flex-start;
         padding: 14px 0;
+      }
+
+      .nav-links {
+        gap: 8px 14px;
       }
 
       .feature-list {
@@ -363,6 +445,15 @@
     }
 
     @media (max-width: 520px) {
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .button {
+        width: 100%;
+      }
+
       .facts dl {
         grid-template-columns: 1fr;
       }
@@ -374,6 +465,7 @@
 
       .facts dd {
         padding-top: 0;
+        overflow-wrap: anywhere;
       }
     }
   </style>
@@ -384,6 +476,8 @@
       <div class="brand"><span class="brand-mark">CG</span><span>COOL-Grades</span></div>
       <div class="nav-links">
         <a href="#umfang">Funktionsumfang</a>
+        <a href="#einblicke">Einblicke</a>
+        <a href="#handbuch">Handbuch</a>
         <a href="#einordnung">Einordnung</a>
         <a href="https://github.com/chrismey-71/cool-grades/releases">Releases</a>
         <a href="https://github.com/chrismey-71/cool-grades">GitHub</a>
@@ -454,6 +548,86 @@
           <h3>Mehrschulbetrieb</h3>
           <p>Schulen, Schulformen, Klassen, Fächer und Zuständigkeiten können getrennt verwaltet werden.</p>
         </article>
+      </div>
+    </section>
+
+    <section class="section" id="einblicke">
+      <div class="section-header">
+        <h2>Einblicke in die Arbeit mit COOL-Grades</h2>
+        <p>Die Screenshots zeigen typische Arbeitssituationen mit Demo-Daten. Sie sollen einen schnellen Eindruck vermitteln, wie Lehrer:innen im Alltag mit der App arbeiten.</p>
+      </div>
+      <div class="screenshot-grid">
+        <article class="screenshot-card">
+          <figure>
+            <img src="screenshots/lehrerhandbuch/01-dashboard.png" alt="Dashboard von COOL-Grades mit den wichtigsten Arbeitsbereichen" loading="lazy">
+            <figcaption>
+              <h3>Dashboard für den Unterrichtsalltag</h3>
+              <p>Von hier aus wechseln Lehrer:innen zu Mitarbeit, besonderen Leistungsfeststellungen, Abschlussbeurteilung, Auswertungen und Verwaltung.</p>
+            </figcaption>
+          </figure>
+        </article>
+        <article class="screenshot-card">
+          <figure>
+            <img src="screenshots/lehrerhandbuch/05-schnell-mitarbeit-ausgefueellt.png" alt="Ausgefülltes Formular zur schnellen Mitarbeitserfassung" loading="lazy">
+            <figcaption>
+              <h3>Schnelle Mitarbeitserfassung</h3>
+              <p>Beobachtungen werden mit Datum, Anlass, Eindruck, Leistungsart und Schüler:innenbezug dokumentiert, ohne daraus Einzelnoten zu machen.</p>
+            </figcaption>
+          </figure>
+        </article>
+        <article class="screenshot-card">
+          <figure>
+            <img src="screenshots/lehrerhandbuch/07-besondere-muendliche-leistung.png" alt="Erfassung einer besonderen mündlichen Leistungsfeststellung" loading="lazy">
+            <figcaption>
+              <h3>Besondere mündliche Leistungen</h3>
+              <p>Mündliche Wiederholungen, Präsentationen oder Kurzleistungen werden getrennt von der laufenden Mitarbeit erfasst und bleiben in Auswertungen nachvollziehbar.</p>
+            </figcaption>
+          </figure>
+        </article>
+        <article class="screenshot-card">
+          <figure>
+            <img src="screenshots/lehrerhandbuch/08-besondere-schriftliche-leistung.png" alt="Erfassung einer besonderen schriftlichen Leistungsfeststellung" loading="lazy">
+            <figcaption>
+              <h3>Schriftliche Leistungsfeststellungen</h3>
+              <p>Schularbeit, Test, Diktat oder andere schriftliche Leistungen können fachlich getrennt dokumentiert und später gesondert ausgewiesen werden.</p>
+            </figcaption>
+          </figure>
+        </article>
+        <article class="screenshot-card">
+          <figure>
+            <img src="screenshots/lehrerhandbuch/19-auswertung-tabelle.png" alt="Auswertungstabelle mit Mitarbeit und besonderen Leistungsfeststellungen" loading="lazy">
+            <figcaption>
+              <h3>Auswertung als Entscheidungsgrundlage</h3>
+              <p>Die Auswertung bündelt positive, neutrale und negative Beobachtungen, Datenlage, besondere Leistungen und Hinweise pro Schüler:in.</p>
+            </figcaption>
+          </figure>
+        </article>
+        <article class="screenshot-card">
+          <figure>
+            <img src="screenshots/lehrerhandbuch/25-abschlussbeurteilung-details.png" alt="Detailansicht der Abschlussbeurteilung mit Notenvorschlag und finaler Note" loading="lazy">
+            <figcaption>
+              <h3>Abschlussbeurteilung bewusst festlegen</h3>
+              <p>Die App zeigt einen transparenten Notenvorschlag. Die finale Schulnachricht, Semester- oder Jahresbeurteilung wird ausdrücklich von der Lehrkraft gespeichert.</p>
+            </figcaption>
+          </figure>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="handbuch">
+      <div class="section-header">
+        <h2>Handbuch und Dokumentation</h2>
+        <p>Für die Einarbeitung gibt es ein ausführliches Lehrer:innen-Handbuch in zwei Formaten.</p>
+      </div>
+      <div class="handbook-list">
+        <a class="handbook-link" href="lehrerhandbuch.md">
+          <strong>Lehrer:innen-Handbuch als Markdown</strong>
+          <span>Die `.md`-Datei ist die lesbare Quellfassung für GitHub und eignet sich gut zum schnellen Nachschlagen oder Weiterbearbeiten im Repository.</span>
+        </a>
+        <a class="handbook-link" href="lehrerhandbuch.docx">
+          <strong>Lehrer:innen-Handbuch als Word-Dokument</strong>
+          <span>Die `.docx`-Datei ist das fertig formatierte Word-Handbuch mit Inhaltsverzeichnis und Screenshots, gedacht zum Lesen, Weitergeben oder Ausdrucken.</span>
+        </a>
       </div>
     </section>
 
