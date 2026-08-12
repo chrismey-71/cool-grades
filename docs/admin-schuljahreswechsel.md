@@ -4,6 +4,25 @@
 
 Der Schuljahreswechsel ist historisch ausgelegt. Bestehende Klassen werden nicht umbenannt und Leistungsdaten werden nicht verschoben. Für das neue Schuljahr entsteht eine neue Klasseninstanz. Schüler:innen bleiben als Personen erhalten und werden über Klassenzuordnungen dem jeweiligen Schuljahr zugeordnet.
 
+Ziel ist nicht, eine Klasse „weiter umzubenennen“, sondern den tatsächlichen schulischen Verlauf abzubilden: Die `2FSB` des alten Schuljahres bleibt als historische Klasse erhalten, die `3FSB` des neuen Schuljahres wird neu erzeugt und mit den übernommenen Schüler:innen verbunden. Dadurch können Lehrer:innen auch später noch Berichte, Jahresnotenlisten und alte Leistungsdaten aus dem Vorjahr aufrufen.
+
+## Empfohlene Admin-Reihenfolge
+
+Für einen sauberen Schuljahreswechsel empfiehlt sich diese Reihenfolge:
+
+1. Schulen und Schulformen prüfen.
+2. Neues Schuljahr mit Semesterzeiträumen anlegen.
+3. Neues Schuljahr erst dann als aktuell setzen, wenn die Arbeit im neuen Jahr beginnen soll.
+4. Neue Einstiegsklassen manuell anlegen, zum Beispiel neue erste Klassen.
+5. Bestehende Klassen ausschließlich über den Schuljahreswechsel-Assistenten fortführen.
+6. Abschlussklassen über `Abschlussklasse ohne Zielklasse` abschließen.
+7. Schüler:innen-Sonderfälle prüfen: Wiederholung, Abgang, Klassenwechsel oder noch nicht zuordnen.
+8. Lehrer:innen-/Fachzuweisungen übernehmen oder anschließend gezielt neu setzen.
+9. Vor der Durchführung die Vorschau prüfen.
+10. Nach dem Wechsel mit einem Lehrer:innen-Testkonto prüfen, ob aktuelle und archivierte Schuljahre korrekt sichtbar sind.
+
+Diese Reihenfolge verhindert, dass Klassen versehentlich doppelt angelegt oder alte Leistungsdaten durch manuelle Umbenennungen unübersichtlich werden.
+
 ## Schuljahre verwalten
 
 Schuljahre werden im Adminbereich unter `Stammdaten -> Schuljahre/Semester` angelegt. Ein Schuljahr enthält die Datumsbereiche für das 1. Semester, das 2. Semester und das gesamte Schuljahr. Es kann entweder global für alle Schulen gelten oder einer konkreten Schule zugeordnet werden. Das ist sinnvoll, wenn Schulen unterschiedliche Semestertermine führen. Pro Schule bzw. im globalen Bereich kann ein Schuljahr als aktuell markiert werden.
@@ -17,6 +36,12 @@ Eine Klasse ist immer eine Klasse eines konkreten Schuljahres. Eine `2FSB` im Sc
 Alte Klassen können als `archiviert` markiert werden. Archivierte Klassen bleiben für Berichte sichtbar, sind aber für neue Erfassungen gesperrt. Abschlussklassen können zusätzlich als `ausgeschieden` markiert werden. Auch ausgeschiedene Klassen bleiben für berechtigte Lehrer:innen in Vorjahres-Auswertungen, Eintragslisten, Notenübersichten und PDF-Berichten sichtbar.
 
 Neue Klassen werden manuell nur dann angelegt, wenn es keine Vorgängerklasse gibt, zum Beispiel bei neuen Einstiegsklassen. Gibt es eine Vorjahresklasse, wird die neue Klasseninstanz über den Schuljahreswechsel-Assistenten erzeugt.
+
+Praxisregel:
+
+- Neue erste Klassen werden unter `Klassen` angelegt.
+- Aufsteigende Klassen werden über `Schuljahreswechsel` erzeugt.
+- Abschlussklassen werden nicht künstlich fortgeführt, sondern mit `Abschlussklasse ohne Zielklasse` historisch abgeschlossen.
 
 ## Schuljahreswechsel durchführen
 

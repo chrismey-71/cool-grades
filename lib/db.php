@@ -6,7 +6,25 @@ function cfg(): array {
   if ($cfg!==null) return $cfg;
   $file=__DIR__.'/../config.php';
   if (!file_exists($file)) die('Missing config.php (copy config.example.php to config.php).');
-  $cfg=require $file; return $cfg;
+  $loaded=require_once $file;
+  if(is_array($loaded)){
+    $cfg=$loaded;
+    return $cfg;
+  }
+  if(defined('DB_DSN')){
+    $cfg=[
+      'db'=>[
+        'dsn'=>(string)DB_DSN,
+        'user'=>defined('DB_USER') ? (string)DB_USER : '',
+        'pass'=>defined('DB_PASS') ? (string)DB_PASS : '',
+        'charset'=>'utf8mb4',
+      ],
+      'base_path'=>'',
+      'session_name'=>'coolgrades_sid',
+    ];
+    return $cfg;
+  }
+  die('Invalid config.php (expected returned array or DB_* constants).');
 }
 
 function _ensure_schema(PDO $pdo): void {
@@ -950,7 +968,10 @@ function db(): PDO {
   static $pdo=null;
   if ($pdo) return $pdo;
   $c=cfg()['db'];
-  $dsn="mysql:host={$c['host']};dbname={$c['name']};charset={$c['charset']}";
+  $dsn=(string)($c['dsn'] ?? '');
+  if($dsn===''){
+    $dsn="mysql:host={$c['host']};dbname={$c['name']};charset={$c['charset']}";
+  }
   $pdo=new PDO($dsn,$c['user'],$c['pass'],[
     PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,

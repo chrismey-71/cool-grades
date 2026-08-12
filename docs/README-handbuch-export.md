@@ -8,6 +8,7 @@ Diese Dokumentation beschreibt, wie das Lehrer:innen-Handbuch aus der Markdown-Q
 - DOCX-Zieldatei: `docs/lehrerhandbuch.docx`
 - Exportskript: `scripts/export-lehrerhandbuch.py`
 - Screenshot-Ordner: `docs/screenshots/lehrerhandbuch/`
+- Screenshot-Erzeugung: `scripts/capture_lehrerhandbuch_screenshots.js`
 - Demo-Startskript: `scripts/start_lehrerhandbuch_demo.sh`
 - Demo-Stopskript: `scripts/stop_lehrerhandbuch_demo.sh`
 - Demo-Daten-Skript: `scripts/setup_lehrerhandbuch_demo.php`
@@ -93,6 +94,19 @@ Das Skript:
 Die Bilddateien landen in:
 
 `docs/screenshots/lehrerhandbuch/`
+
+Die Screenshots stammen aus der lokalen Demo-Umgebung. Für eine vollständige Neugenerierung:
+
+```bash
+bash scripts/start_lehrerhandbuch_demo.sh
+node scripts/capture_lehrerhandbuch_screenshots.js
+```
+
+Wenn die Demo bereits läuft und die Demo-Daten zuvor bewusst neu gesetzt wurden:
+
+```bash
+HANDBUCH_SKIP_DEMO_SETUP=1 node scripts/capture_lehrerhandbuch_screenshots.js
+```
 
 ## 3. Word-Handbuch neu erzeugen
 

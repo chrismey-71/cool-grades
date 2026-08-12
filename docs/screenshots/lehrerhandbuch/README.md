@@ -6,6 +6,8 @@ Dieser Ordner enthält die **echten Screenshots aus der laufenden App**, die im 
 
 Die Bilder stammen aus einer lokalen Demo-Umgebung mit anonymisierten Beispieldaten. Die Screenshots wurden automatisiert mit Playwright erzeugt, damit sie später reproduzierbar neu erstellt werden können.
 
+Aktueller Stand dieser Screenshot-Serie: **Version 1.77**, neu erzeugt am **12.08.2026**.
+
 Verwendete Hilfsskripte:
 
 - Demo-Umgebung starten:
@@ -76,6 +78,12 @@ php scripts/setup_lehrerhandbuch_demo.php
 
 ```bash
 node scripts/capture_lehrerhandbuch_screenshots.js
+```
+
+Wenn die Demo-Umgebung bereits läuft und die Daten vorher bewusst vorbereitet wurden, kann der Start-/Setup-Schritt beim Screenshot-Skript übersprungen werden:
+
+```bash
+HANDBUCH_SKIP_DEMO_SETUP=1 node scripts/capture_lehrerhandbuch_screenshots.js
 ```
 
 Die Dateien in diesem Ordner werden dabei überschrieben bzw. neu erzeugt.

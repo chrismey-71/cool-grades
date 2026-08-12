@@ -73,7 +73,7 @@ async function login(page) {
   await page.fill('input[name="username"]', DEMO.username);
   await page.fill('input[name="password"]', DEMO.password);
   await Promise.all([
-    page.waitForURL(/dashboard\.php/),
+    page.waitForURL(/(?:dashboard|teacher\/index)\.php/),
     page.click('button:has-text("Anmelden")'),
   ]);
 }
@@ -131,7 +131,9 @@ async function captureParticipationNew(page) {
   if (!(await observationCheckbox.isChecked())) {
     await observationCheckbox.check();
   }
+  await openSection(page, 'Kurze Beobachtung');
   await page.fill('textarea[name="reason_text"]', 'Erklärt den Lösungsweg klar und fachsprachlich sicher.');
+  await openSection(page, 'Unterrichtskontext');
   await page.fill('textarea[name="note"]', 'Geeignet als kurzes Beispiel für positive Mitarbeit mit nachvollziehbarer Fachbeobachtung.');
   await page.check(`input[name="student_ids[]"][value="${DEMO.firstStudentId}"]`);
   await saveShot(page, '05-schnell-mitarbeit-ausgefueellt.png');
@@ -214,20 +216,24 @@ async function capturePdfExample(page, context) {
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.click('a:has-text("PDF herunterladen")'),
+    page.click('a:has-text("PDF-Datei herunterladen")'),
   ]);
   const pdfPath = path.join(OUTPUT_DIR, 'example-report.pdf');
   await download.saveAs(pdfPath);
   const pdfPreview = path.join(OUTPUT_DIR, '22-beispiel-pdf-auswertung.png');
+  const tmpPreview = path.join('/private/tmp', 'cool-grades-example-report-preview.png');
   runChecked('/usr/local/bin/gs', [
     '-dSAFER',
     '-dBATCH',
     '-dNOPAUSE',
+    '-dFirstPage=1',
+    '-dLastPage=1',
     '-sDEVICE=png16m',
     '-r160',
-    `-sOutputFile=${pdfPreview}`,
+    `-sOutputFile=${tmpPreview}`,
     pdfPath,
   ]);
+  await fs.copyFile(tmpPreview, pdfPreview);
   await fs.copyFile(pdfPreview, path.join(OUTPUT_DIR, '23-pdf-export-ergebnis.png'));
 }
 
@@ -250,20 +256,29 @@ async function captureFinalAssessments(page) {
   await page.goto(semesterUrl, { waitUntil: 'networkidle' });
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.click('a:has-text("Bericht / PDF")'),
+    page.click('a:has-text("PDF-Bericht öffnen")'),
   ]);
   const pdfPath = path.join(OUTPUT_DIR, 'final-assessment-report.pdf');
   await download.saveAs(pdfPath);
-  const pdfPagePattern = path.join(OUTPUT_DIR, 'final-assessment-pdf-%d.png');
+  const tmpPdfPagePattern = path.join('/private/tmp', 'cool-grades-final-assessment-pdf-%d.png');
   runChecked('/usr/local/bin/gs', [
     '-dSAFER',
     '-dBATCH',
     '-dNOPAUSE',
     '-sDEVICE=png16m',
     '-r160',
-    `-sOutputFile=${pdfPagePattern}`,
+    `-sOutputFile=${tmpPdfPagePattern}`,
     pdfPath,
   ]);
+  for (const pageNo of [1, 2, 3]) {
+    const tmpPage = path.join('/private/tmp', `cool-grades-final-assessment-pdf-${pageNo}.png`);
+    const targetPage = path.join(OUTPUT_DIR, `final-assessment-pdf-${pageNo}.png`);
+    try {
+      await fs.copyFile(tmpPage, targetPage);
+    } catch (_error) {
+      // The PDF can be shorter depending on generated demo content.
+    }
+  }
   try {
     await fs.copyFile(path.join(OUTPUT_DIR, 'final-assessment-pdf-2.png'), path.join(OUTPUT_DIR, '26-abschlussbeurteilung-pdf.png'));
   } catch (_error) {
@@ -273,7 +288,9 @@ async function captureFinalAssessments(page) {
 
 async function main() {
   await ensureDir(OUTPUT_DIR);
-  await ensureDemoData();
+  if (process.env.HANDBUCH_SKIP_DEMO_SETUP !== '1') {
+    await ensureDemoData();
+  }
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({

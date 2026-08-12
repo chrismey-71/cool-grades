@@ -36,6 +36,8 @@ Wichtig ist vor allem:
 - Die Auswertung ist **keine Black Box**, sondern eine begründete Zusammenfassung vorhandener Einträge.
 - Die endgültige Leistungsbeurteilung bleibt immer bei der Lehrkraft.
 
+Für Administrator:innen gibt es ergänzende Dokumentationen im Ordner `docs`, insbesondere zur Verwaltung von Schuljahren, Klassen und Schuljahreswechseln. Dieses Handbuch bleibt bewusst auf die Arbeit der Lehrer:innen im Unterrichts- und Beurteilungsalltag fokussiert.
+
 ### Unterschied zwischen Mitarbeit, besonderen Leistungen und Auswertung
 
 **Mitarbeit** ist für die laufende Dokumentation aus dem Unterricht gedacht. Hier werden typische Situationen wie Beteiligung, Sicherung, Arbeitsauftrag, Gruppenarbeit oder Hausübung knapp festgehalten.
@@ -73,6 +75,8 @@ Typische Nutzung:
 Auswirkung auf Daten:
 
 - In diesem Bereich entstehen und ändern sich die eigentlichen Leistungsdokumentationen.
+
+Wenn eine Lehrkraft mehreren Schulen zugeordnet ist, zeigt das Dashboard die aktuell ausgewählte Schule oberhalb der Arbeitsbereiche an. Diese Auswahl ist wichtig, weil dadurch nur die passenden Klassen, Fächer und Einträge der gewählten Schule sichtbar werden. Die Schulauswahl ändert keine gespeicherten Leistungsdaten, sondern steuert, in welchem schulischen Arbeitsbereich Sie gerade arbeiten.
 
 ### Berichte & Auswertungen
 
@@ -1546,21 +1550,30 @@ Wirkung:
 
 ### Beurteilungszeitraum
 
-Mögliche Auswahl:
+Die Auswahl hängt vom Beurteilungssystem der Klasse ab.
+
+Im **Jahresmodell** sehen Sie:
+
+- `Schulnachricht festlegen`
+- `Jahresbeurteilung festlegen`
+
+Bei **SOST** und **NOST** sehen Sie semesterbezogene Optionen:
 
 - `1. Semesterbeurteilung festlegen`
 - `2. Semesterbeurteilung festlegen`
-- `Jahresbeurteilung festlegen`
+- gegebenenfalls `Jahresbeurteilung festlegen`, wenn diese im bestehenden Workflow vorgesehen ist
 
 Wirkung:
 
-- `1. Semesterbeurteilung festlegen` ist für das Wintersemester gedacht und speichert die Abschlussbeurteilung für Semester 1.
+- `Schulnachricht festlegen` ist im Jahresmodell für den Stand am Ende des 1. Semesters gedacht.
+- `1. Semesterbeurteilung festlegen` ist bei SOST/NOST für das Wintersemester gedacht und speichert die Abschlussbeurteilung für Semester 1.
 - `2. Semesterbeurteilung festlegen` ist für das Sommersemester gedacht und zeigt gespeicherte 1.-Semesterstände zur Orientierung.
 - `Jahresbeurteilung festlegen` fasst das Schuljahr zusammen und zeigt gespeicherte Semesterstände, sofern vorhanden.
 
 Wichtig:
 
 - Die Jahresbeurteilung wird **nicht automatisch als Durchschnitt** aus zwei Semestern gebildet.
+- Beim Jahresmodell gibt es keine eigene `2. Semesterbeurteilung`; frühere versehentliche Einträge werden fachlich als Jahresbeurteilung behandelt, sofern noch keine Jahresbeurteilung vorhanden war.
 
 ### Beurteilungssystem der Klasse (SOST / NOST / Jahresbeurteilung)
 
@@ -1587,7 +1600,7 @@ Die Seite ist von oben nach unten so aufgebaut:
 2. **Schüler:innen-Navigation**
    Pfeil nach links, Schüler:innen-Auswahl und Pfeil nach rechts.
 3. **Bewertungsbereich**
-   Einzelne Kästchen für Semesterüberblick, besondere Leistungen, Schularbeitsstatus, Mitarbeit und finale Entscheidung.
+   Einzelne Kästchen für Überblick, besondere Leistungen, Mitarbeit und finale Entscheidung.
 
 Wirkung:
 
@@ -1609,7 +1622,7 @@ Die Auswahl von Klasse, Fach, Schuljahr und Zeitraum bleibt dabei erhalten.
 
 Der Detailbereich folgt einer festen Reihenfolge:
 
-1. `Überblick 1. Semester`
+1. `Überblick Schulnachricht` oder `Überblick 1. Semester`, je nach Beurteilungssystem
 2. `Besondere mündliche Leistungen` und `Besondere schriftliche Leistungen` nebeneinander
 3. `Mitarbeit`
 4. `Finale Abschlussbeurteilung festlegen`
@@ -1689,7 +1702,7 @@ Sinnvoll ist dieses Feld zum Beispiel für:
 Wirkung:
 
 - Der Kommentar wird mit der Abschlussbeurteilung gespeichert.
-- Er erscheint später auch im Bericht / PDF.
+- Er erscheint später auch im PDF-Bericht.
 - Wenn Sie bewusst vom Vorschlag abweichen, hilft der Kommentar bei der Nachvollziehbarkeit.
 
 ### Was bedeutet Status?
@@ -1861,7 +1874,7 @@ Wirkung:
 
 ### Gibt es einen PDF-Bericht?
 
-Ja. Über `Bericht / PDF` wird eine PDF-Fassung der Abschlussbeurteilung erzeugt.
+Ja. Über `PDF-Bericht öffnen` wird eine PDF-Fassung der Abschlussbeurteilung erzeugt.
 
 ![PDF – Abschlussbeurteilung](screenshots/lehrerhandbuch/26-abschlussbeurteilung-pdf.png)
 

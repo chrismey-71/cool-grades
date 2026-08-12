@@ -1033,10 +1033,17 @@ def create_docx(markdown_path: Path, output_path: Path, version: str, stand: dt.
                 raise FileNotFoundError(f"Bild nicht gefunden: {image_path}")
             width_px, height_px = png_dimensions(image_path)
             max_width_emu = 5_800_000
+            # A screenshot must fit onto one handbook page; Word does not
+            # split inline images and otherwise clips tall browser captures.
+            max_height_emu = 7_500_000
             width_emu = width_px * 9525
             height_emu = height_px * 9525
             if width_emu > max_width_emu:
                 scale = max_width_emu / width_emu
+                width_emu = int(width_emu * scale)
+                height_emu = int(height_emu * scale)
+            if height_emu > max_height_emu:
+                scale = max_height_emu / height_emu
                 width_emu = int(width_emu * scale)
                 height_emu = int(height_emu * scale)
             rel_id = f"rIdImage{next_image_rel}"

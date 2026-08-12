@@ -5,20 +5,31 @@ declare(strict_types=1);
 
 $root = dirname(__DIR__);
 $config = require $root . '/config.php';
-$db = $config['db'] ?? [];
 
-$host = (string)($db['host'] ?? '');
-$name = (string)($db['name'] ?? '');
-$user = (string)($db['user'] ?? '');
-$pass = (string)($db['pass'] ?? '');
-$charset = (string)($db['charset'] ?? 'utf8mb4');
+$user = '';
+$pass = '';
+$charset = 'utf8mb4';
+$dsn = '';
 
-if ($host !== '127.0.0.1;port=3307' || $name !== 'coolgrades') {
+if (defined('DB_DSN')) {
+    $dsn = (string)DB_DSN;
+    $user = defined('DB_USER') ? (string)DB_USER : '';
+    $pass = defined('DB_PASS') ? (string)DB_PASS : '';
+} elseif (is_array($config)) {
+    $db = $config['db'] ?? [];
+    $host = (string)($db['host'] ?? '');
+    $name = (string)($db['name'] ?? '');
+    $user = (string)($db['user'] ?? '');
+    $pass = (string)($db['pass'] ?? '');
+    $charset = (string)($db['charset'] ?? 'utf8mb4');
+    $dsn = "mysql:host={$host};dbname={$name};charset={$charset}";
+}
+
+if (!str_contains($dsn, 'host=127.0.0.1;port=3307') || !str_contains($dsn, 'dbname=coolgrades')) {
     fwrite(STDERR, "Abbruch: Dieses Demo-Skript ist nur für die lokale Testdatenbank 127.0.0.1:3307 / coolgrades gedacht.\n");
     exit(1);
 }
 
-$dsn = "mysql:host={$host};dbname={$name};charset={$charset}";
 $pdo = new PDO($dsn, $user, $pass, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
