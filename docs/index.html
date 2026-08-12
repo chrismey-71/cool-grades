@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="de-AT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COOL-Grades | Leistungsbeurteilung und Mitarbeit nach LBV</title>
+  <meta name="description" content="COOL-Grades ist eine Web-App für österreichische Lehrkräfte zur LBV-orientierten Dokumentation von Mitarbeit, besonderen Leistungsfeststellungen, Auswertungen und Abschlussbeurteilungen.">
+  <meta name="robots" content="index,follow">
+  <meta property="og:title" content="COOL-Grades">
+  <meta property="og:description" content="Mitarbeit, besondere Leistungsfeststellungen und Abschlussbeurteilungen für österreichische Schulen nachvollziehbar dokumentieren.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://chrismey-71.github.io/cool-grades/">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root {
+      --ink: #17221d;
+      --muted: #65746c;
+      --paper: #f6f1e7;
+      --panel: #fffaf0;
+      --line: #ded3c0;
+      --green: #1f6f53;
+      --green-dark: #114834;
+      --gold: #d8a635;
+      --clay: #b85f45;
+      --blue: #2d6170;
+      --shadow: 0 22px 70px rgba(23, 34, 29, .16);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(216, 166, 53, .28), transparent 26rem),
+        radial-gradient(circle at 84% 12%, rgba(45, 97, 112, .22), transparent 28rem),
+        linear-gradient(145deg, #fffaf0 0%, var(--paper) 46%, #e9efe8 100%);
+      font-family: Avenir Next, Gill Sans, Trebuchet MS, sans-serif;
+      line-height: 1.6;
+    }
+
+    a { color: var(--green-dark); }
+    a:hover { color: var(--clay); }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 22px 0 12px;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      box-shadow: 0 10px 24px rgba(31, 111, 83, .28);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: .94rem;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      padding: 8px 10px;
+      border-radius: 999px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(310px, .9fr);
+      gap: 34px;
+      align-items: center;
+      padding: 48px 0 58px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid rgba(31, 111, 83, .22);
+      border-radius: 999px;
+      color: var(--green-dark);
+      background: rgba(255, 250, 240, .72);
+      font-size: .92rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 22px 0 16px;
+      max-width: 760px;
+      font-family: Georgia, Cambria, serif;
+      font-size: clamp(2.55rem, 6vw, 5.6rem);
+      line-height: .96;
+      letter-spacing: -.06em;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 740px;
+      color: #31433a;
+      font-size: clamp(1.08rem, 2vw, 1.32rem);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 11px 17px;
+      border-radius: 999px;
+      font-weight: 900;
+      text-decoration: none;
+      border: 1px solid transparent;
+    }
+
+    .button.primary {
+      color: #fff;
+      background: var(--green-dark);
+      box-shadow: 0 16px 34px rgba(17, 72, 52, .28);
+    }
+
+    .button.secondary {
+      color: var(--green-dark);
+      background: rgba(255, 255, 255, .62);
+      border-color: rgba(31, 111, 83, .24);
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+      border: 1px solid rgba(23, 34, 29, .12);
+      border-radius: 30px;
+      background: rgba(255, 250, 240, .82);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: -42% -28% auto auto;
+      width: 260px;
+      height: 260px;
+      border-radius: 999px;
+      background: rgba(216, 166, 53, .3);
+    }
+
+    .mini-window {
+      position: relative;
+      border: 1px solid rgba(23, 34, 29, .13);
+      border-radius: 22px;
+      background: #fffdf8;
+      overflow: hidden;
+    }
+
+    .mini-bar {
+      display: flex;
+      gap: 7px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f1eadc;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--clay);
+    }
+
+    .dot:nth-child(2) { background: var(--gold); }
+    .dot:nth-child(3) { background: var(--green); }
+
+    .mini-content {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .row-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #ece1d0;
+      border-radius: 16px;
+      background: #fffaf0;
+    }
+
+    .row-card strong { display: block; }
+    .row-card span { color: var(--muted); font-size: .9rem; }
+
+    .grade {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--green);
+      font-weight: 900;
+    }
+
+    .section {
+      padding: 42px 0;
+    }
+
+    .section-title {
+      max-width: 780px;
+      margin: 0 0 20px;
+      font-family: Georgia, Cambria, serif;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -.035em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      padding: 20px;
+      border: 1px solid rgba(23, 34, 29, .12);
+      border-radius: 24px;
+      background: rgba(255, 250, 240, .74);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.08rem;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .wide {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .notice {
+      padding: 22px;
+      border-radius: 26px;
+      color: #fffaf0;
+      background: linear-gradient(135deg, var(--green-dark), var(--blue));
+      box-shadow: var(--shadow);
+    }
+
+    .notice h2 {
+      margin: 0 0 8px;
+      font-family: Georgia, Cambria, serif;
+      font-size: 2rem;
+      letter-spacing: -.035em;
+    }
+
+    .notice p {
+      margin: 0;
+      color: rgba(255, 250, 240, .84);
+    }
+
+    .keyword-cloud {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .keyword {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .2);
+      color: #fff;
+      font-size: .88rem;
+      font-weight: 800;
+    }
+
+    footer {
+      padding: 32px 0 42px;
+      color: var(--muted);
+      font-size: .94rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero, .wide {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="page">
+    <nav class="nav" aria-label="Hauptnavigation">
+      <div class="brand"><span class="brand-mark">CG</span><span>COOL-Grades</span></div>
+      <div class="nav-links">
+        <a href="#funktionen">Funktionen</a>
+        <a href="#lbv">LBV</a>
+        <a href="https://github.com/chrismey-71/cool-grades/releases">Releases</a>
+        <a href="https://github.com/chrismey-71/cool-grades">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div>
+        <span class="eyebrow">Für österreichische Lehrer:innen und Schulen</span>
+        <h1>Mitarbeit und Leistungsbeurteilung nachvollziehbar dokumentieren.</h1>
+        <p class="lead">
+          COOL-Grades unterstützt Lehrkräfte bei LBV-orientierter Mitarbeitserfassung,
+          besonderen mündlichen und schriftlichen Leistungsfeststellungen, Auswertungen,
+          PDF-Berichten sowie Schulnachricht, Semester- und Jahresbeurteilung.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/chrismey-71/cool-grades/releases/latest">Aktuelle Version herunterladen</a>
+          <a class="button secondary" href="https://github.com/chrismey-71/cool-grades">Repository ansehen</a>
+        </div>
+      </div>
+
+      <aside class="hero-card" aria-label="Beispielhafte Übersicht">
+        <div class="mini-window">
+          <div class="mini-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="mini-content">
+            <div class="row-card">
+              <div><strong>Mitarbeit</strong><span>8 Einträge · 7 Tage · klar positiv</span></div>
+              <div class="grade">+</div>
+            </div>
+            <div class="row-card">
+              <div><strong>Bes. schriftlich</strong><span>Schularbeit: 2 · Test: 3</span></div>
+              <div class="grade">2</div>
+            </div>
+            <div class="row-card">
+              <div><strong>Abschlussbeurteilung</strong><span>Vorschlag sichtbar, Entscheidung bei der Lehrkraft</span></div>
+              <div class="grade">✓</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" id="funktionen">
+      <h2 class="section-title">Gebaut für den Schulalltag, nicht für Tabellenakrobatik.</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Schnelle Mitarbeitserfassung</h3>
+          <p>Lehrkräfte erfassen kurze Beobachtungen zu Schüler:innen, Klasse, Fach, Stunde, Anlass, Eindruck und Leistungsart.</p>
+        </article>
+        <article class="card">
+          <h3>Besondere Leistungsfeststellungen</h3>
+          <p>Besondere mündliche und schriftliche Leistungen wie Schularbeit, Test oder Diktat werden getrennt dokumentiert.</p>
+        </article>
+        <article class="card">
+          <h3>Abschlussbeurteilung</h3>
+          <p>Die App bündelt Daten zu einer transparenten Entscheidungshilfe. Die finale Note legt die Lehrkraft bewusst selbst fest.</p>
+        </article>
+        <article class="card">
+          <h3>Auswertung und PDF</h3>
+          <p>Berichte zeigen Mitarbeit, besondere Leistungsfeststellungen, Notenvorschläge und gespeicherte Beurteilungen kompakt pro Schüler:in.</p>
+        </article>
+        <article class="card">
+          <h3>Schuljahreswechsel</h3>
+          <p>Klassen, Schüler:innen und Schuljahre bleiben historisch nachvollziehbar; Vorjahresdaten können weiterhin eingesehen werden.</p>
+        </article>
+        <article class="card">
+          <h3>Mehrere Schulen</h3>
+          <p>Schulen, Schulformen, Klassen, Fächer und Rollen lassen sich für schulische Administrationsabläufe strukturieren.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section wide" id="lbv">
+      <div class="notice">
+        <h2>Keine Notenmaschine.</h2>
+        <p>
+          COOL-Grades erstellt Auswertungen und Notenvorschläge als pädagogische Entscheidungshilfe.
+          Die endgültige Leistungsbeurteilung bleibt bei der Lehrkraft und erfolgt unter Berücksichtigung
+          von LBV, Lehrplan, Unterrichtsverlauf und dokumentierten Leistungsfeststellungen.
+        </p>
+        <div class="keyword-cloud" aria-label="Fachliche Suchbegriffe">
+          <span class="keyword">LBV</span>
+          <span class="keyword">Mitarbeit</span>
+          <span class="keyword">Schulnachricht</span>
+          <span class="keyword">Jahresbeurteilung</span>
+          <span class="keyword">SOST</span>
+          <span class="keyword">NOST</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Für wen eignet sich die App?</h3>
+        <p>
+          Für österreichische Lehrer:innen, die Mitarbeit und besondere Leistungsfeststellungen strukturiert dokumentieren möchten,
+          sowie für Schulen, die Klassen, Fächer, Schuljahre und Beurteilungszeiträume nachvollziehbar verwalten wollen.
+        </p>
+        <div style="height:14px"></div>
+        <h3>Lizenz und Betrieb</h3>
+        <p>
+          COOL-Grades ist unter AGPL-3.0 veröffentlicht und wird als PHP/MySQL-Web-App betrieben.
+          Datenschutz, Sicherheit und Rollenrechte müssen beim Betrieb einer Schulinstanz sorgfältig konfiguriert werden.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page">
+    <p>
+      COOL-Grades · Open-Source-Web-App für österreichische Leistungsdokumentation ·
+      <a href="https://github.com/chrismey-71/cool-grades/blob/main/README.md">README</a> ·
+      <a href="https://github.com/chrismey-71/cool-grades/blob/main/SECURITY.md">Security</a> ·
+      <a href="https://github.com/chrismey-71/cool-grades/blob/main/DATENSCHUTZ.md">Datenschutz</a>
+    </p>
+  </footer>
+</body>
+</html>

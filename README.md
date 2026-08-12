@@ -6,6 +6,8 @@ Die App unterstützt Lehrer:innen bei der laufenden Mitarbeitsbewertung nach ös
 
 Die Software ersetzt keine pädagogische Entscheidung. Notenvorschläge und Auswertungen sind Entscheidungshilfen; die finale Beurteilung bleibt bei der Lehrkraft.
 
+Projektseite: https://chrismey-71.github.io/cool-grades/
+
 ## Für wen ist COOL-Grades gedacht?
 
 COOL-Grades richtet sich an österreichische Lehrer:innen, Schulen und schulische Administrator:innen, die Leistungsbeurteilung nachvollziehbar und datensparsam dokumentieren möchten.
