@@ -16,6 +16,39 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.78] - 2026-08-14
+
+### Hinzugefügt
+
+- Der Installer bietet nun eine klare Wahl zwischen Produktivinstallation und Demoinstallation.
+- Die Demoinstallation erzeugt eine Demoschule HLW, die Demoklasse 2HLW, die Demofächer BW und APM, Demo-Benutzerkonten und umfangreiche anonymisierte Beispieldaten für ein ganzes Schuljahr.
+- Demodaten enthalten laufende Mitarbeit, besondere mündliche Leistungsfeststellungen, besondere schriftliche Leistungsfeststellungen, Orientierungsgewichtungen sowie Entwürfe für Schulnachricht und Jahresbeurteilung.
+- Das 1. Semester der Demodaten wird nun als final gespeicherte Schulnachricht angelegt; die Jahresbeurteilung bleibt als Entwurf zum Testen offen.
+- Das Demo-Lehrerkonto `demolehrer` erhält nun feste Konto-Voreinstellungen für normale Mitarbeitserfassung, Button-Schnellzugriff, Quick-Pick mit 7 Vorschlägen, kompakte kontrastreiche Eingaben, helles Theme und eingeblendete Gesetzeshinweise.
+- Im Adminbereich wird eine aktive Demoinstallation sichtbar angezeigt und kann manuell zurückgesetzt werden.
+- Demoinstallationen können im Adminbereich gelöscht werden, nachdem ein neues echtes Administrationskonto angelegt wurde.
+- Für öffentliche Testseiten steht ein CLI-Reset-Skript zur Verfügung, das per Cron z. B. täglich einen frischen Demo-Datenstand erzeugen kann.
+- Eine kurze Dokumentation beschreibt Installation, Reset und Entfernung der Demodaten.
+- Eine temporäre `install_check.php` prüft PHP-Version, Extensions, Log-Schreibrechte, Lockfile-Schreibrechte und Datenbankverbindung mit gültigem Install-Token.
+
+### Geändert
+
+- Angemeldete Benutzer:innen sehen in einer Demoinstallation einen dezenten Hinweis, dass keine echten Schüler:innendaten erfasst werden sollen.
+- Der Installer kann nun auf Webhosting-Umgebungen mit gültigem Einmal-Token ausgeführt werden; eine zusätzliche Localhost-Sperre ist optional über `install_local_only` aktivierbar.
+- Installationsfehler bei Datenbank, Schema oder Lockfile werden nun explizit protokolliert und mit einem verständlicheren Hinweis angezeigt.
+- `install.lock` wird nicht mehr stillschweigend ignoriert, sondern bei fehlenden Schreibrechten als Installationsfehler gemeldet.
+- Bei zu alter PHP-Version erscheint nun früh ein klarer Hinweis, bevor weitere App-Dateien geladen werden.
+
+### Korrigiert
+
+- Das Demo-Standardpasswort erfüllt nun die aktuelle Passwortrichtlinie der App und blockiert die Demoinstallation nicht mehr.
+- Der Demo-Reset ist bei vorhandenen Demo-Konten idempotent und aktualisiert `demoadmin`/`demolehrer`, statt an doppelten Benutzernamen abzubrechen.
+- Der Demo-Reset repariert nun auch teilweise angelegte Demo-Stammdaten wie Schule, Schulform, Schuljahr, Klasse und Fächer, statt an Unique-Key-Konflikten abzubrechen.
+- Demo-Schuljahre werden nun ausschließlich schulbezogen für die `Demoschule HLW` geführt; globale Schuljahres-Fallbacks werden beim Demo-Seed entfernt, damit die Klasse `2HLW` in Lehrer:innen-Menüs stabil erscheint.
+- Lehrer:innen-Menüs und Auswertungsseiten verwenden den gewählten Schulkontext nun auch bei der Schuljahr- und Fächerauswahl.
+- Dokumentation und Admin-Hinweis zur Demoinstallation zeigen das Demo-Passwort `DemoZugang47!`.
+- Versionsnummer auf 1.78 erhöht.
+
 ## [1.77] - 2026-08-12
 
 ### Geändert

@@ -498,6 +498,16 @@ CREATE TABLE IF NOT EXISTS participation_event_criteria (
   FOREIGN KEY (criteria_id) REFERENCES criteria(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS participation_event_lbvo (
+  event_id INT NOT NULL,
+  tag CHAR(1) NOT NULL,
+  source VARCHAR(16) NOT NULL,
+  created_at DATETIME NOT NULL,
+  PRIMARY KEY (event_id, tag, source),
+  INDEX idx_lbvo_event_source (event_id, source),
+  FOREIGN KEY (event_id) REFERENCES participation_events(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- Default option labels (editable by teachers in teacher/options.php)
 INSERT IGNORE INTO participation_options (opt_type,scope,subject_id,teacher_id,label,active,sort,created_at) VALUES

@@ -2,13 +2,15 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/school_years.php';
 require_once __DIR__.'/../lib/assessment_weights.php';
+require_once __DIR__.'/../lib/schools.php';
 
 $u=require_role('teacher');
 $pdo=db();
 $bp=cfg()['base_path'];
 
-$schoolYears=load_school_years($pdo,true);
-$schoolYearId=(int)($_REQUEST['school_period_set_id'] ?? school_year_current_id($pdo));
+$selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,$selectedSchoolId<=0);
+$schoolYearId=(int)($_REQUEST['school_period_set_id'] ?? school_year_current_id($pdo,$selectedSchoolId));
 $classId=(int)($_REQUEST['class_id'] ?? 0);
 $subjectId=(int)($_REQUEST['subject_id'] ?? 0);
 $assignmentRequest=(string)($_REQUEST['assignment'] ?? '');
@@ -27,14 +29,18 @@ foreach($schoolYears as $schoolYear){
 $assignmentSql="SELECT c.id AS class_id,c.name AS class_name,c.assessment_system,c.is_archived,c.is_departed,
                        s.id AS subject_id,s.code AS subject_code,s.name AS subject_name,s.is_schularbeit_subject,
                        sp.label AS school_year_label
-                FROM teacher_assignments ta
-                JOIN classes c ON c.id=ta.class_id
-                JOIN subjects s ON s.id=ta.subject_id
-                LEFT JOIN school_period_sets sp ON sp.id=c.school_period_set_id
-                WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0 AND ta.status='active'
-                ORDER BY c.name,s.code,s.name";
+	                FROM teacher_assignments ta
+	                JOIN classes c ON c.id=ta.class_id
+	                JOIN school_forms sf ON sf.id=c.school_form_id
+	                JOIN subjects s ON s.id=ta.subject_id
+	                LEFT JOIN school_period_sets sp ON sp.id=c.school_period_set_id
+	                WHERE ta.teacher_id=? AND c.school_period_set_id=? AND c.is_departed=0 AND ta.status='active'
+	                ".($selectedSchoolId>0 ? "AND sf.school_id=? " : '')."
+	                ORDER BY c.name,s.code,s.name";
+$assignmentParams=[(int)$u['id'],$schoolYearId];
+if($selectedSchoolId>0) $assignmentParams[]=$selectedSchoolId;
 $st=$pdo->prepare($assignmentSql);
-$st->execute([(int)$u['id'],$schoolYearId]);
+$st->execute($assignmentParams);
 $weightAssignments=$st->fetchAll();
 
 if(($classId<=0 || $subjectId<=0) && $weightAssignments){

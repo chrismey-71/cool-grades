@@ -2,23 +2,30 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/final_assessments.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
 
 $u = require_role('teacher');
 $pdo = db();
 $bp = cfg()['base_path'] ?? '';
 
-$periodSets = app_school_period_sets(true);
+$selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
+$periodSets = app_school_period_sets(true,$selectedSchoolId,$selectedSchoolId<=0);
 $school_period_set_id = array_key_exists('school_period_set_id', $_REQUEST)
   ? (int)$_REQUEST['school_period_set_id']
   : final_assessment_default_period_set_id($periodSets);
-$classes = load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true);
+$classes = load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true,true,$selectedSchoolId);
 
-$st = $pdo->prepare("SELECT DISTINCT s.id,s.code,s.name
-                     FROM teacher_assignments ta
-                     JOIN subjects s ON s.id=ta.subject_id
-                     WHERE ta.teacher_id=?
-                     ORDER BY s.code");
-$st->execute([(int)$u['id']]);
+$subjectSql = "SELECT DISTINCT s.id,s.code,s.name
+               FROM teacher_assignments ta
+               JOIN classes c ON c.id=ta.class_id
+               JOIN school_forms sf ON sf.id=c.school_form_id
+               JOIN subjects s ON s.id=ta.subject_id
+               WHERE ta.teacher_id=? AND c.school_period_set_id=?";
+$subjectParams = [(int)$u['id'], $school_period_set_id];
+if($selectedSchoolId>0){ $subjectSql .= " AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+$subjectSql .= " ORDER BY s.code";
+$st = $pdo->prepare($subjectSql);
+$st->execute($subjectParams);
 $subjects = $st->fetchAll();
 
 $class_id = (int)($_REQUEST['class_id'] ?? 0);

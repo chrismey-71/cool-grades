@@ -3,13 +3,15 @@ require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/assessment_summaries.php';
 require_once __DIR__.'/../lib/school_years.php';
 require_once __DIR__.'/../lib/assessment_weights.php';
+require_once __DIR__.'/../lib/schools.php';
 $u=require_role('teacher');
 $pdo=db();
 $bp=cfg()['base_path'];
 
 $class_id=(int)($_GET['class_id'] ?? 0);
 $subject_id=(int)($_GET['subject_id'] ?? 0);
-$school_period_set_id=(int)($_GET['school_period_set_id'] ?? school_year_current_id($pdo));
+$selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
+$school_period_set_id=(int)($_GET['school_period_set_id'] ?? school_year_current_id($pdo,$selectedSchoolId));
 
 $from=$_GET['from'] ?? date('Y-m-01');
 $to=$_GET['to'] ?? date('Y-m-d');
@@ -39,11 +41,20 @@ $written_tooltip_map = [
 ];
 $written_type_options = written_assessment_types();
 
-$schoolYears=load_school_years($pdo,true);
-$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true);
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,$selectedSchoolId<=0);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true,true,$selectedSchoolId);
 
-$st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? ORDER BY s.code");
-$st->execute([(int)$u['id']]);
+$subjectSql="SELECT DISTINCT s.id,s.code,s.name
+             FROM teacher_assignments ta
+             JOIN classes c ON c.id=ta.class_id
+             JOIN school_forms sf ON sf.id=c.school_form_id
+             JOIN subjects s ON s.id=ta.subject_id
+             WHERE ta.teacher_id=? AND c.school_period_set_id=?";
+$subjectParams=[(int)$u['id'],$school_period_set_id];
+if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+$subjectSql.=" ORDER BY s.code";
+$st=$pdo->prepare($subjectSql);
+$st->execute($subjectParams);
 $subjects=$st->fetchAll();
 
 $exams=[];

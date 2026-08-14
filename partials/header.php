@@ -93,4 +93,12 @@
   <?php endif; ?>
 <?php endif; ?>
 
+<?php if($u && app_setting_get('demo_installation_active', '0') === '1'): ?>
+  <div class="teacher-school-strip" style="background:#fff7e6;border-bottom-color:#ead39a">
+    <div class="wrap">
+      <span class="teacher-school-label">Demoinstallation: Musterdaten, nicht für echte Schüler:innendaten verwenden.</span>
+    </div>
+  </div>
+<?php endif; ?>
+
 <div class="wrap">

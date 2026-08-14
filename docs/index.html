@@ -267,14 +267,84 @@
       font-size: 1.02rem;
     }
 
-    .feature p {
-      margin: 0;
-      color: var(--muted);
-    }
+	    .feature p {
+	      margin: 0;
+	      color: var(--muted);
+	    }
 
-    .two-columns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+	    .demo-panel {
+	      display: grid;
+	      grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
+	      gap: 16px;
+	      align-items: stretch;
+	      padding: 18px;
+	      border: 1px solid var(--line-strong);
+	      border-left: 5px solid var(--accent);
+	      border-radius: 8px;
+	      background: #fbfcfb;
+	    }
+
+	    .demo-panel h2 {
+	      margin: 0 0 8px;
+	      font-size: 1.35rem;
+	      line-height: 1.25;
+	    }
+
+	    .demo-panel p {
+	      margin: 0 0 10px;
+	      color: var(--muted);
+	    }
+
+	    .demo-login {
+	      padding: 14px;
+	      border: 1px solid var(--line);
+	      border-radius: 8px;
+	      background: var(--surface);
+	    }
+
+	    .demo-login h3 {
+	      margin: 0 0 8px;
+	      font-size: 1.02rem;
+	    }
+
+	    .demo-login dl {
+	      display: grid;
+	      grid-template-columns: 96px 1fr;
+	      gap: 7px 10px;
+	      margin: 0;
+	    }
+
+	    .demo-login dt,
+	    .demo-login dd {
+	      margin: 0;
+	    }
+
+	    .demo-login dt {
+	      color: var(--muted);
+	      font-weight: 700;
+	    }
+
+	    .demo-login code {
+	      padding: 2px 5px;
+	      border: 1px solid var(--line);
+	      border-radius: 5px;
+	      background: var(--surface-soft);
+	      color: var(--text);
+	      font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+	      font-size: .92rem;
+	    }
+
+	    .demo-note {
+	      margin-top: 12px;
+	      padding-top: 10px;
+	      border-top: 1px solid var(--line);
+	      color: var(--quiet);
+	      font-size: .9rem;
+	    }
+
+	    .two-columns {
+	      display: grid;
+	      grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
 
@@ -504,11 +574,12 @@
     }
 
     @media (max-width: 860px) {
-      .nav,
-      .intro,
-      .two-columns,
-      .screenshot-grid,
-      .handbook-list {
+	      .nav,
+	      .intro,
+	      .demo-panel,
+	      .two-columns,
+	      .screenshot-grid,
+	      .handbook-list {
         grid-template-columns: 1fr;
       }
 
@@ -570,9 +641,10 @@
     <nav class="page nav" aria-label="Hauptnavigation">
       <div class="brand"><span class="brand-mark">CG</span><span>COOL-Grades</span></div>
       <div class="nav-links">
-        <a href="#umfang">Funktionsumfang</a>
-        <a href="#einblicke">Einblicke</a>
-        <a href="#handbuch">Handbuch</a>
+	        <a href="#umfang">Funktionsumfang</a>
+	        <a href="#demo">Live-Demo</a>
+	        <a href="#einblicke">Einblicke</a>
+	        <a href="#handbuch">Handbuch</a>
         <a href="#einordnung">Einordnung</a>
         <a href="https://github.com/chrismey-71/cool-grades/releases">Releases</a>
         <a href="https://github.com/chrismey-71/cool-grades">GitHub</a>
@@ -590,10 +662,11 @@
           besonderen mündlichen und schriftlichen Leistungsfeststellungen sowie bei Auswertungen,
           PDF-Berichten und Abschlussbeurteilungen.
         </p>
-        <div class="actions">
-          <a class="button primary" href="https://github.com/chrismey-71/cool-grades/releases/latest">Aktuelle Version herunterladen</a>
-          <a class="button" href="https://github.com/chrismey-71/cool-grades">Quellcode auf GitHub</a>
-        </div>
+	        <div class="actions">
+	          <a class="button primary" href="https://github.com/chrismey-71/cool-grades/releases/latest">Aktuelle Version herunterladen</a>
+	          <a class="button" href="https://demo-cool-grades.meysing.de">Live-Demo öffnen</a>
+	          <a class="button" href="https://github.com/chrismey-71/cool-grades">Quellcode auf GitHub</a>
+	        </div>
       </div>
 
       <aside class="facts" aria-label="Projektkurzprofil">
@@ -607,11 +680,13 @@
           <dd>LBV-orientierte Dokumentation und Entscheidungshilfe</dd>
           <dt>Technik</dt>
           <dd>PHP/MySQL-Webanwendung</dd>
-          <dt>Lizenz</dt>
-          <dd>AGPL-3.0</dd>
-        </dl>
-      </aside>
-    </section>
+	          <dt>Lizenz</dt>
+	          <dd>AGPL-3.0</dd>
+	          <dt>Demo</dt>
+	          <dd><a href="https://demo-cool-grades.meysing.de">demo-cool-grades.meysing.de</a></dd>
+	        </dl>
+	      </aside>
+	    </section>
 
     <section class="section" id="umfang">
       <div class="section-header">
@@ -643,10 +718,46 @@
           <h3>Mehrschulbetrieb</h3>
           <p>Schulen, Schulformen, Klassen, Fächer und Zuständigkeiten können getrennt verwaltet werden.</p>
         </article>
-      </div>
-    </section>
+	      </div>
+	    </section>
 
-    <section class="section" id="einblicke">
+	    <section class="section" id="demo">
+	      <div class="demo-panel">
+	        <div>
+	          <p class="kicker">Live-Demo mit Musterdaten</p>
+	          <h2>COOL-Grades direkt im Browser ausprobieren.</h2>
+	          <p>
+	            Die Demoseite enthält eine Demoschule HLW, die Klasse 2HLW, die Fächer BW und APM
+	            sowie anonymisierte Beispieldaten für ein Schuljahr. Damit lassen sich Mitarbeitserfassung,
+	            besondere Leistungsfeststellungen, Auswertungen und Abschlussbeurteilung ohne eigene Installation ansehen.
+	          </p>
+	          <p>
+	            Die Demo ist ausschließlich zum Ausprobieren gedacht und wird regelmäßig auf den Ausgangszustand zurückgesetzt.
+	            Bitte dort keine echten Schüler:innen- oder Schuldaten eintragen.
+	          </p>
+	          <div class="actions">
+	            <a class="button primary" href="https://demo-cool-grades.meysing.de">Zur Live-Demo</a>
+	            <a class="button" href="demoinstallation.md">Hinweise zur Demoinstallation</a>
+	          </div>
+	        </div>
+	        <aside class="demo-login" aria-label="Demo-Zugangsdaten">
+	          <h3>Zugangsdaten</h3>
+	          <dl>
+	            <dt>Lehrkraft</dt>
+	            <dd><code>demolehrer</code></dd>
+	            <dt>Admin</dt>
+	            <dd><code>demoadmin</code></dd>
+	            <dt>Passwort</dt>
+	            <dd><code>DemoZugang47!</code></dd>
+	          </dl>
+	          <div class="demo-note">
+	            Empfehlung: Zuerst als <code>demolehrer</code> anmelden. Der Admin-Zugang dient nur zum Erkunden der Verwaltung mit Demo-Daten.
+	          </div>
+	        </aside>
+	      </div>
+	    </section>
+
+	    <section class="section" id="einblicke">
       <div class="section-header">
         <h2>Einblicke in die Arbeit mit COOL-Grades</h2>
         <p>Die Screenshots zeigen typische Arbeitssituationen mit Demo-Daten. Sie sollen einen schnellen Eindruck vermitteln, wie Lehrer:innen im Alltag mit der App arbeiten.</p>

@@ -3,13 +3,15 @@ require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/lbvo.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
 $u=require_role('teacher');
 $pdo=db();
 $bp=cfg()['base_path'];
 
 $class_id=(int)($_GET['class_id']??0);
 $subject_id=(int)($_GET['subject_id']??0);
-$school_period_set_id=(int)($_GET['school_period_set_id'] ?? school_year_current_id($pdo));
+$selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
+$school_period_set_id=(int)($_GET['school_period_set_id'] ?? school_year_current_id($pdo,$selectedSchoolId));
 
 // Filters
 $from=$_GET['from'] ?? date('Y-m-01');
@@ -21,9 +23,24 @@ $lesson_id=(int)($_GET['lesson_id'] ?? 0); // 0=all, -1=without lesson, >0 speci
 $msg=(string)($_GET['msg'] ?? '');
 $err=(string)($_GET['err'] ?? '');
 
-$schoolYears=load_school_years($pdo,true);
-$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true);
-$subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,$selectedSchoolId<=0);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true,true,$selectedSchoolId);
+if($class_id>0){
+  $subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
+} else {
+  $subjectSql="SELECT DISTINCT s.id,s.code,s.name
+               FROM teacher_assignments ta
+               JOIN classes c ON c.id=ta.class_id
+               JOIN school_forms sf ON sf.id=c.school_form_id
+               JOIN subjects s ON s.id=ta.subject_id
+               WHERE ta.teacher_id=? AND c.school_period_set_id=?";
+  $subjectParams=[(int)$u['id'],$school_period_set_id];
+  if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+  $subjectSql.=" ORDER BY s.code";
+  $st=$pdo->prepare($subjectSql);
+  $st->execute($subjectParams);
+  $subjects=$st->fetchAll();
+}
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();

@@ -1,4 +1,11 @@
 <?php
+if(PHP_VERSION_ID < 80000){
+  if(!headers_sent()) http_response_code(500);
+  echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>PHP-Version nicht unterstützt</title></head><body>';
+  echo '<p>COOL-Grades benötigt PHP 8.0 oder neuer. Auf diesem Server läuft PHP '.htmlspecialchars(PHP_VERSION, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'.</p>';
+  echo '</body></html>';
+  exit;
+}
 require_once __DIR__.'/logger.php';
 
 function cfg(): array {
@@ -883,6 +890,18 @@ function _ensure_schema(PDO $pdo): void {
   }catch(Exception $e){
     app_log('error', 'yearly final assessment migration failed', ['error' => $e->getMessage()]);
   }
+
+  try{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS participation_event_lbvo (
+      event_id INT NOT NULL,
+      tag CHAR(1) NOT NULL,
+      source VARCHAR(16) NOT NULL,
+      created_at DATETIME NOT NULL,
+      PRIMARY KEY (event_id, tag, source),
+      INDEX idx_lbvo_event_source (event_id, source),
+      FOREIGN KEY (event_id) REFERENCES participation_events(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+  }catch(Exception $e){ /* ignore */ }
 
   try{
     $pdo->exec("INSERT IGNORE INTO participation_options (opt_type,scope,subject_id,teacher_id,label,active,sort,created_at) VALUES

@@ -2,6 +2,7 @@
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
 
 $u=require_role('teacher');
 $pdo=db();
@@ -22,10 +23,21 @@ $sort_options = [
 if(!isset($sort_options[$sort])) $sort='date_desc';
 
 // Assignable classes/subjects
-$classes=load_teacher_classes($pdo,(int)$u['id'],school_year_current_id($pdo),false,false,false);
+$selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
+$currentSchoolYearId=school_year_current_id($pdo,$selectedSchoolId);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$currentSchoolYearId,false,false,false,$selectedSchoolId);
 
-$st=$pdo->prepare("SELECT DISTINCT s.id,s.code,s.name FROM teacher_assignments ta JOIN subjects s ON s.id=ta.subject_id WHERE ta.teacher_id=? AND ta.status='active' ORDER BY s.code");
-$st->execute([(int)$u['id']]);
+$subjectSql="SELECT DISTINCT s.id,s.code,s.name
+             FROM teacher_assignments ta
+             JOIN classes c ON c.id=ta.class_id
+             JOIN school_forms sf ON sf.id=c.school_form_id
+             JOIN subjects s ON s.id=ta.subject_id
+             WHERE ta.teacher_id=? AND ta.status='active' AND c.school_period_set_id=?";
+$subjectParams=[(int)$u['id'],$currentSchoolYearId];
+if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+$subjectSql.=" ORDER BY s.code";
+$st=$pdo->prepare($subjectSql);
+$st->execute($subjectParams);
 $subjects=$st->fetchAll();
 
 // Parse slot map for quick navigation (format: "UE:ID,UE:ID")

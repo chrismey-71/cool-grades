@@ -5,8 +5,10 @@ require_once __DIR__.'/lib/oral_assessments.php';
 require_once __DIR__.'/lib/report_evaluation.php';
 require_once __DIR__.'/lib/final_assessments.php';
 require_once __DIR__.'/lib/school_years.php';
+require_once __DIR__.'/lib/schools.php';
 $u=require_role('teacher');
 $pdo=db();
+$selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
 
 $class_id=(int)($_GET['class_id']??0);
 $subject_id=(int)($_GET['subject_id']??0);
@@ -14,19 +16,34 @@ $date_from=$_GET['from'] ?? '';
 $date_to=$_GET['to'] ?? '';
 $student_id=(int)($_GET['student_id']??0);
 $period=(string)($_GET['period'] ?? 'current');
-$resolvedPeriod=app_school_period_resolve($period,$date_from,$date_to);
-$periodOptions=app_school_period_options();
+$resolvedPeriod=app_school_period_resolve($period,$date_from,$date_to,$selectedSchoolId,$selectedSchoolId<=0);
+$periodOptions=app_school_period_options($selectedSchoolId,$selectedSchoolId<=0);
 if($period !== 'custom'){
   $date_from=(string)$resolvedPeriod['from'];
   $date_to=(string)$resolvedPeriod['to'];
 }
 $periodSchoolYearId=(int)($resolvedPeriod['id'] ?? 0);
 if($periodSchoolYearId<=0 && preg_match('/^period_(\d+)_/', $period, $m)) $periodSchoolYearId=(int)$m[1];
-if($periodSchoolYearId<=0) $periodSchoolYearId=school_year_current_id($pdo);
+if($periodSchoolYearId<=0) $periodSchoolYearId=school_year_current_id($pdo,$selectedSchoolId);
 $reportAssessmentContext=report_eval_assessment_context_from_period($resolvedPeriod,$period);
 
-$classes=load_teacher_classes($pdo,(int)$u['id'],$periodSchoolYearId,true,true);
-$subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
+$classes=load_teacher_classes($pdo,(int)$u['id'],$periodSchoolYearId,true,true,true,$selectedSchoolId);
+if($class_id>0){
+  $subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
+} else {
+  $subjectSql="SELECT DISTINCT s.id,s.code,s.name
+               FROM teacher_assignments ta
+               JOIN classes c ON c.id=ta.class_id
+               JOIN school_forms sf ON sf.id=c.school_form_id
+               JOIN subjects s ON s.id=ta.subject_id
+               WHERE ta.teacher_id=? AND c.school_period_set_id=?";
+  $subjectParams=[(int)$u['id'],$periodSchoolYearId];
+  if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+  $subjectSql.=" ORDER BY s.code";
+  $st=$pdo->prepare($subjectSql);
+  $st->execute($subjectParams);
+  $subjects=$st->fetchAll();
+}
 
 // Print-friendly view (users can "Print to PDF" in the browser)
 $view = (string)($_GET['view'] ?? '');

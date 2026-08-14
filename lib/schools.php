@@ -65,6 +65,33 @@ function teacher_school_ids(PDO $pdo, int $teacherId): array {
   return user_school_ids($pdo,$teacherId);
 }
 
+function teacher_school_context_id(PDO $pdo, int $teacherId): int {
+  if($teacherId <= 0) return 0;
+
+  $assigned = teacher_school_ids($pdo, $teacherId);
+  if(!$assigned){
+    $st=$pdo->prepare("SELECT DISTINCT sf.school_id
+                       FROM teacher_assignments ta
+                       JOIN classes c ON c.id=ta.class_id
+                       JOIN school_forms sf ON sf.id=c.school_form_id
+                       JOIN schools s ON s.id=sf.school_id
+                       WHERE ta.teacher_id=? AND IFNULL(s.active,1)=1
+                       ORDER BY s.name, sf.school_id");
+    $st->execute([$teacherId]);
+    $assigned = array_map('intval', array_column($st->fetchAll(), 'school_id'));
+  }
+
+  $assigned = array_values(array_unique(array_filter($assigned, static fn(int $id): bool => $id > 0)));
+  if(!$assigned) return 0;
+
+  $selected = (int)($_SESSION['teacher_school_context_id'] ?? 0);
+  if($selected > 0 && in_array($selected, $assigned, true)) return $selected;
+
+  $selected = (int)$assigned[0];
+  $_SESSION['teacher_school_context_id'] = $selected;
+  return $selected;
+}
+
 function admin_assigned_school_ids(PDO $pdo, $admin): array {
   $adminId=is_array($admin) ? (int)($admin['id'] ?? 0) : (int)$admin;
   if($adminId<=0) return [];

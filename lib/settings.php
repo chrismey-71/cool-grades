@@ -236,9 +236,9 @@ function app_school_period_default_options(?DateTimeImmutable $now = null): arra
   ];
 }
 
-function app_school_period_options(): array {
+function app_school_period_options(int $schoolId = 0, bool $includeGlobal = true): array {
   $options = [];
-  foreach(app_school_period_sets(true) as $set){
+  foreach(app_school_period_sets(true, $schoolId, $includeGlobal) as $set){
     $yearLabel = trim((string)$set['label']);
     if($yearLabel === ''){
       $yearLabel = school_period_year_label((string)$set['semester1_from'], (string)$set['semester2_to']);
@@ -319,8 +319,8 @@ function app_school_period_current_key(?array $options = null, ?DateTimeImmutabl
   return 'default_schoolyear';
 }
 
-function app_school_period_resolve(?string $period, ?string $customFrom = '', ?string $customTo = ''): array {
-  $savedOptions = app_school_period_options();
+function app_school_period_resolve(?string $period, ?string $customFrom = '', ?string $customTo = '', int $schoolId = 0, bool $includeGlobal = true): array {
+  $savedOptions = app_school_period_options($schoolId, $includeGlobal);
   $defaultOptions = app_school_period_default_options();
   $period = trim((string)$period);
   if($period === '') $period = 'current';
