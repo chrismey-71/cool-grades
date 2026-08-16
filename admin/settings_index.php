@@ -105,7 +105,11 @@ render_header('Einstellungen', $u);
               </div>
             </form>
           </details>
-          <div class="small muted" style="margin-top:12px">Automatischer täglicher Reset per Cron: <code>php <?php echo h(realpath(__DIR__.'/..')); ?>/tools/reset_demo_installation.php</code></div>
+          <div class="small muted" style="margin-top:12px">
+            Automatischer täglicher Reset per Cron, ohne Anzeige des Serverpfads:
+            <code>0 3 * * * php /pfad/zur-app/tools/reset_demo_installation.php</code>
+            <br>Den tatsächlichen absoluten Pfad bitte nur in der Hosting- bzw. Serververwaltung eintragen.
+          </div>
         </div>
       <?php endif; ?>
 

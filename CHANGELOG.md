@@ -41,6 +41,8 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ### Korrigiert
 
+- Qualitative Bereiche im Notenvorschlag der Abschlussbeurteilung werden nun feiner aus dem Eindrucksdurchschnitt abgeleitet, statt vor der Gewichtung pauschal auf ganze Noten wie `2` verdichtet zu werden.
+- Durchgehend positive Mitarbeitseinträge mit ausreichender Datenbasis werden im Mitarbeitsnotenvorschlag nun angemessener als sehr positive Tendenz berücksichtigt.
 - Das Demo-Standardpasswort erfüllt nun die aktuelle Passwortrichtlinie der App und blockiert die Demoinstallation nicht mehr.
 - Der Demo-Reset ist bei vorhandenen Demo-Konten idempotent und aktualisiert `demoadmin`/`demolehrer`, statt an doppelten Benutzernamen abzubrechen.
 - Der Demo-Reset repariert nun auch teilweise angelegte Demo-Stammdaten wie Schule, Schulform, Schuljahr, Klasse und Fächer, statt an Unique-Key-Konflikten abzubrechen.

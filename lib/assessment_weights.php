@@ -328,12 +328,12 @@ function assessment_weight_plausibility_warnings(array $settings, array $subject
   return array_values(array_unique($warnings));
 }
 
-function assessment_weight_value_from_qualitative_average(float $average): int {
-  if($average >= 1.1) return 1;
-  if($average >= 0.45) return 2;
-  if($average > -0.15) return 3;
-  if($average > -0.85) return 4;
-  return 5;
+function assessment_weight_value_from_qualitative_average(float $average): float {
+  $clamped = max(-2.0, min(2.0, $average));
+  $value = $clamped >= 0
+    ? 3.0 - (1.5 * $clamped)
+    : 3.0 - $clamped;
+  return round(max(1.0, min(5.0, $value)), 2);
 }
 
 /**
@@ -343,9 +343,14 @@ function assessment_weight_value_from_qualitative_average(float $average): int {
  */
 function assessment_weight_area_values(array $summary): array {
   $participationProposal = $summary['note_proposal'] ?? [];
-  $participationValue = isset($participationProposal['value']) && $participationProposal['value'] !== null
-    ? (float)$participationProposal['value']
-    : null;
+  $participationAverage = ($summary['quality']['avg'] ?? null) !== null ? (float)$summary['quality']['avg'] : null;
+  $participationProposalAvailable = isset($participationProposal['value']) && $participationProposal['value'] !== null;
+  $participationValue = null;
+  if($participationProposalAvailable && $participationAverage !== null){
+    $participationValue = assessment_weight_value_from_qualitative_average($participationAverage);
+  } elseif($participationProposalAvailable){
+    $participationValue = (float)$participationProposal['value'];
+  }
 
   $oralScores = [];
   $oralWeightedSum = 0.0;
@@ -376,8 +381,9 @@ function assessment_weight_area_values(array $summary): array {
       'count' => (int)($summary['participation_count'] ?? 0),
       'kind' => 'Eindruck/Relevanz',
       'basis' => $participationValue !== null
-        ? 'qualitativ verdichteter Mitarbeitsnotenvorschlag '.assessment_weight_grade_format($participationValue)
+        ? 'qualitativer Bereichswert '.assessment_weight_grade_format($participationValue).($participationAverage !== null ? ' aus Eindrucksdurchschnitt '.number_format($participationAverage, 2, ',', '.') : '')
         : 'keine ausreichend belastbare Mitarbeitstendenz',
+      'qualitative_average' => $participationAverage,
     ],
     'oral' => [
       'available' => $oralValue !== null,

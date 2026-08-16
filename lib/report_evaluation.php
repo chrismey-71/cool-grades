@@ -289,7 +289,7 @@ function report_eval_note_proposal(int $count, int $distinctDates, array $scores
 
   $avg = array_sum($scores) / count($scores);
   $value = 3;
-  if($avg >= 1.1 && $positiveCount >= 4 && $negativeCount === 0){
+  if($avg >= 0.95 && $positiveCount >= 4 && $negativeCount === 0){
     $value = 1;
   } elseif($avg >= 0.45 && $positiveCount > ($negativeCount * 2)){
     $value = 2;
