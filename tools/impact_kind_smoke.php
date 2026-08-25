@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/../lib/participation_pedagogical_mode.php';
+require_once __DIR__.'/../lib/participation_options.php';
 require_once __DIR__.'/../lib/report_evaluation.php';
 
 function impact_kind_assert_same($expected, $actual, string $message): void {
@@ -34,5 +35,16 @@ impact_kind_assert_true(participation_impact_kind_is_formative_compatible('neutr
 $hint = participation_pedagogical_hint('formative', 'negative');
 impact_kind_assert_same('error', $hint['level'], 'Ein formativer Kontext mit negativem Eindruck muss einen Konflikthinweis zeigen.');
 impact_kind_assert_true(stripos($hint['text'], 'nicht negativ') !== false, 'Der Konflikthinweis muss die pädagogische Einschränkung erklären.');
+
+impact_kind_assert_same(
+  participation_option_label_key('mündlich'),
+  participation_option_label_key('mÃ¼ndlich'),
+  'Mojibake-Varianten mit Umlauten müssen in Picklisten als gleiche Option erkannt werden.'
+);
+impact_kind_assert_same(
+  participation_option_label_key('Argumentieren / Erklären'),
+  participation_option_label_key('Argumentieren / ErklÃ¤ren'),
+  'Mojibake-Varianten in Beobachtungsbereichen dürfen keine sichtbaren Dubletten erzeugen.'
+);
 
 echo "OK: impact_kind smoke tests passed.\n";

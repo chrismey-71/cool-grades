@@ -27,6 +27,10 @@ Diese Reihenfolge verhindert, dass Klassen versehentlich doppelt angelegt oder a
 
 Schuljahre werden im Adminbereich unter `Stammdaten -> Schuljahre/Semester` angelegt. Ein Schuljahr enthält die Datumsbereiche für das 1. Semester, das 2. Semester und das gesamte Schuljahr. Es kann entweder global für alle Schulen gelten oder einer konkreten Schule zugeordnet werden. Das ist sinnvoll, wenn Schulen unterschiedliche Semestertermine führen. Pro Schule bzw. im globalen Bereich kann ein Schuljahr als aktuell markiert werden.
 
+Ein bereits global angelegtes Schuljahr kann nachträglich einer konkreten Schule zugeordnet werden. Die vorhandene Schuljahres-ID bleibt dabei erhalten; Klassen, Leistungsdaten, Auswertungen und Abschlussbeurteilungen werden nicht kopiert und nicht verschoben. Die Zuordnung wird aus Sicherheitsgründen blockiert, wenn das globale Schuljahr bereits Klassen aus einer anderen Schule enthält.
+
+Bei mehreren Schulen sollte ein neues Schuljahr in der Regel direkt einer konkreten Schule zugeordnet werden. Die Option `global / alle Schulen` ist ein Sonderfall für Installationen mit nur einer Schule oder für Schulen, die bewusst exakt dieselben Semestertermine gemeinsam verwenden.
+
 Das aktuelle Schuljahr steuert, welche Klassen Lehrer:innen standardmäßig sehen. Frühere Schuljahre bleiben für Auswertungen und PDF-Berichte erreichbar. Globale Schuljahre stehen allen Schulen zur Verfügung; schulbezogene Schuljahre nur der jeweils gewählten Schule.
 
 ## Klassen pro Schuljahr

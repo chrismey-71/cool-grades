@@ -144,7 +144,7 @@ $subjectNoSa = [
 ];
 
 $proposalGood = final_assessment_compute_proposal(sample_summary(), $subjectNoSa, 'semester2');
-fa_smoke_assert_same(2, $proposalGood['value'], '8 positive Einträge aus 7 Tagen sollen einen positiven Vorschlag behalten.');
+fa_smoke_assert_same(1, $proposalGood['value'], '8 positive Einträge aus 7 Tagen sollen einen sehr positiven Vorschlag ermöglichen.');
 fa_smoke_assert_true(stripos($proposalGood['label'], 'Notenvorschlag') !== false, 'Der Vorschlag soll als Notenvorschlag bezeichnet werden.');
 
 $proposalEnough = final_assessment_compute_proposal(sample_summary([
@@ -173,7 +173,7 @@ $proposalNoTest = final_assessment_compute_proposal(sample_summary([
   'written_avg' => null,
   'written_text' => '–',
 ]), $subjectNoSa, 'semester2');
-fa_smoke_assert_same(2, $proposalNoTest['value'], 'Fehlende schriftliche Leistungen dürfen den Vorschlag nicht verschlechtern.');
+fa_smoke_assert_same(1, $proposalNoTest['value'], 'Fehlende schriftliche Leistungen dürfen den Vorschlag nicht verschlechtern.');
 fa_smoke_assert_true(stripos((string)$proposalNoTest['weighting']['effective_label'], 'Mitarbeit 100') !== false, 'Bei ausschließlich verwertbarer Mitarbeit muss deren Gewicht auf 100 % normalisiert werden.');
 
 $proposalSa = final_assessment_compute_proposal(sample_summary(), $subjectSa, 'semester2');

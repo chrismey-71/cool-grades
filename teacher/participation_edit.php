@@ -37,6 +37,25 @@ $students=load_class_students($pdo,$class_id,false);
 $st=$pdo->prepare("SELECT id, lesson_date, lesson_unit, topic FROM lesson_sessions WHERE class_id=? AND subject_id=? ORDER BY lesson_date DESC, CAST(lesson_unit AS UNSIGNED) DESC, id DESC LIMIT 60");
 $st->execute([$class_id,$subject_id]);
 $recent_lessons=$st->fetchAll();
+$stored_lesson_id=(int)($e['lesson_id'] ?? 0);
+if($stored_lesson_id>0){
+  $lesson_in_recent=false;
+  foreach($recent_lessons as $ls){
+    if((int)($ls['id'] ?? 0)===$stored_lesson_id){
+      $lesson_in_recent=true;
+      break;
+    }
+  }
+  if(!$lesson_in_recent){
+    $st=$pdo->prepare("SELECT id, lesson_date, lesson_unit, topic
+                       FROM lesson_sessions
+                       WHERE id=? AND class_id=? AND subject_id=?
+                       LIMIT 1");
+    $st->execute([$stored_lesson_id,$class_id,$subject_id]);
+    $stored_lesson=$st->fetch();
+    if($stored_lesson) array_unshift($recent_lessons,$stored_lesson);
+  }
+}
 
 // Criteria (exclude archived)
 $st=$pdo->prepare("SELECT c.id,c.label,c.category, cs.scope
@@ -58,15 +77,6 @@ $socials=load_participation_options($pdo,(int)$u['id'],$subject_id,'social_form'
 $phases=load_participation_options($pdo,(int)$u['id'],$subject_id,'phase');
 $homeworks=load_participation_options($pdo,(int)$u['id'],$subject_id,'homework');
 
-// Build id->label maps
-$optLabel=[];
-$impactKindById=[];
-foreach([$reasons,$impacts,$perfs,$groups,$socials,$phases,$homeworks] as $arr){
-  foreach($arr as $o){ $optLabel[(int)$o['id']] = (string)$o['label']; }
-}
-foreach($impacts as $impactOption){
-  $impactKindById[(int)$impactOption['id']]=participation_impact_kind_from_option($impactOption);
-}
 $critLabel=[];
 foreach($criteria as $c){ $critLabel[(int)$c['id']] = (string)(($c['category']?($c['category'].': '):'').$c['label']); }
 
@@ -74,6 +84,105 @@ function get_tags(PDO $pdo,int $event_id,string $source): array {
   $st=$pdo->prepare("SELECT tag FROM participation_event_lbvo WHERE event_id=? AND source=? ORDER BY tag");
   $st->execute([$event_id,$source]);
   return array_map(fn($r)=>$r['tag'],$st->fetchAll());
+}
+
+function _participation_edit_option_display_label(array $option): string {
+  return (string)($option['display_label'] ?? $option['label'] ?? '');
+}
+
+function _participation_edit_apply_snapshot_option(array &$options, int &$selectedId, string $snapshotLabel, int $fallbackId, string $impactKind = '', string $pedagogicalMode = 'auto'): void {
+  $snapshotLabel = trim($snapshotLabel);
+  if($snapshotLabel === '') return;
+
+  foreach($options as &$option){
+    if((int)($option['id'] ?? 0) !== $selectedId) continue;
+    $currentLabel = trim((string)($option['label'] ?? ''));
+    if($currentLabel !== '' && participation_option_label_key($currentLabel) !== participation_option_label_key($snapshotLabel)){
+      $option['label'] = $snapshotLabel;
+      $option['display_label'] = $snapshotLabel.' (gespeicherter Wert; Pickliste aktuell: '.$currentLabel.')';
+      $option['is_snapshot'] = 1;
+    }
+    return;
+  }
+  unset($option);
+
+  if($selectedId <= 0) $selectedId = $fallbackId;
+  $options[] = [
+    'id' => $selectedId,
+    'label' => $snapshotLabel,
+    'display_label' => $snapshotLabel.' (gespeicherter Wert)',
+    'pedagogical_hint_mode' => $pedagogicalMode,
+    'impact_kind' => $impactKind,
+    'is_snapshot' => 1,
+  ];
+}
+
+function _participation_edit_snapshot_options(array &$reasons, array &$impacts, int &$reasonId, int &$impactId, array $event): void {
+  _participation_edit_apply_snapshot_option(
+    $reasons,
+    $reasonId,
+    (string)($event['reason_label'] ?? ''),
+    -1001,
+    '',
+    'auto'
+  );
+  _participation_edit_apply_snapshot_option(
+    $impacts,
+    $impactId,
+    (string)($event['rating'] ?? ''),
+    -1002,
+    (string)($event['impact_kind'] ?? ''),
+    'auto'
+  );
+}
+
+function _participation_edit_option_maps(array $reasons, array $impacts, array $perfs, array $groups, array $socials, array $phases, array $homeworks): array {
+  $optLabel=[];
+  $impactKindById=[];
+  foreach([$reasons,$impacts,$perfs,$groups,$socials,$phases,$homeworks] as $arr){
+    foreach($arr as $o){ $optLabel[(int)$o['id']] = (string)$o['label']; }
+  }
+  foreach($impacts as $impactOption){
+    $impactKindById[(int)$impactOption['id']]=participation_impact_kind_from_option($impactOption);
+  }
+  return [$optLabel,$impactKindById];
+}
+
+function _participation_edit_append_stored_options_by_ids(PDO $pdo, array &$options, array $selectedIds, string $type): void {
+  $selectedIds=array_values(array_unique(array_filter(array_map('intval',$selectedIds), fn($id)=>$id>0)));
+  if(!$selectedIds) return;
+
+  $present=[];
+  foreach($options as $option){
+    $present[(int)($option['id'] ?? 0)]=true;
+  }
+  $missing=array_values(array_filter($selectedIds, fn($id)=>!isset($present[$id])));
+  if(!$missing) return;
+
+  $placeholders=implode(',', array_fill(0,count($missing),'?'));
+  $params=array_merge([$type],$missing);
+  $st=$pdo->prepare("SELECT id,label,pedagogical_hint_mode,impact_kind,active,IFNULL(archived,0) AS archived
+                     FROM participation_options
+                     WHERE opt_type=? AND id IN ($placeholders)
+                     ORDER BY sort ASC, label ASC");
+  $st->execute($params);
+  foreach($st->fetchAll() as $row){
+    $label=(string)($row['label'] ?? '');
+    if((int)($row['active'] ?? 0)!==1 || (int)($row['archived'] ?? 0)===1){
+      $row['display_label']=$label.' (gespeicherter Wert; Pickliste aktuell ausgeblendet)';
+    }
+    $options[]=$row;
+  }
+}
+
+function _participation_edit_selected_lesson_date(array $lessons, int $lessonId): string {
+  if($lessonId<=0) return '';
+  foreach($lessons as $lesson){
+    if((int)($lesson['id'] ?? 0)===$lessonId){
+      return (string)($lesson['lesson_date'] ?? '');
+    }
+  }
+  return '';
 }
 
 $selCriteria=[];
@@ -108,6 +217,13 @@ $form_hw_id=(int)($e['homework_option_id'] ?? 0);
 $form_reason_text=(string)($e['reason_text'] ?? '');
 $form_note=(string)($e['note'] ?? '');
 $preset_name_input=trim((string)($_POST['preset_name'] ?? ''));
+_participation_edit_append_stored_options_by_ids($pdo,$perfs,$selPerfs,'performance');
+_participation_edit_append_stored_options_by_ids($pdo,$groups,$selGroups,'observation_group');
+_participation_edit_append_stored_options_by_ids($pdo,$socials,[$form_social_id],'social_form');
+_participation_edit_append_stored_options_by_ids($pdo,$phases,[$form_phase_id],'phase');
+_participation_edit_append_stored_options_by_ids($pdo,$homeworks,[$form_hw_id],'homework');
+_participation_edit_snapshot_options($reasons,$impacts,$form_reason_id,$form_impact_id,$e);
+[$optLabel,$impactKindById]=_participation_edit_option_maps($reasons,$impacts,$perfs,$groups,$socials,$phases,$homeworks);
 
 $msg='';
 $err='';
@@ -121,8 +237,27 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
   if($action==='save' || $action==='save_preset'){
     $form_student_id=(int)($_POST['student_id'] ?? $e['student_id']);
-    $form_event_date=(string)($_POST['event_date'] ?? $e['event_date']);
     $form_lesson_id=(int)($_POST['lesson_id'] ?? 0);
+    if($form_lesson_id>0){
+      $st=$pdo->prepare("SELECT id, lesson_date, lesson_unit, topic
+                         FROM lesson_sessions
+                         WHERE id=? AND class_id=? AND subject_id=?
+                         LIMIT 1");
+      $st->execute([$form_lesson_id,$class_id,$subject_id]);
+      $posted_lesson=$st->fetch();
+      if(!$posted_lesson){
+        $err='Ausgewählte Unterrichtsstunde ist ungültig.';
+      } else {
+        $form_event_date=(string)$posted_lesson['lesson_date'];
+        $known=false;
+        foreach($recent_lessons as $ls){
+          if((int)($ls['id'] ?? 0)===$form_lesson_id){ $known=true; break; }
+        }
+        if(!$known) array_unshift($recent_lessons,$posted_lesson);
+      }
+    } else {
+      $form_event_date=(string)($_POST['event_date'] ?? $e['event_date']);
+    }
     $form_reason_id=(int)($_POST['reason_option_id'] ?? 0);
     $form_impact_id=(int)($_POST['impact_option_id'] ?? 0);
     $form_social_id=(int)($_POST['social_form_option_id'] ?? 0);
@@ -213,6 +348,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     }
 
     if($err===''){
+      $reason_option_id_for_db = $reason_id > 0 ? $reason_id : null;
+      $impact_option_id_for_db = $impact_id > 0 ? $impact_id : null;
       $pdo->beginTransaction();
       try{
         $pdo->prepare("UPDATE participation_events
@@ -224,8 +361,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           WHERE id=? AND teacher_id=?")
           ->execute([
             $new_student_id, $event_date, $new_lesson_id,
-            $reason_id, $reason_label,
-            $impact_id, $impact_label, $impact_kind,
+            $reason_option_id_for_db, $reason_label,
+            $impact_option_id_for_db, $impact_label, $impact_kind,
             ($social_id?:null), ($phase_id?:null), ($hw_id?:null),
             ($reason_text?:null), ($note?:null),
             $id, (int)$u['id']
@@ -303,6 +440,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $form_hw_id=(int)($e['homework_option_id'] ?? 0);
         $form_reason_text=(string)($e['reason_text'] ?? '');
         $form_note=(string)($e['note'] ?? '');
+        _participation_edit_append_stored_options_by_ids($pdo,$perfs,$selPerfs,'performance');
+        _participation_edit_append_stored_options_by_ids($pdo,$groups,$selGroups,'observation_group');
+        _participation_edit_append_stored_options_by_ids($pdo,$socials,[$form_social_id],'social_form');
+        _participation_edit_append_stored_options_by_ids($pdo,$phases,[$form_phase_id],'phase');
+        _participation_edit_append_stored_options_by_ids($pdo,$homeworks,[$form_hw_id],'homework');
+        _participation_edit_snapshot_options($reasons,$impacts,$form_reason_id,$form_impact_id,$e);
+        [$optLabel,$impactKindById]=_participation_edit_option_maps($reasons,$impacts,$perfs,$groups,$socials,$phases,$homeworks);
 
       }catch(Exception $ex){
         $pdo->rollBack();
@@ -316,8 +460,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $err='Bitte einen Namen für das Preset eingeben.';
     } else {
       $payload=[
-        'reason_option_id'=>$form_reason_id,
-        'impact_option_id'=>$form_impact_id,
+        'reason_option_id'=>$form_reason_id > 0 ? $form_reason_id : 0,
+        'impact_option_id'=>$form_impact_id > 0 ? $form_impact_id : 0,
         'performance_option_ids'=>array_values(array_filter($selPerfs, fn($v)=>$v>0)),
         'group_option_ids'=>array_values(array_filter($selGroups, fn($v)=>$v>0)),
         'social_form_option_id'=>$form_social_id,
@@ -364,6 +508,9 @@ foreach($students as $s){
   }
 }
 if($student_name==='') $student_name=(string)$e['last_name'].', '.(string)$e['first_name'];
+$selected_lesson_date=_participation_edit_selected_lesson_date($recent_lessons,$form_lesson_id);
+$event_date_locked=$form_lesson_id>0 && $selected_lesson_date!=='';
+if($event_date_locked) $form_event_date=$selected_lesson_date;
 
 render_header('Mitarbeit bearbeiten',$u);
 ?>
@@ -393,18 +540,22 @@ render_header('Mitarbeit bearbeiten',$u);
       </div>
       <div>
         <label class="muted">Datum</label>
-        <input class="input" type="date" name="event_date" value="<?php echo h($form_event_date); ?>" required>
+        <input class="input" type="date" <?php echo $event_date_locked?'':'name="event_date"'; ?> id="eventDate" value="<?php echo h($form_event_date); ?>" required <?php echo $event_date_locked?'disabled aria-disabled="true" data-lesson-locked="1"':''; ?>>
+        <input type="hidden" name="event_date" id="eventDateHidden" value="<?php echo h($form_event_date); ?>" <?php echo $event_date_locked?'':'disabled'; ?>>
+        <div id="eventDateLockHint" class="small muted" style="margin-top:5px;<?php echo $event_date_locked?'':'display:none'; ?>">
+          Das Datum kommt aus der verknüpften Unterrichtsstunde.
+        </div>
       </div>
       <div style="flex:1">
         <label class="muted">Unterrichtsstunde (optional)</label>
-        <select class="input" name="lesson_id">
-          <option value="0">– keine Verknüpfung –</option>
+        <select class="input" name="lesson_id" id="lessonSelect">
+          <option value="0" data-date="">– keine Verknüpfung –</option>
           <?php foreach($recent_lessons as $ls):
             $txt=$ls['lesson_date'];
             if($ls['lesson_unit']) $txt.=' · UE '.$ls['lesson_unit'];
             if($ls['topic']) $txt.=' · '.$ls['topic'];
           ?>
-            <option value="<?php echo (int)$ls['id']; ?>" <?php echo ($form_lesson_id===(int)$ls['id'])?'selected':''; ?>><?php echo h($txt); ?></option>
+            <option value="<?php echo (int)$ls['id']; ?>" data-date="<?php echo h($ls['lesson_date']); ?>" <?php echo ($form_lesson_id===(int)$ls['id'])?'selected':''; ?>><?php echo h($txt); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -423,7 +574,7 @@ render_header('Mitarbeit bearbeiten',$u);
                 $pedagogical_suggest=participation_pedagogical_mode_suggestion_from_labels((string)$o['label'], '');
               }
             ?>
-            <option value="<?php echo (int)$o['id']; ?>" data-suggest-mode="<?php echo h($pedagogical_suggest); ?>" <?php echo ($form_reason_id===(int)$o['id'])?'selected':''; ?>><?php echo h($o['label']); ?></option>
+            <option value="<?php echo (int)$o['id']; ?>" data-suggest-mode="<?php echo h($pedagogical_suggest); ?>" <?php echo ($form_reason_id===(int)$o['id'])?'selected':''; ?>><?php echo h(_participation_edit_option_display_label($o)); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -433,7 +584,7 @@ render_header('Mitarbeit bearbeiten',$u);
           <option value="0">Bitte wählen…</option>
           <?php foreach($impacts as $o): ?>
             <?php $impact_kind=participation_impact_kind_from_option($o); ?>
-            <option value="<?php echo (int)$o['id']; ?>" data-impact-kind="<?php echo h($impact_kind); ?>" <?php echo ($form_impact_id===(int)$o['id'])?'selected':''; ?>><?php echo h($o['label']); ?></option>
+            <option value="<?php echo (int)$o['id']; ?>" data-impact-kind="<?php echo h($impact_kind); ?>" <?php echo ($form_impact_id===(int)$o['id'])?'selected':''; ?>><?php echo h(_participation_edit_option_display_label($o)); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -449,7 +600,7 @@ render_header('Mitarbeit bearbeiten',$u);
         <?php foreach($perfs as $o): $oid=(int)$o['id']; ?>
           <label class="multi-item">
             <input type="checkbox" name="performance_option_ids[]" value="<?php echo $oid; ?>" <?php echo in_array($oid,$selPerfs,true)?'checked':''; ?>>
-            <span><?php echo h($o['label']); ?></span>
+            <span><?php echo h(_participation_edit_option_display_label($o)); ?></span>
           </label>
         <?php endforeach; ?>
       </div>
@@ -466,7 +617,7 @@ render_header('Mitarbeit bearbeiten',$u);
         <?php foreach($groups as $o): $oid=(int)$o['id']; ?>
           <label class="multi-item">
             <input class="groupCb" type="checkbox" name="group_option_ids[]" value="<?php echo $oid; ?>" <?php echo in_array($oid,$selGroups,true)?'checked':''; ?>>
-            <span><?php echo h($o['label']); ?></span>
+            <span><?php echo h(_participation_edit_option_display_label($o)); ?></span>
           </label>
         <?php endforeach; ?>
       </div>
@@ -485,7 +636,7 @@ render_header('Mitarbeit bearbeiten',$u);
               <select class="input" name="social_form_option_id">
                 <option value="0">–</option>
                 <?php foreach($socials as $o): ?>
-                  <option value="<?php echo (int)$o['id']; ?>" <?php echo ($form_social_id===(int)$o['id'])?'selected':''; ?>><?php echo h($o['label']); ?></option>
+                  <option value="<?php echo (int)$o['id']; ?>" <?php echo ($form_social_id===(int)$o['id'])?'selected':''; ?>><?php echo h(_participation_edit_option_display_label($o)); ?></option>
                 <?php endforeach; ?>
               </select>
             </div>
@@ -495,7 +646,7 @@ render_header('Mitarbeit bearbeiten',$u);
                 <option value="0">–</option>
                 <?php foreach($phases as $o): ?>
                   <?php $phase_suggest=participation_pedagogical_mode_suggestion_from_labels('', (string)$o['label']); ?>
-                  <option value="<?php echo (int)$o['id']; ?>" data-suggest-mode="<?php echo h($phase_suggest); ?>" <?php echo ($form_phase_id===(int)$o['id'])?'selected':''; ?>><?php echo h($o['label']); ?></option>
+                  <option value="<?php echo (int)$o['id']; ?>" data-suggest-mode="<?php echo h($phase_suggest); ?>" <?php echo ($form_phase_id===(int)$o['id'])?'selected':''; ?>><?php echo h(_participation_edit_option_display_label($o)); ?></option>
                 <?php endforeach; ?>
               </select>
             </div>
@@ -504,7 +655,7 @@ render_header('Mitarbeit bearbeiten',$u);
               <select class="input" name="homework_option_id">
                 <option value="0">–</option>
                 <?php foreach($homeworks as $o): ?>
-                  <option value="<?php echo (int)$o['id']; ?>" <?php echo ($form_hw_id===(int)$o['id'])?'selected':''; ?>><?php echo h($o['label']); ?></option>
+                  <option value="<?php echo (int)$o['id']; ?>" <?php echo ($form_hw_id===(int)$o['id'])?'selected':''; ?>><?php echo h(_participation_edit_option_display_label($o)); ?></option>
                 <?php endforeach; ?>
               </select>
             </div>
@@ -631,6 +782,44 @@ render_header('Mitarbeit bearbeiten',$u);
     const impact=document.getElementById('impactSelect');
     if(impact) impact.addEventListener('change', updatePedagogicalHint);
     updatePedagogicalHint();
+    const lessonSelect=document.getElementById('lessonSelect');
+    const eventDate=document.getElementById('eventDate');
+    const eventDateHidden=document.getElementById('eventDateHidden');
+    const eventDateLockHint=document.getElementById('eventDateLockHint');
+    function setEventDateLocked(locked, dateValue){
+      if(!eventDate) return;
+      if(dateValue) eventDate.value=dateValue;
+      if(eventDateHidden) eventDateHidden.value=eventDate.value;
+      if(locked){
+        eventDate.removeAttribute('name');
+        eventDate.disabled=true;
+        eventDate.setAttribute('aria-disabled','true');
+        if(eventDateHidden) eventDateHidden.disabled=false;
+      } else {
+        eventDate.name='event_date';
+        eventDate.disabled=false;
+        eventDate.removeAttribute('aria-disabled');
+        if(eventDateHidden) eventDateHidden.disabled=true;
+      }
+      eventDate.style.background=locked ? '#f1f5f9' : '';
+      eventDate.style.cursor=locked ? 'not-allowed' : '';
+      if(eventDateLockHint) eventDateLockHint.style.display=locked ? '' : 'none';
+    }
+    function selectedLessonDate(){
+      if(!lessonSelect || parseInt(lessonSelect.value || '0',10)<=0) return '';
+      const opt=lessonSelect.options[lessonSelect.selectedIndex];
+      return opt ? (opt.getAttribute('data-date') || '') : '';
+    }
+    function syncEventDateFromLesson(){
+      const dateValue=selectedLessonDate();
+      if(dateValue){
+        setEventDateLocked(true,dateValue);
+      } else {
+        setEventDateLocked(false,'');
+      }
+    }
+    if(lessonSelect) lessonSelect.addEventListener('change', syncEventDateFromLesson);
+    syncEventDateFromLesson();
     if(form){
       form.addEventListener('submit', (ev)=>{
         const submitter=ev.submitter;

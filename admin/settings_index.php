@@ -45,6 +45,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 $demoActive = demo_installation_is_active($pdo);
 $demoYear = demo_installation_setting_get($pdo, 'demo_installation_school_year', '');
 $demoLastReset = demo_installation_setting_get($pdo, 'demo_installation_last_reset_at', '');
+$demoResetSchedule = app_demo_reset_schedule_label();
 
 render_header('Einstellungen', $u);
 ?>
@@ -66,6 +67,10 @@ render_header('Einstellungen', $u);
                 <strong>Demoschuljahr:</strong> <?php echo h($demoYear ?: 'nicht gesetzt'); ?>
                 <?php if($demoLastReset !== ''): ?> · <strong>letzter Reset:</strong> <?php echo h($demoLastReset); ?><?php endif; ?>
               </div>
+              <div style="margin-top:6px;font-size:13px">
+                <strong>Geplanter automatischer Reset:</strong> <?php echo h($demoResetSchedule); ?>
+              </div>
+              <div class="muted" style="font-size:13px;margin-top:4px">Dieser Zeitpunkt ist ein sicherer Anzeigehinweis aus der App-Konfiguration. Die echte Server-Crontab wird aus Datenschutz- und Sicherheitsgründen nicht ausgelesen.</div>
               <div class="muted" style="font-size:13px;margin-top:6px">Standardzugänge nach Reset: <code>demoadmin</code> und <code>demolehrer</code>, Passwort <code>DemoZugang47!</code>.</div>
             </div>
             <form method="post" style="margin:0">
@@ -109,6 +114,7 @@ render_header('Einstellungen', $u);
             Automatischer täglicher Reset per Cron, ohne Anzeige des Serverpfads:
             <code>0 3 * * * php /pfad/zur-app/tools/reset_demo_installation.php</code>
             <br>Den tatsächlichen absoluten Pfad bitte nur in der Hosting- bzw. Serververwaltung eintragen.
+            Den sichtbaren Hinweis pflegen Sie in <code>config.php</code> über <code>demo_reset_schedule</code>.
           </div>
         </div>
       <?php endif; ?>

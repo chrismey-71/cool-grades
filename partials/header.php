@@ -93,10 +93,19 @@
   <?php endif; ?>
 <?php endif; ?>
 
-<?php if($u && app_setting_get('demo_installation_active', '0') === '1'): ?>
+<?php if($u && app_setting_get('demo_installation_active', '0') === '1'):
+  $demoResetSchedule = app_demo_reset_schedule_label();
+?>
   <div class="teacher-school-strip" style="background:#fff7e6;border-bottom-color:#ead39a">
     <div class="wrap">
-      <span class="teacher-school-label">Demoinstallation: Musterdaten, nicht für echte Schüler:innendaten verwenden.</span>
+      <span class="teacher-school-label">
+        Demoinstallation: Musterdaten, nicht für echte Schüler:innendaten verwenden.
+        <?php if($demoResetSchedule !== 'nicht konfiguriert'): ?>
+          Automatischer Reset: <?php echo h($demoResetSchedule); ?>.
+        <?php else: ?>
+          Automatischer Reset: nicht konfiguriert.
+        <?php endif; ?>
+      </span>
     </div>
   </div>
 <?php endif; ?>

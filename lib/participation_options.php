@@ -1,8 +1,28 @@
 <?php
 require_once __DIR__.'/helpers.php';
 
+function participation_option_repair_mojibake_label(string $label): string {
+  return strtr($label, [
+    'Ã¤' => 'ä',
+    'Ã¶' => 'ö',
+    'Ã¼' => 'ü',
+    'Ã„' => 'Ä',
+    'Ã–' => 'Ö',
+    'Ãœ' => 'Ü',
+    'ÃŸ' => 'ß',
+    'â€“' => '-',
+    'â€”' => '-',
+    'â€ž' => '„',
+    'â€œ' => '“',
+    'â€˜' => '‘',
+    'â€™' => '’',
+    'Â' => '',
+  ]);
+}
+
 function participation_option_label_key(string $label): string {
-  $label = trim($label);
+  $label = trim(participation_option_repair_mojibake_label($label));
+  $label = preg_replace('/\s+/u', ' ', $label) ?? $label;
   if (function_exists('mb_strtolower')) return mb_strtolower($label, 'UTF-8');
   return strtolower($label);
 }

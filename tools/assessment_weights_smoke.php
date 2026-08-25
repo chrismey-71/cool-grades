@@ -86,7 +86,7 @@ $participationOral = assessment_weight_compute_area_proposal(aw_summary([
 ]), $defaults);
 aw_assert_same(75.0, round((float)$participationOral['weighting']['effective']['participation'], 4), '60/20 muss bei fehlendem Schriftbereich zu 75/25 werden.');
 aw_assert_same(25.0, round((float)$participationOral['weighting']['effective']['oral'], 4), '60/20 muss bei fehlendem Schriftbereich zu 75/25 werden.');
-aw_assert_same(2.0, $participationOral['areas']['oral']['value'], 'Positiv plus unauffällig muss qualitativ zu einem positiven mündlichen Bereichswert verdichtet werden.');
+aw_assert_same(2.25, $participationOral['areas']['oral']['value'], 'Positiv plus unauffällig muss qualitativ zu einem positiven mündlichen Bereichswert verdichtet werden.');
 
 $oralNeutral = assessment_weight_area_values(aw_summary([
   'participation_count'=>0,
@@ -103,7 +103,7 @@ $oralWeighted = assessment_weight_area_values(aw_summary([
     ['impact_label'=>'negativ (-)','weight_multiplier'=>0.5],
   ],
 ]));
-aw_assert_same(2.0, $oralWeighted['oral']['value'], 'Besondere mündliche Leistungsfeststellungen müssen optionale Einzelgewichte berücksichtigen.');
+aw_assert_same(1.93, $oralWeighted['oral']['value'], 'Besondere mündliche Leistungsfeststellungen müssen optionale Einzelgewichte berücksichtigen.');
 
 $writtenSummary = report_eval_written_summary([
   ['grade'=>2,'exam_type'=>'TEST','tendency'=>'','weight_multiplier'=>0.5,'exam_date'=>'2026-03-01'],

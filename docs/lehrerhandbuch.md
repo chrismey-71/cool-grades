@@ -1545,6 +1545,7 @@ Wirkung:
 
 - Das Schuljahr bestimmt, welche Semestergrenzen und welcher Jahreszeitraum gelten.
 - Es ändert keine gespeicherten Leistungsdaten, sondern nur die zeitliche Zuordnung der Auswertung und späteren Abschlussbeurteilung.
+- Globale Schuljahre können auch bei ausgewählter Schule sichtbar sein, solange der Admin sie noch nicht schulbezogen zugeordnet hat.
 - Frühere Schuljahre können weiterhin ausgewählt werden, wenn Sie dafür eine Klassen-/Fachzuordnung besitzen.
 - Vorjahresklassen sind als Archiv erkennbar. Sie dienen der Einsicht, Auswertung und dem PDF-Export; neue Einträge sind dort in der Regel gesperrt.
 

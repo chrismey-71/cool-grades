@@ -1564,6 +1564,34 @@ html[data-entry-contrast="high"] .assessment-weight-summary-action{
   line-height:1;
   text-align:center;
 }
+.final-proposal-logic-note{
+  border:1px solid #cfe1d2;
+  border-left:5px solid #5c9670;
+  border-radius:13px;
+  padding:10px 12px;
+  background:#f7fcf8;
+  color:#294635;
+  font-size:13px;
+  line-height:1.45;
+}
+.final-proposal-part-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.final-proposal-part-row span{
+  border:1px solid #d9e8dd;
+  border-radius:999px;
+  padding:4px 9px;
+  background:#fff;
+  color:#334155;
+}
+.final-evidence-basis{
+  margin-top:7px;
+  border-top:1px solid rgba(0,0,0,.08);
+  padding-top:7px;
+}
 .final-proposal-details > summary{background:#f4f7f5}
 .final-proposal-details .final-weight-breakdown{
   margin:0;

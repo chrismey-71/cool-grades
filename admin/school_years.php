@@ -22,20 +22,33 @@ $semester1From = (string)$defaultRanges['semester1']['from'];
 $semester1To = (string)$defaultRanges['semester1']['to'];
 $semester2From = (string)$defaultRanges['semester2']['from'];
 $semester2To = (string)$defaultRanges['semester2']['to'];
+$newPeriodSchoolId = -1;
+if(!$isSuperAdmin){
+  $newPeriodSchoolId = $schoolFilter;
+} elseif($schoolFilter > 0){
+  $newPeriodSchoolId = $schoolFilter;
+} elseif(count($schools) === 1){
+  $newPeriodSchoolId = (int)$schools[0]['id'];
+} elseif(!$schools){
+  $newPeriodSchoolId = 0;
+}
 
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
   verify_csrf();
   $action = trim((string)($_POST['action'] ?? ''));
 
   if($action === 'create_school_period'){
-    $schoolId=(int)($_POST['school_id'] ?? 0);
+    $schoolId=(int)($_POST['school_id'] ?? -1);
+    $newPeriodSchoolId = $schoolId;
     $newPeriodLabel = trim((string)($_POST['period_label'] ?? $newPeriodLabel));
     $semester1From = trim((string)($_POST['semester1_from'] ?? $semester1From));
     $semester1To = trim((string)($_POST['semester1_to'] ?? $semester1To));
     $semester2From = trim((string)($_POST['semester2_from'] ?? $semester2From));
     $semester2To = trim((string)($_POST['semester2_to'] ?? $semester2To));
 
-    if(!$isSuperAdmin && $schoolId<=0){
+    if($schoolId < 0){
+      $err='Bitte wählen Sie aus, für welche Schule das Schuljahr angelegt werden soll.';
+    } elseif(!$isSuperAdmin && $schoolId<=0){
       $err='Bitte eine Schule aus Ihrer Schulzuordnung auswählen.';
     } elseif($schoolId>0 && !admin_can_access_school($pdo,$u,$schoolId)){
       $err='Keine Berechtigung für diese Schule.';
@@ -73,6 +86,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $semester1To = (string)$defaultRanges['semester1']['to'];
         $semester2From = (string)$defaultRanges['semester2']['from'];
         $semester2To = (string)$defaultRanges['semester2']['to'];
+        if($isSuperAdmin && count($schools) > 1){
+          $newPeriodSchoolId = $schoolFilter > 0 ? $schoolFilter : -1;
+        }
       }
     }
   } elseif($action === 'archive_school_period'){
@@ -83,6 +99,29 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $msg = 'Schuljahr aus der Auswahl entfernt.';
       } else {
         $err='Keine Berechtigung für dieses Schuljahr.';
+      }
+    }
+  } elseif($action === 'assign_school_period'){
+    $periodId = (int)($_POST['period_id'] ?? 0);
+    $targetSchoolId = (int)($_POST['target_school_id'] ?? 0);
+    if($periodId <= 0 || $targetSchoolId <= 0){
+      $err = 'Bitte ein globales Schuljahr und eine Zielschule auswählen.';
+    } elseif(!admin_can_access_school($pdo,$u,$targetSchoolId)){
+      $err = 'Keine Berechtigung für diese Zielschule.';
+    } else {
+      $periodRow = app_school_period_find($periodId,true);
+      if(!$periodRow){
+        $err = 'Schuljahr nicht gefunden.';
+      } elseif((int)($periodRow['school_id'] ?? 0) !== 0){
+        $err = 'Dieses Schuljahr ist bereits einer Schule zugeordnet.';
+      } else {
+        try{
+          app_school_period_assign_school($periodId,$targetSchoolId);
+          $schoolFilter = $targetSchoolId;
+          $msg = 'Das globale Schuljahr wurde der Schule „'.($schoolNames[$targetSchoolId] ?? 'ausgewählte Schule').'“ zugeordnet.';
+        }catch(Throwable $e){
+          $err = $e->getMessage();
+        }
       }
     }
   } elseif($action === 'restore_school_period'){
@@ -116,6 +155,27 @@ foreach($allPeriods as $periodRow){
   else $activePeriods[] = $periodRow;
 }
 
+$periodSchoolUsage = [];
+if($activePeriods){
+  $ids = array_values(array_filter(array_map(static fn(array $row): int => (int)$row['id'], $activePeriods)));
+  if($ids){
+    $in = implode(',', array_fill(0, count($ids), '?'));
+    $usageStmt = $pdo->prepare("SELECT c.school_period_set_id,
+                                       sf.school_id,
+                                       COALESCE(sc.name, CONCAT('Schule ', sf.school_id)) AS school_name,
+                                       GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ') AS class_names
+                                FROM classes c
+                                JOIN school_forms sf ON sf.id=c.school_form_id
+                                LEFT JOIN schools sc ON sc.id=sf.school_id
+                                WHERE c.school_period_set_id IN ($in) AND sf.school_id IS NOT NULL
+                                GROUP BY c.school_period_set_id, sf.school_id, sc.name");
+    $usageStmt->execute($ids);
+    foreach($usageStmt->fetchAll() as $usageRow){
+      $periodSchoolUsage[(int)$usageRow['school_period_set_id']][] = $usageRow;
+    }
+  }
+}
+
 render_header('Schuljahre und Semester', $u);
 ?>
 
@@ -125,6 +185,7 @@ render_header('Schuljahre und Semester', $u);
       <h1>Schuljahre und Semester</h1>
       <p class="muted">
         Hier legen Sie die Schuljahre mit 1. und 2. Semester an. Dieser Schritt sollte vor dem Anlegen neuer Einstiegsklassen und vor dem Schuljahreswechsel erfolgen.
+        Bereits global angelegte Schuljahre können hier nachträglich einer Schule zugeordnet werden; bestehende Klassen und Leistungsdaten bleiben dabei unverändert beim selben Schuljahr.
       </p>
 
       <?php if($msg): ?><div class="flash success"><?php echo h($msg); ?></div><?php endif; ?>
@@ -165,7 +226,7 @@ render_header('Schuljahre und Semester', $u);
                 <td><?php echo h($periodRow['semester2_from']); ?> bis <?php echo h($periodRow['semester2_to']); ?></td>
                 <td><?php echo h($periodRow['semester1_from']); ?> bis <?php echo h($periodRow['semester2_to']); ?></td>
                 <td><?php echo ((int)($periodRow['is_current'] ?? 0)===1)?'<span class="badge ok">aktuell</span>':'<span class="badge">Archiv/Planung</span>'; ?></td>
-                <td style="white-space:nowrap">
+                <td style="min-width:260px">
                   <?php if((int)($periodRow['is_current'] ?? 0)!==1): ?>
                   <form method="post" style="display:inline" data-dirty-ignore="1">
                     <?php echo csrf_input(); ?>
@@ -182,6 +243,41 @@ render_header('Schuljahre und Semester', $u);
                     <input type="hidden" name="school_id" value="<?php echo (int)$schoolFilter; ?>">
                     <button class="btn danger small">Löschen</button>
                   </form>
+                  <?php if((int)($periodRow['school_id'] ?? 0)===0 && $schools): ?>
+                    <?php
+                      $usageRows = $periodSchoolUsage[(int)$periodRow['id']] ?? [];
+                      $usedSchoolIds = array_values(array_unique(array_map(static fn(array $row): int => (int)$row['school_id'], $usageRows)));
+                      $suggestedTargetSchoolId = count($usedSchoolIds) === 1 ? (int)$usedSchoolIds[0] : (int)$schoolFilter;
+                      if($suggestedTargetSchoolId <= 0 && count($schools) === 1) $suggestedTargetSchoolId = (int)$schools[0]['id'];
+                      $usageLabels = array_map(static function(array $row): string {
+                        $classes = trim((string)($row['class_names'] ?? ''));
+                        return (string)$row['school_name'].($classes !== '' ? ' ('.$classes.')' : '');
+                      }, $usageRows);
+                      $hasMultipleUsedSchools = count($usedSchoolIds) > 1;
+                    ?>
+                    <?php if($usageLabels): ?>
+                      <div class="small muted" style="margin-top:8px;max-width:360px">
+                        Enthält Klassen aus: <?php echo h(implode('; ', $usageLabels)); ?>
+                      </div>
+                    <?php endif; ?>
+                    <form method="post" data-dirty-ignore="1" onsubmit="return confirm('Dieses globale Schuljahr der ausgewählten Schule zuordnen? Bestehende Leistungsdaten bleiben unverändert.');" style="display:flex;gap:6px;align-items:center;margin-top:8px;max-width:360px">
+                      <?php echo csrf_input(); ?>
+                      <input type="hidden" name="action" value="assign_school_period">
+                      <input type="hidden" name="period_id" value="<?php echo (int)$periodRow['id']; ?>">
+                      <input type="hidden" name="school_id" value="<?php echo (int)$schoolFilter; ?>">
+                      <select class="input" name="target_school_id" aria-label="Zielschule für globales Schuljahr" <?php echo $hasMultipleUsedSchools ? 'disabled' : ''; ?>>
+                        <?php foreach($schools as $school): ?>
+                          <option value="<?php echo (int)$school['id']; ?>" <?php echo $suggestedTargetSchoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <button class="btn secondary small" style="white-space:nowrap" <?php echo $hasMultipleUsedSchools ? 'disabled' : ''; ?>>Schule zuordnen</button>
+                    </form>
+                    <?php if($hasMultipleUsedSchools): ?>
+                      <div class="small muted" style="margin-top:6px;max-width:360px">Automatische Zuordnung ist gesperrt, weil Klassen mehrerer Schulen enthalten sind.</div>
+                    <?php elseif($usageRows): ?>
+                      <div class="small muted" style="margin-top:6px;max-width:360px">Vorausgewählt ist die Schule, zu der die vorhandenen Klassen bereits gehören.</div>
+                    <?php endif; ?>
+                  <?php endif; ?>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -205,12 +301,17 @@ render_header('Schuljahre und Semester', $u);
                 <div class="school-selection" data-school-selection>
                 <label class="school-selection-label">Schule</label>
                 <select class="input school-select" name="school_id">
-                  <?php if($isSuperAdmin): ?>
-                  <option value="0" <?php echo $schoolFilter===0?'selected':''; ?>>global / alle Schulen</option>
+                  <?php if($isSuperAdmin && count($schools)>1): ?>
+                  <option value="-1" <?php echo $newPeriodSchoolId<0?'selected':''; ?>>Bitte Schule auswählen</option>
                   <?php endif; ?>
-                  <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $schoolFilter===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
+                  <?php if($isSuperAdmin): ?>
+                  <option value="0" <?php echo $newPeriodSchoolId===0?'selected':''; ?>>global / alle Schulen (Sonderfall)</option>
+                  <?php endif; ?>
+                  <?php foreach($schools as $school): ?><option value="<?php echo (int)$school['id']; ?>" data-school-tone="<?php echo h(school_tone_class((int)$school['id'])); ?>" <?php echo $newPeriodSchoolId===(int)$school['id']?'selected':''; ?>><?php echo h($school['name']); ?></option><?php endforeach; ?>
                 </select>
-                <div class="school-selection-note">Wählen Sie eine Schule, wenn sie eigene Semestertermine führt. Globale Schuljahre bleiben für alle Schulen verwendbar.</div>
+                <div class="school-selection-note">
+                  Empfehlung bei mehreren Schulen: Legen Sie Schuljahre schulbezogen an. „global / alle Schulen“ ist nur sinnvoll, wenn wirklich alle Schulen dieselben Semestertermine nutzen und keine schulbezogene Trennung benötigt wird.
+                </div>
                 </div>
                 <div style="height:10px"></div>
                 <label class="muted">Schuljahr</label>

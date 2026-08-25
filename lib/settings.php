@@ -109,6 +109,11 @@ function app_brand_css_vars(): string {
   ]);
 }
 
+function app_demo_reset_schedule_label(): string {
+  $label = trim((string)(cfg()['demo_reset_schedule'] ?? cfg()['demo_reset_cron_label'] ?? ''));
+  return $label !== '' ? $label : 'nicht konfiguriert';
+}
+
 function school_period_default_ranges(?DateTimeImmutable $now = null): array {
   $now = $now ?? new DateTimeImmutable('now');
   $year = (int)$now->format('Y');
@@ -185,6 +190,67 @@ function app_school_period_create(string $label, string $semester1From, string $
                        VALUES(?,?,?,?,?,?,0,?,?)");
   $now = now_iso();
   $st->execute([$schoolId>0?$schoolId:null,$label,$semester1From,$semester1To,$semester2From,$semester2To,$now,$now]);
+}
+
+function app_school_period_assign_school(int $id, int $schoolId): void {
+  if($id <= 0 || $schoolId <= 0) throw new RuntimeException('Bitte ein Schuljahr und eine Schule auswählen.');
+  $pdo = db();
+  $pdo->beginTransaction();
+  try{
+    $st = $pdo->prepare("SELECT * FROM school_period_sets WHERE id=? LIMIT 1 FOR UPDATE");
+    $st->execute([$id]);
+    $period = $st->fetch();
+    if(!$period) throw new RuntimeException('Schuljahr nicht gefunden.');
+    if($period['school_id'] !== null) throw new RuntimeException('Dieses Schuljahr ist bereits einer Schule zugeordnet.');
+
+    $classSchools = $pdo->prepare("SELECT sf.school_id,
+                                          COALESCE(sc.name, CONCAT('Schule ', sf.school_id)) AS school_name,
+                                          GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ') AS class_names
+                                   FROM classes c
+                                   JOIN school_forms sf ON sf.id=c.school_form_id
+                                   LEFT JOIN schools sc ON sc.id=sf.school_id
+                                   WHERE c.school_period_set_id=? AND sf.school_id IS NOT NULL
+                                   GROUP BY sf.school_id, sc.name");
+    $classSchools->execute([$id]);
+    $schoolUsage = $classSchools->fetchAll();
+    $foreignUsage = array_values(array_filter($schoolUsage, static fn(array $row): bool => (int)$row['school_id'] !== $schoolId));
+    if($foreignUsage){
+      $parts = array_map(static function(array $row): string {
+        $classes = trim((string)($row['class_names'] ?? ''));
+        return (string)$row['school_name'].($classes !== '' ? ' ('.$classes.')' : '');
+      }, $foreignUsage);
+      throw new RuntimeException('Dieses globale Schuljahr enthält bereits Klassen einer anderen Schule: '.implode('; ', $parts).'. Bitte die passende Schule wählen oder die Klassen-/Schulformzuordnung zuerst prüfen.');
+    }
+
+    $duplicate = $pdo->prepare("SELECT id FROM school_period_sets
+                                WHERE id<>? AND school_id=? AND archived=0
+                                  AND semester1_from=? AND semester1_to=?
+                                  AND semester2_from=? AND semester2_to=?
+                                LIMIT 1");
+    $duplicate->execute([
+      $id,
+      $schoolId,
+      (string)$period['semester1_from'],
+      (string)$period['semester1_to'],
+      (string)$period['semester2_from'],
+      (string)$period['semester2_to'],
+    ]);
+    if($duplicate->fetchColumn()){
+      throw new RuntimeException('Für diese Schule existiert bereits ein aktives Schuljahr mit denselben Semesterzeiträumen.');
+    }
+
+    $now = now_iso();
+    $update = $pdo->prepare("UPDATE school_period_sets SET school_id=?, updated_at=? WHERE id=?");
+    $update->execute([$schoolId, $now, $id]);
+    if((int)($period['is_current'] ?? 0) === 1){
+      $reset = $pdo->prepare("UPDATE school_period_sets SET is_current=0, updated_at=? WHERE school_id=? AND id<>?");
+      $reset->execute([$now, $schoolId, $id]);
+    }
+    $pdo->commit();
+  }catch(Throwable $e){
+    if($pdo->inTransaction()) $pdo->rollBack();
+    throw $e;
+  }
 }
 
 function app_school_period_archive(int $id): void {

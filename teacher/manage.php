@@ -9,7 +9,7 @@ $pdo=db();
 $bp=cfg()['base_path'];
 
 $selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
-$schoolYears=load_school_years($pdo,true,$selectedSchoolId,$selectedSchoolId<=0);
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,true);
 $schoolYearId=(int)($_REQUEST['school_period_set_id'] ?? school_year_current_id($pdo,$selectedSchoolId));
 $classId=(int)($_REQUEST['class_id'] ?? 0);
 $subjectId=(int)($_REQUEST['subject_id'] ?? 0);

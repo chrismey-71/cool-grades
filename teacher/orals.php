@@ -18,7 +18,7 @@ $to=$_GET['to'] ?? date('Y-m-d');
 $oral_type=strtoupper(trim((string)($_GET['oral_type'] ?? 'ALL')));
 if(!in_array($oral_type,['ALL','ORAL_EXAM','ORAL_EXERCISE'],true)) $oral_type='ALL';
 
-$schoolYears=load_school_years($pdo,true,$selectedSchoolId,$selectedSchoolId<=0);
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,true);
 $classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true,true,$selectedSchoolId);
 
 $subjectSql="SELECT DISTINCT s.id,s.code,s.name

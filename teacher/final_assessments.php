@@ -9,7 +9,7 @@ $pdo = db();
 $bp = cfg()['base_path'] ?? '';
 
 $selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
-$periodSets = app_school_period_sets(true,$selectedSchoolId,$selectedSchoolId<=0);
+$periodSets = app_school_period_sets(true,$selectedSchoolId,true);
 $school_period_set_id = array_key_exists('school_period_set_id', $_REQUEST)
   ? (int)$_REQUEST['school_period_set_id']
   : final_assessment_default_period_set_id($periodSets);
@@ -152,6 +152,40 @@ function _fa_written_assessment_display(array $writtenRows): array {
     'grades' => implode(' · ', $gradeParts),
     'details' => implode(' | ', array_slice($detailParts, 0, 4)).(count($detailParts) > 4 ? ' | …' : ''),
   ];
+}
+
+function _fa_proposal_area_context_label(string $scope, bool $isYearlyModel): string {
+  if($scope === 'year' && $isYearlyModel) return 'Bereichswert aktueller Leistungsstand';
+  if($scope === 'semester1' && $isYearlyModel) return 'Bereichswert Schulnachricht';
+  if($scope === 'semester1') return 'Bereichswert 1. Semester';
+  if($scope === 'semester2') return 'Bereichswert 2. Semester';
+  return 'Bereichswert Beurteilungszeitraum';
+}
+
+function _fa_proposal_basis_intro(string $scope, bool $isYearlyModel, ?string $assessmentSystem): string {
+  if($scope === 'year' && $isYearlyModel){
+    return 'Für die Jahresbeurteilung wird der Notenvorschlag aus der Schulnachricht / dem 1. Semester und dem aktuellen Leistungsstand des restlichen Schuljahres gebildet. Die Bereichskarten zeigen den aktuellen Leistungsstand, nicht nochmals den Gesamtjahresdurchschnitt.';
+  }
+  if($scope === 'semester1' && $isYearlyModel){
+    return 'Für die Schulnachricht wird ein Vorschlag aus den im 1. Semester dokumentierten Bereichen gebildet.';
+  }
+  if($scope === 'semester2'){
+    return 'Für diese Semesterbeurteilung wird ein Vorschlag aus den im 2. Semester dokumentierten Bereichen gebildet. Das 1. Semester dient nur als Orientierung.';
+  }
+  if($scope === 'year' && in_array($assessmentSystem, ['sost','nost'], true)){
+    return 'Für SOST/NOST wird keine automatische Jahresnote aus zwei Semestern berechnet. Die App zeigt hier nur eine Orientierung zur pädagogischen Entscheidung.';
+  }
+  return 'Für diese Beurteilung wird ein Vorschlag aus den dokumentierten Bereichen des ausgewählten Zeitraums gebildet.';
+}
+
+function _fa_proposal_part_display(array $proposalPart): string {
+  if(isset($proposalPart['calculated_value']) && $proposalPart['calculated_value'] !== null){
+    return assessment_weight_grade_format((float)$proposalPart['calculated_value']);
+  }
+  if(isset($proposalPart['value']) && $proposalPart['value'] !== null){
+    return assessment_weight_grade_format((float)$proposalPart['value']);
+  }
+  return '–';
 }
 
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
@@ -552,6 +586,10 @@ render_header('Abschlussbeurteilung', $u);
           $proposalWeighting = (array)($proposal['weighting'] ?? []);
           $proposalYearWeighting = (array)($proposal['year_weighting'] ?? []);
           $proposalAreas = (array)($proposal['areas'] ?? ($proposal['current_year_proposal']['areas'] ?? []));
+          $firstSemesterProposal = (array)($proposal['first_semester_proposal'] ?? []);
+          $currentYearProposal = (array)($proposal['current_year_proposal'] ?? []);
+          $proposalAreaContextLabel = _fa_proposal_area_context_label($scope, $isYearlyModel);
+          $proposalBasisIntro = _fa_proposal_basis_intro($scope, $isYearlyModel, $selectedAssessmentSystem);
           $proposalWarnings = array_values(array_unique(array_merge(
             (array)($proposalWeighting['warnings'] ?? []),
             (array)($proposalYearWeighting['warnings'] ?? [])
@@ -603,6 +641,9 @@ render_header('Abschlussbeurteilung', $u);
           $writtenProposalArea = (array)($proposalAreas['written'] ?? []);
           $proposalAreaDisplay = static function(array $area): string {
             return !empty($area['available']) ? assessment_weight_grade_format((float)$area['value']) : '–';
+          };
+          $proposalAreaBasisDisplay = static function(array $area): string {
+            return trim((string)($area['basis'] ?? '')) !== '' ? (string)$area['basis'] : 'keine verwertbaren Daten';
           };
         ?>
 
@@ -789,22 +830,53 @@ render_header('Abschlussbeurteilung', $u);
           <div class="muted" style="margin-top:8px">
             Die drei Leistungsbereiche werden als Entscheidungsgrundlage zusammengeführt. Die finale Beurteilung legen Sie als Lehrkraft fest.
           </div>
+          <div class="final-proposal-logic-note" style="margin-top:10px">
+            <strong>Wie der Vorschlag zu lesen ist:</strong> <?php echo h($proposalBasisIntro); ?>
+            <?php if($scope === 'year' && $isYearlyModel): ?>
+              <div class="final-proposal-part-row">
+                <span>Schulnachricht / 1. Semester: <strong><?php echo h($sem1GradeDisplay !== null ? final_assessment_grade_label($sem1GradeDisplay) : _fa_proposal_part_display($firstSemesterProposal)); ?></strong></span>
+                <span>aktueller Leistungsstand: <strong><?php echo h(_fa_proposal_part_display($currentYearProposal)); ?></strong></span>
+                <?php if(!empty($proposalYearWeighting['effective_label'])): ?><span>Jahresgewichtung: <strong><?php echo h((string)$proposalYearWeighting['effective_label']); ?></strong></span><?php endif; ?>
+              </div>
+            <?php endif; ?>
+            <?php if(!empty($proposalWeighting['effective_label']) || isset($proposal['calculated_value'])): ?>
+              <div class="final-proposal-part-row">
+                <?php if(!empty($proposalWeighting['effective_label'])): ?>
+                  <span>Orientierungsgewichtung: <strong><?php echo h((string)$proposalWeighting['effective_label']); ?></strong></span>
+                <?php endif; ?>
+                <?php if(isset($proposal['calculated_value']) && $proposal['calculated_value'] !== null): ?>
+                  <span>Rechenwert: <strong><?php echo h(assessment_weight_grade_format((float)$proposal['calculated_value'])); ?></strong></span>
+                <?php endif; ?>
+                <span><a href="<?php echo h($bp); ?>/teacher/manage.php?<?php echo h($weightManageQuery); ?>">Gewichtung bearbeiten</a></span>
+              </div>
+            <?php endif; ?>
+            <?php if(!empty($proposalWeighting['excluded'])): ?>
+              <div class="small muted" style="margin-top:8px">
+                Nicht berücksichtigt: <?php echo h(implode(', ', (array)$proposalWeighting['excluded'])); ?>, da dafür keine verwertbaren Daten vorhanden sind.
+              </div>
+            <?php endif; ?>
+          </div>
 
           <div class="final-decision-evidence-grid" style="margin-top:12px">
             <div class="final-decision-evidence participation">
               <div class="final-decision-evidence-head"><span>Mitarbeit</span><strong><?php echo h($proposalAreaDisplay($participationProposalArea)); ?></strong></div>
-              <div class="small"><strong><?php echo h((string)$summary['note_proposal']['label']); ?></strong></div>
+              <div class="small"><strong><?php echo h($proposalAreaContextLabel); ?></strong></div>
               <div class="muted small"><?php echo h((string)$summary['quality']['label']); ?> · positiv <?php echo (int)$summary['positive_count']; ?> / neutral <?php echo (int)$summary['neutral_count']; ?> / negativ <?php echo (int)$summary['negative_count']; ?></div>
+              <div class="muted small final-evidence-basis"><?php echo h($proposalAreaBasisDisplay($participationProposalArea)); ?></div>
             </div>
             <div class="final-decision-evidence oral">
               <div class="final-decision-evidence-head"><span>Bes. mündl. Leistungsfeststellung</span><strong><?php echo h($proposalAreaDisplay($oralProposalArea)); ?></strong></div>
-              <div class="small"><strong>Beurteilung:</strong> <?php echo h($oralAssessmentDisplay['label']); ?></div>
+              <div class="small"><strong><?php echo h($proposalAreaContextLabel); ?></strong></div>
+              <div class="muted small">Eindruck/Relevanz: <?php echo h($oralAssessmentDisplay['label']); ?>, keine gespeicherte Einzelnote</div>
               <div class="muted small"><?php echo (int)$summary['oral_count']; ?> Eintrag/Einträge · <?php echo h((string)$summary['oral_text']); ?></div>
+              <div class="muted small final-evidence-basis"><?php echo h($proposalAreaBasisDisplay($oralProposalArea)); ?></div>
             </div>
             <div class="final-decision-evidence written">
               <div class="final-decision-evidence-head"><span>Bes. schriftl. Leistungsfeststellung</span><strong><?php echo h($proposalAreaDisplay($writtenProposalArea)); ?></strong></div>
-              <div class="small"><strong>Noten:</strong> <?php echo h($writtenAssessmentDisplay['grades']); ?></div>
+              <div class="small"><strong><?php echo h($proposalAreaContextLabel); ?></strong></div>
+              <div class="muted small">Noten im Überblick: <?php echo h($writtenAssessmentDisplay['grades']); ?></div>
               <div class="muted small"><?php echo (int)$summary['written_count']; ?> Eintrag/Einträge · Ø <?php echo $summary['written_avg'] !== null ? h(number_format((float)$summary['written_avg'], 2, ',', '.')) : '–'; ?></div>
+              <div class="muted small final-evidence-basis"><?php echo h($proposalAreaBasisDisplay($writtenProposalArea)); ?></div>
             </div>
           </div>
 
@@ -812,45 +884,6 @@ render_header('Abschlussbeurteilung', $u);
             <div class="final-weight-warning"><?php echo h((string)$proposalWarning); ?></div>
           <?php endforeach; ?>
 
-          <?php if($proposalWeighting || $proposalYearWeighting): ?>
-            <details class="accordion final-proposal-details" style="margin-top:12px">
-              <summary><span class="acc-title">Berechnung und Gewichtung des Notenvorschlags anzeigen</span></summary>
-              <div class="acc-body final-weight-breakdown">
-                <div class="final-weight-breakdown-head">
-                  <strong>Rechnerische Grundlage</strong>
-                  <a class="small" href="<?php echo h($bp); ?>/teacher/manage.php?<?php echo h($weightManageQuery); ?>">Gewichtung bearbeiten</a>
-                </div>
-                <div class="small muted"><?php echo h((string)$proposal['explanation']); ?></div>
-              <?php if(!empty($proposalWeighting['configured_label'])): ?>
-                <div class="small muted"><strong>Eingestellt:</strong> <?php echo h((string)$proposalWeighting['configured_label']); ?></div>
-              <?php endif; ?>
-              <?php if(!empty($proposalWeighting['effective_label'])): ?>
-                <div class="small"><strong>Tatsächlich verwendet:</strong> <?php echo h((string)$proposalWeighting['effective_label']); ?></div>
-              <?php endif; ?>
-              <?php if($proposalAreas): ?>
-                <div class="final-weight-area-grid">
-                  <?php foreach(assessment_weight_area_labels() as $areaKey => $areaLabel): ?>
-                    <?php $area = (array)($proposalAreas[$areaKey] ?? []); ?>
-                    <div class="final-weight-area <?php echo !empty($area['available']) ? 'is-used' : 'is-missing'; ?>">
-                      <span><?php echo h($areaLabel); ?></span>
-                      <strong><?php echo !empty($area['available']) ? h(assessment_weight_grade_format((float)$area['value'])) : 'nicht berücksichtigt'; ?></strong>
-                      <small><?php echo h((string)($area['basis'] ?? 'keine verwertbaren Daten')); ?></small>
-                    </div>
-                  <?php endforeach; ?>
-                </div>
-              <?php endif; ?>
-              <?php if(!empty($proposalYearWeighting['effective_label'])): ?>
-                <div class="final-weight-year-row">
-                  <strong>Jahresmodell:</strong> <?php echo h((string)$proposalYearWeighting['effective_label']); ?>
-                </div>
-              <?php endif; ?>
-              <?php foreach($proposalWarnings as $proposalWarning): ?>
-                <div class="final-weight-warning"><?php echo h((string)$proposalWarning); ?></div>
-              <?php endforeach; ?>
-              <div class="small muted">Die Gewichtung ist eine Berechnungshilfe. Die finale Note wird ausschließlich von der Lehrkraft festgelegt.</div>
-              </div>
-            </details>
-          <?php endif; ?>
           <?php if(legal_hints_enabled($u)): ?>
             <details class="accordion final-legal-hints" style="margin-top:12px">
               <summary><span class="acc-title">Gesetzeshinweise</span></summary>

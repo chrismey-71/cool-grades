@@ -221,6 +221,17 @@ html[data-theme="dark"] .final-decision-evidence.participation{background:#19291
 html[data-theme="dark"] .final-decision-evidence.oral{background:#2d271b}
 html[data-theme="dark"] .final-decision-evidence.written{background:#192832}
 html[data-theme="dark"] .final-decision-evidence-head strong{background:#10151c}
+html[data-theme="dark"] .final-proposal-logic-note{
+  background:#1b3021;
+  color:#d7eadb;
+  border-color:#466b50;
+}
+html[data-theme="dark"] .final-proposal-part-row span{
+  background:#10151c;
+  color:#d7eadb;
+  border-color:#466b50;
+}
+html[data-theme="dark"] .final-evidence-basis{border-top-color:rgba(255,255,255,.12)}
 html[data-theme="dark"] .final-proposal-details > summary{background:#202b23}
 html[data-theme="dark"] .final-signal-card{
   background:linear-gradient(135deg,#171c23,#10151c) !important;

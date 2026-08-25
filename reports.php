@@ -17,7 +17,7 @@ $date_to=$_GET['to'] ?? '';
 $student_id=(int)($_GET['student_id']??0);
 $period=(string)($_GET['period'] ?? 'current');
 $resolvedPeriod=app_school_period_resolve($period,$date_from,$date_to,$selectedSchoolId,$selectedSchoolId<=0);
-$periodOptions=app_school_period_options($selectedSchoolId,$selectedSchoolId<=0);
+$periodOptions=app_school_period_options($selectedSchoolId,true);
 if($period !== 'custom'){
   $date_from=(string)$resolvedPeriod['from'];
   $date_to=(string)$resolvedPeriod['to'];

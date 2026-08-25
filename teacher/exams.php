@@ -41,7 +41,7 @@ $written_tooltip_map = [
 ];
 $written_type_options = written_assessment_types();
 
-$schoolYears=load_school_years($pdo,true,$selectedSchoolId,$selectedSchoolId<=0);
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,true);
 $classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true,true,$selectedSchoolId);
 
 $subjectSql="SELECT DISTINCT s.id,s.code,s.name

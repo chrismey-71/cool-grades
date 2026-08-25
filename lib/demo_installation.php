@@ -343,20 +343,86 @@ function demo_installation_clean_context(PDO $pdo, int $classId, array $subjectI
   }
 }
 
+function demo_installation_clean_picklist_options(PDO $pdo, int $teacherId): void {
+  $types = ['reason', 'impact', 'performance', 'observation_group'];
+  $placeholders = implode(',', array_fill(0, count($types), '?'));
+
+  $teacherParams = array_merge([$teacherId], $types);
+  $pdo->prepare("DELETE FROM participation_options
+                 WHERE scope='teacher'
+                   AND teacher_id=?
+                   AND subject_id IS NULL
+                   AND opt_type IN ($placeholders)")
+      ->execute($teacherParams);
+
+  // Demo-Installationen sollen keine globalen Alt-/Fallback-Picklisten mit Mojibake
+  // neben den gezielt angelegten Demo-Picklisten anzeigen.
+  $pdo->prepare("DELETE FROM participation_options
+                 WHERE scope='global'
+                   AND opt_type IN ($placeholders)")
+      ->execute($types);
+}
+
 function demo_installation_insert_option(PDO $pdo, string $type, int $teacherId, string $label, int $sort, ?string $mode = null, ?string $impactKind = null): int {
-  $st = $pdo->prepare("INSERT INTO participation_options(opt_type,scope,subject_id,teacher_id,label,pedagogical_hint_mode,impact_kind,active,sort,created_at)
-                       VALUES(?,?,?,?,?,?,?,?,?,?)
-                       ON DUPLICATE KEY UPDATE
-                         pedagogical_hint_mode=VALUES(pedagogical_hint_mode),
-                         impact_kind=VALUES(impact_kind),
-                         active=1,
-                         sort=VALUES(sort)");
-  $st->execute([$type, 'teacher', null, $teacherId, $label, $mode, $impactKind, 1, $sort, now_iso()]);
   $lookup = $pdo->prepare("SELECT id FROM participation_options
                            WHERE opt_type=? AND scope='teacher' AND teacher_id=? AND subject_id IS NULL AND label=?
+                           ORDER BY id ASC
                            LIMIT 1");
   $lookup->execute([$type, $teacherId, $label]);
-  return (int)$lookup->fetchColumn();
+  $existingId = (int)$lookup->fetchColumn();
+  if($existingId > 0){
+    $pdo->prepare("UPDATE participation_options
+                   SET pedagogical_hint_mode=?, impact_kind=?, active=1, archived=0, sort=?
+                   WHERE id=?")
+        ->execute([$mode, $impactKind, $sort, $existingId]);
+    return $existingId;
+  }
+
+  $st = $pdo->prepare("INSERT INTO participation_options(opt_type,scope,subject_id,teacher_id,label,pedagogical_hint_mode,impact_kind,active,sort,created_at)
+                       VALUES(?,?,?,?,?,?,?,?,?,?)");
+  $st->execute([$type, 'teacher', null, $teacherId, $label, $mode, $impactKind, 1, $sort, now_iso()]);
+  return (int)$pdo->lastInsertId();
+}
+
+function demo_installation_seed_criteria_suggestions(PDO $pdo, int $schoolFormId): void {
+  if($schoolFormId <= 0) return;
+  $now = now_iso();
+  $suggestions = [
+    ['ALL', 'Mündlich', 'Fachbegriffe korrekt verwendet', 10, false],
+    ['ALL', 'Arbeitsweise', 'Arbeitsauftrag vollständig und termingerecht', 20, false],
+    ['ALL', 'Transfer', 'Transfer auf neue Aufgabenstellungen', 30, false],
+    ['ALL', 'Kooperation', 'Beitrag in Partner-/Gruppenarbeit', 40, false],
+    ['BW', 'Fachwissen', 'Begriffe/Instrumente korrekt angewandt', 10, true],
+    ['BW', 'Analyse', 'Unternehmensentscheidungen begründet', 20, true],
+    ['BW', 'Marketing/HR', 'Konzepte/Pläne plausibel entwickelt', 30, true],
+    ['BW', 'Recht/Orga', 'Rahmenbedingungen berücksichtigt', 40, true],
+    ['BW', 'Transfer', 'Fallbeispiele eigenständig gelöst', 50, true],
+    ['APM', 'Planung', 'Ziele/Meilensteine klar definiert', 10, true],
+    ['APM', 'Umsetzung', 'Aufgaben im Team zuverlässig übernommen', 20, true],
+    ['APM', 'Dokumentation', 'Planungs-/Reflexionsraster sinnvoll geführt', 30, true],
+    ['APM', 'Kommunikation', 'Absprachen/Stakeholder-Kommunikation', 40, true],
+    ['APM', 'Reflexion', 'Retrospektive: Verbesserungen abgeleitet', 50, true],
+  ];
+
+  $ins = $pdo->prepare("INSERT INTO criteria_suggestions(school_type,subject_code,category,label,description,active,archived,sort,created_at,updated_at)
+                        VALUES('BOTH',?,?,?,?,1,0,?,?,NULL)
+                        ON DUPLICATE KEY UPDATE
+                          active=1,
+                          archived=0,
+                          sort=VALUES(sort),
+                          updated_at=VALUES(created_at)");
+  $lookup = $pdo->prepare("SELECT id FROM criteria_suggestions WHERE school_type='BOTH' AND subject_code=? AND category=? AND label=? LIMIT 1");
+  $link = $pdo->prepare("INSERT IGNORE INTO criteria_suggestion_school_forms(suggestion_id,school_form_id) VALUES(?,?)");
+  foreach($suggestions as $suggestion){
+    [$subjectCode, $category, $label, $sort, $schoolFormScoped] = $suggestion;
+    $ins->execute([$subjectCode, $category, $label, null, (int)$sort, $now]);
+    if(!$schoolFormScoped) continue;
+    $lookup->execute([$subjectCode, $category, $label]);
+    $suggestionId = (int)($lookup->fetchColumn() ?: 0);
+    if($suggestionId > 0){
+      $link->execute([$suggestionId, $schoolFormId]);
+    }
+  }
 }
 
 function demo_installation_seed(PDO $pdo, string $schoolYearLabel): array {
@@ -399,6 +465,8 @@ function demo_installation_seed(PDO $pdo, string $schoolYearLabel): array {
     $pdo->prepare("INSERT IGNORE INTO teacher_schools(teacher_id,school_id) VALUES(?,?)")->execute([$adminId, $schoolId]);
     $pdo->prepare("INSERT IGNORE INTO teacher_schools(teacher_id,school_id) VALUES(?,?)")->execute([$teacherId, $schoolId]);
     demo_installation_clean_context($pdo, $classId, $subjectIds, $teacherId);
+    demo_installation_clean_picklist_options($pdo, $teacherId);
+    demo_installation_seed_criteria_suggestions($pdo, $schoolFormId);
 
     $studentNames = [
       ['Anna','Adler'], ['Ben','Berger'], ['Clara','Cerny'], ['Daniel','Dorn'],

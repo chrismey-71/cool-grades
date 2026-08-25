@@ -16,6 +16,29 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.79] - 2026-08-25
+
+### Geändert
+
+- Der Bereich „Finale Abschlussbeurteilung festlegen“ erklärt nun deutlicher, ob der Notenvorschlag für Schulnachricht, Semesterbeurteilung oder Jahresbeurteilung gelesen werden muss.
+- Bei Jahresbeurteilungen im Jahresmodell wird sichtbar gemacht, dass die Bereichskarten den aktuellen Leistungsstand des restlichen Schuljahres zeigen und mit der Schulnachricht / dem 1. Semester zum Jahresvorschlag verbunden werden.
+- Die Bereichskarten unterscheiden klarer zwischen qualitativen Bereichswerten aus Eindruck/Relevanz und echten Noten besonderer schriftlicher Leistungsfeststellungen.
+- Die Berechnung des Notenvorschlags wird in der Abschlussbeurteilung kompakter direkt im Entscheidungsbereich erklärt; das doppelte Detail-Accordion wurde entfernt.
+- Globale Schuljahre bleiben in Lehrer:innenansichten auch bei ausgewählter Schule sichtbar und können im Adminbereich nachträglich einer Schule zugeordnet werden, ohne bestehende Leistungsdaten zu verschieben.
+- Die nachträgliche Schulzuordnung globaler Schuljahre zeigt nun vorhandene Klassen samt Schule an und wählt die fachlich passende Zielschule vor.
+- Beim Anlegen neuer Schuljahre wird bei mehreren Schulen keine globale Vorauswahl mehr gesetzt; Admins müssen bewusst eine Schule wählen oder den globalen Sonderfall auswählen.
+- Die App berücksichtigt nun optional `timezone` aus `config.php`, damit Zeitangaben wie der letzte Demo-Reset in der lokalen App-Zeitzone gespeichert und angezeigt werden.
+- Demoinstallationen können über `demo_reset_schedule` in `config.php` einen sicheren sichtbaren Reset-Hinweis anzeigen; die echte Crontab wird nicht ausgelesen.
+
+### Korrigiert
+
+- Die doppelte Anzeige „Mitarbeitsnotenvorschlag“ plus zusätzlicher Mitarbeit-Bereichswert in der Abschlussbeurteilung wurde reduziert, damit der Entscheidungsbereich weniger widersprüchlich wirkt.
+- Abschlussbeurteilung, Notenübersicht, Auswertung, Verwaltung sowie mündliche/schriftliche Leistungsseiten zeigen globale Schuljahre nun konsistent an, wenn sie für die gewählte Schule nutzbar sind.
+- Die Fehlermeldung bei blockierter Schuljahreszuordnung nennt nun die betroffenen Schulen und Klassen, statt nur allgemein auf „andere Schule“ hinzuweisen.
+- In der Bearbeitung von Mitarbeitseinträgen bleiben gespeicherte Werte für „Grund/Anlass“ und „Eindruck/Relevanz“ sichtbar, auch wenn die ursprüngliche Picklistenoption inzwischen deaktiviert, archiviert, gelöscht oder umbenannt wurde.
+- In der Bearbeitung von Mitarbeitseinträgen wird der gespeicherte Unterrichtskontext wieder zuverlässig vorbefüllt; verknüpfte Unterrichtsstunden außerhalb der letzten 60 Einträge werden in die Auswahl aufgenommen und das Datum wird aus der Stunde übernommen.
+- Demo-Picklisten und globale Standard-Beobachtungsbereiche erzeugen keine neuen Umlaut-Dubletten mehr; falsch codierte Varianten wie `mÃ¼ndlich` werden bei der Anzeige mit der korrekten UTF-8-Schreibweise zusammengeführt.
+
 ## [1.78] - 2026-08-14
 
 ### Hinzugefügt

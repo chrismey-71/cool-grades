@@ -23,7 +23,7 @@ $lesson_id=(int)($_GET['lesson_id'] ?? 0); // 0=all, -1=without lesson, >0 speci
 $msg=(string)($_GET['msg'] ?? '');
 $err=(string)($_GET['err'] ?? '');
 
-$schoolYears=load_school_years($pdo,true,$selectedSchoolId,$selectedSchoolId<=0);
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,true);
 $classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true,true,$selectedSchoolId);
 if($class_id>0){
   $subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);

@@ -16,6 +16,15 @@ function cfg(): array {
   $loaded=require_once $file;
   if(is_array($loaded)){
     $cfg=$loaded;
+    $timezone = trim((string)($cfg['timezone'] ?? ''));
+    if($timezone !== ''){
+      try{
+        new DateTimeZone($timezone);
+        date_default_timezone_set($timezone);
+      }catch(Throwable $e){
+        // Keep PHP's server default if the configured timezone is invalid.
+      }
+    }
     return $cfg;
   }
   if(defined('DB_DSN')){
@@ -29,6 +38,17 @@ function cfg(): array {
       'base_path'=>'',
       'session_name'=>'coolgrades_sid',
     ];
+    if(defined('APP_TIMEZONE')){
+      $timezone = trim((string)APP_TIMEZONE);
+      if($timezone !== ''){
+        try{
+          new DateTimeZone($timezone);
+          date_default_timezone_set($timezone);
+        }catch(Throwable $e){
+          // Keep PHP's server default if the configured timezone is invalid.
+        }
+      }
+    }
     return $cfg;
   }
   die('Invalid config.php (expected returned array or DB_* constants).');
@@ -904,12 +924,39 @@ function _ensure_schema(PDO $pdo): void {
   }catch(Exception $e){ /* ignore */ }
 
   try{
-    $pdo->exec("INSERT IGNORE INTO participation_options (opt_type,scope,subject_id,teacher_id,label,active,sort,created_at) VALUES
-      ('observation_group','global',NULL,NULL,'Verstehen / Erfassen',1,10,NOW()),
-      ('observation_group','global',NULL,NULL,'Anwenden / Transfer',1,20,NOW()),
-      ('observation_group','global',NULL,NULL,'Argumentieren / Erklären',1,30,NOW()),
-      ('observation_group','global',NULL,NULL,'Arbeitsweise / Genauigkeit',1,40,NOW()),
-      ('observation_group','global',NULL,NULL,'Kooperation / Selbstständigkeit',1,50,NOW())");
+    // Nicht per INSERT IGNORE: NULL in subject_id/teacher_id verhindert bei MySQL
+    // eine zuverlässige Dubletten-Erkennung über den Unique-Key.
+    $defaultObservationGroups = [
+      ['Verstehen / Erfassen', 10],
+      ['Anwenden / Transfer', 20],
+      ['Argumentieren / Erklären', 30],
+      ['Arbeitsweise / Genauigkeit', 40],
+      ['Kooperation / Selbstständigkeit', 50],
+    ];
+    $findDefaultOption = $pdo->prepare("SELECT id FROM participation_options
+                                        WHERE opt_type='observation_group'
+                                          AND scope='global'
+                                          AND subject_id IS NULL
+                                          AND teacher_id IS NULL
+                                          AND label=?
+                                        ORDER BY id ASC
+                                        LIMIT 1");
+    $insertDefaultOption = $pdo->prepare("INSERT INTO participation_options
+      (opt_type,scope,subject_id,teacher_id,label,active,sort,created_at)
+      VALUES('observation_group','global',NULL,NULL,?,1,?,NOW())");
+    $updateDefaultOption = $pdo->prepare("UPDATE participation_options
+                                          SET active=1, archived=0, sort=?
+                                          WHERE id=?");
+    foreach($defaultObservationGroups as $row){
+      [$label, $sort] = $row;
+      $findDefaultOption->execute([$label]);
+      $existingId = (int)$findDefaultOption->fetchColumn();
+      if($existingId > 0){
+        $updateDefaultOption->execute([(int)$sort, $existingId]);
+      } else {
+        $insertDefaultOption->execute([$label, (int)$sort]);
+      }
+    }
   }catch(Exception $e){ /* ignore */ }
 
   try{

@@ -9,7 +9,7 @@ $pdo = db();
 $bp = cfg()['base_path'] ?? '';
 
 $selectedSchoolId=teacher_school_context_id($pdo,(int)$u['id']);
-$periodSets = app_school_period_sets(true,$selectedSchoolId,$selectedSchoolId<=0);
+$periodSets = app_school_period_sets(true,$selectedSchoolId,true);
 $schoolPeriodSetId = array_key_exists('school_period_set_id', $_GET)
   ? (int)$_GET['school_period_set_id']
   : final_assessment_default_period_set_id($periodSets);
