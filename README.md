@@ -98,16 +98,9 @@ Weitere Projekthinweise:
 
 ## Roadmap
 
-Folgende Weiterentwicklungen sind als fachliche Entwicklungsrichtung vorgesehen. Sie sind noch nicht Bestandteil der aktuellen Version und sollen schrittweise geprüft, geplant und umgesetzt werden:
+Die fachliche Entwicklungsrichtung steht in [ROADMAP.md](ROADMAP.md). Dort sind geplante Erweiterungen wie WebUntis-iCal-Import, formative Lernrückmeldungen, Selbstfeedback und Lernentwicklungsansichten beschrieben.
 
-- formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
-- klare Trennung zwischen reinen Lernhinweisen und Einträgen, die in Notenvorschläge einfließen
-- Lernziele, Erfolgskriterien, beobachteter Lernstand und nächste Lernschritte pro Rückmeldung
-- separate Ausweisung formativer Lernrückmeldungen in Webauswertung und PDF-Berichten
-- optionale Selbst- und Peer-Feedback-Funktionen
-- stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
-
-Die App soll dabei weiterhin keine automatische Beurteilung festlegen. Auch künftige Funktionen sollen Lehrkräfte unterstützen, aber die pädagogische Entscheidung nicht ersetzen.
+Auch künftige Funktionen sollen Lehrkräfte unterstützen, aber keine automatische Beurteilung festlegen.
 
 ## Lizenz
 
