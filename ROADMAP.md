@@ -193,11 +193,11 @@ COOL-Grades soll auch künftig nicht:
 
 Die Roadmap soll in einzelne, fachlich prüfbare GitHub-Issues aufgeteilt werden:
 
-1. WebUntis-iCal-Import und Stundenplanansicht vorbereiten und umsetzen
-2. Formative Lernrückmeldungen als eigenen Workflow konzipieren
-3. Bewertungsrelevanz von Einträgen eindeutig kennzeichnen
-4. Strukturierte Lernrückmeldung mit Lernziel, Erfolgskriterium, Lernstand und nächstem Schritt einführen
-5. Formative Rückmeldungen getrennt in Webauswertung und PDF-Berichten anzeigen
-6. Selbstfeedback für Schüler:innen fachlich und datenschutzrechtlich prüfen
-7. Peer-Feedback als optionalen Workflow konzipieren
-8. Lernentwicklungs- und Reflexionsansicht planen
+1. [#2 WebUntis-iCal-Import und Stundenplanansicht vorbereiten und umsetzen](https://github.com/chrismey-71/cool-grades/issues/2)
+2. [#4 Formative Lernrückmeldungen als eigenen Workflow konzipieren](https://github.com/chrismey-71/cool-grades/issues/4)
+3. [#5 Bewertungsrelevanz von Einträgen eindeutig kennzeichnen](https://github.com/chrismey-71/cool-grades/issues/5)
+4. [#6 Strukturierte Lernrückmeldung mit Lernziel, Erfolgskriterium, Lernstand und nächstem Schritt einführen](https://github.com/chrismey-71/cool-grades/issues/6)
+5. [#7 Formative Rückmeldungen getrennt in Webauswertung und PDF-Berichten anzeigen](https://github.com/chrismey-71/cool-grades/issues/7)
+6. [#8 Selbstfeedback für Schüler:innen fachlich und datenschutzrechtlich prüfen](https://github.com/chrismey-71/cool-grades/issues/8)
+7. [#9 Peer-Feedback als optionalen Workflow konzipieren](https://github.com/chrismey-71/cool-grades/issues/9)
+8. [#10 Lernentwicklungs- und Reflexionsansicht planen](https://github.com/chrismey-71/cool-grades/issues/10)
