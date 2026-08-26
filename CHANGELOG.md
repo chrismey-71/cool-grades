@@ -16,6 +16,22 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.80] - 2026-08-26
+
+### Hinzugefügt
+
+- Neuer geführter Installationsassistent in `install.php` mit Schritt-für-Schritt-Logik für Willkommen, Systemprüfung, Datenbankdaten, Installationsart, Admin-/Demoangaben, Zusammenfassung und Ausführung.
+- Die frühere Funktion von `install_check.php` ist in `install.php` integriert; `install_check.php` leitet zur Systemprüfung weiter.
+- `config.php` kann direkt aus dem Installationsassistenten erzeugt werden, inklusive Datenbankdaten, Base-Path, Session-Name, Zeitzone, Demo-Reset-Hinweis, Installations-Token, Localhost-Option und Logverzeichnis.
+- Bei Standardinstallationen wird der erste Admin im Assistenten abgefragt und mit geprüftem Passwort angelegt.
+- Demoinstallationen bleiben im Assistenten als eigene Installationsart mit Demoschuljahr auswählbar.
+
+### Geändert
+
+- Das Datenbankschema wird nicht mehr vor der eigentlichen Installationsbestätigung ausgeführt, sondern erst im finalen Ausführungsschritt.
+- Datenbankpasswörter werden im Installationsassistenten nicht auf Folgeseiten angezeigt.
+- Die Installationsdokumentation beschreibt nun den geführten Assistenten statt der manuellen `config.php`-/`schema.sql`-Einrichtung.
+
 ## [1.79] - 2026-08-25
 
 ### Geändert

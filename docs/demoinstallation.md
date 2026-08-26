@@ -6,10 +6,11 @@ Die Demoinstallation ist ausschließlich für Vorführungen, Tests und öffentli
 
 ## Installation
 
-1. `install.php?token=...` lokal mit gültigem Installationstoken öffnen.
-2. `Demoinstallation` auswählen.
-3. Demoschuljahr im Format `2025/26` eintragen.
-4. Installation starten.
+1. `install.php` öffnen.
+2. Im Assistenten Serverprüfung und Datenbankdaten ausfüllen.
+3. Als Installationsart `Demoinstallation` auswählen.
+4. Demoschuljahr im Format `2025/26` eintragen.
+5. Installation ausführen.
 
 Die Demo legt automatisch an:
 

@@ -27,14 +27,19 @@ Die Zuordnung erfolgt über Username und gehashten IP-Wert. Die IP-Adresse wird 
 
 ## Installation absichern
 
-`install.php` benötigt zusätzlich zum Localhost-Check ein Einmal-Token aus `config.php`.
+`install.php` ist als geführter Installationsassistent aufgebaut. Er prüft Servervoraussetzungen, Datenbankverbindung, Schreibrechte, Logverzeichnis und `install.lock`, erzeugt `config.php`, richtet die Datenbank ein und legt bei der Standardinstallation den ersten Admin an.
 
 Vorgehen:
 
-1. In `config.php` ein langes, zufälliges `install_token` setzen.
-2. Installation mit `install.php?token=...` aufrufen.
-3. Nach erfolgreicher Installation wird `install.lock` angelegt.
-4. `install.php` anschließend vom Server entfernen.
+1. Leere Datenbank beim Hoster anlegen.
+2. `install.php` öffnen und die integrierte Systemprüfung ausführen.
+3. Datenbankdaten, Session-Name, Zeitzone, Logverzeichnis und weitere `config.php`-Werte im Assistenten eintragen.
+4. Standardinstallation oder Demoinstallation wählen.
+5. Bei Standardinstallation den ersten Admin im Assistenten anlegen.
+6. Installation ausführen; anschließend wird `install.lock` angelegt.
+7. `install.php` anschließend vom Server entfernen oder serverseitig schützen.
+
+Falls bereits eine `config.php` vorhanden ist und noch kein `install.lock` existiert, bleibt der Token-Schutz aktiv. Dann muss `install.php?token=...` mit dem in `config.php` gespeicherten `install_token` geöffnet werden.
 
 ## Logs schützen
 

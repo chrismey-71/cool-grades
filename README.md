@@ -69,17 +69,19 @@ COOL-Grades bewegt sich im Umfeld folgender Themen:
 ## Installation
 
 1. Dateien auf den Webserver kopieren, z. B. nach `/cool-grades`.
-2. `config.example.php` nach `config.php` kopieren.
-3. In `config.php` die Datenbankverbindung, ein langes `install_token` und einen Log-Pfad außerhalb des Webroots eintragen.
-4. Datenbankschema aus `schema.sql` einspielen.
-5. Bei bestehenden Installationen zusätzlich die Dateien aus `migrations/` in zeitlicher Reihenfolge ausführen.
-6. `install.php?token=...` im Browser lokal bzw. serverseitig geschützt aufrufen.
-7. Nach erfolgreicher Installation `install.php` vom Server entfernen.
-8. Standard-Adminzugang nach der Installation sofort ändern.
+2. Eine leere MySQL-/MariaDB-Datenbank beim Hoster anlegen.
+3. `install.php` im Browser öffnen.
+4. Im Installationsassistenten Serverprüfung, Datenbankdaten, `config.php`-Einstellungen und Installationsart ausfüllen.
+5. Bei Standardinstallation das erste Administrationskonto im Assistenten anlegen.
+6. Bei Demoinstallation das Demoschuljahr wählen.
+7. Installation ausführen; der Assistent erzeugt `config.php`, richtet die Datenbank ein und legt `install.lock` an.
+8. Nach erfolgreicher Installation `install.php` vom Server entfernen oder serverseitig schützen.
+
+Die frühere separate `install_check.php` ist in den Installationsassistenten integriert. Ein direkter Aufruf leitet zur Systemprüfung in `install.php` weiter.
 
 ## Sicherheit
 
-Die Datei `config.php` enthält Zugangsdaten und darf nicht veröffentlicht werden. Logs, Runtime-Daten, Datenbank-Dumps und Uploads gehören ebenfalls nicht in ein öffentliches Git-Repository.
+Die Datei `config.php` enthält Zugangsdaten und wird bei der Installation erzeugt. Sie darf nicht veröffentlicht werden. Logs, Runtime-Daten, Datenbank-Dumps und Uploads gehören ebenfalls nicht in ein öffentliches Git-Repository.
 
 Dieses Repository enthält deshalb nur `config.example.php` als Vorlage.
 
