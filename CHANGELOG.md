@@ -16,6 +16,16 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.80.1] - 2026-08-30
+
+### Geändert
+
+- Lehrer:innen-Dashboard auf die drei täglichen Erfassungswege reduziert: Mitarbeit, besondere mündliche Leistungsfeststellung und besondere schriftliche Leistungsfeststellung.
+- Abschlussbeurteilung und Berichte & Auswertungen sind im Lehrer:innenbereich als eigene Menüpunkte erreichbar.
+- Die Abschlussbeurteilung zeigt am Seitenanfang die zwei zentralen Einstiege „Semester- und Jahresbeurteilung festlegen“ und „Notenübersicht öffnen“.
+- Berichte & Auswertungen werden klarer als zusammenfassende Auswertung der drei Erfassungsbereiche beschrieben.
+- Die Versionslogik unterstützt nun Patch-Versionen wie `1.80.1`, damit kleine UI-Korrekturen die Roadmap-Meilensteine ab `v1.81` nicht blockieren.
+
 ## [1.80] - 2026-08-26
 
 ### Hinzugefügt

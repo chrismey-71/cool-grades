@@ -16,10 +16,69 @@
   var b=document.getElementById("burgerBtn");
   var n=document.getElementById("mainNav");
   if(!b||!n) return;
+  var topbar=b.closest ? b.closest(".topbar") : null;
+  var mobileQuery=window.matchMedia ? window.matchMedia("(max-width: 720px)") : null;
+
+  function navNeedsOverflowMode(){
+    var children=Array.prototype.filter.call(n.children,function(child){
+      return child.offsetParent !== null;
+    });
+    if(!children.length) return false;
+
+    var maxItemHeight=0;
+    children.forEach(function(child){
+      maxItemHeight=Math.max(maxItemHeight, child.offsetHeight || 0);
+    });
+    maxItemHeight=Math.max(maxItemHeight, 36);
+
+    var style=window.getComputedStyle ? window.getComputedStyle(n) : null;
+    var rowGap=10;
+    if(style){
+      var rawGap=style.rowGap || style.gap || "10";
+      var parsedGap=parseFloat(rawGap);
+      if(!Number.isNaN(parsedGap)) rowGap=parsedGap;
+    }
+
+    // Allow two visible navigation rows. This height-based check is more
+    // robust than counting offsetTop values because the logout timer is
+    // intentionally stacked below the logout button and is therefore taller.
+    var allowedHeight=(maxItemHeight*2)+rowGap+6;
+    return n.scrollHeight>allowedHeight;
+  }
+
+  function updateNavOverflow(){
+    if(!topbar) return;
+    if(mobileQuery && mobileQuery.matches){
+      topbar.classList.remove("nav-overflow");
+      return;
+    }
+
+    var wasOverflow=topbar.classList.contains("nav-overflow");
+    var wasOpen=n.classList.contains("is-open");
+    if(wasOverflow){
+      topbar.classList.remove("nav-overflow");
+      n.classList.remove("is-open");
+      b.setAttribute("aria-expanded","false");
+    }
+
+    if(navNeedsOverflowMode()){
+      topbar.classList.add("nav-overflow");
+      if(wasOpen){
+        n.classList.add("is-open");
+        b.setAttribute("aria-expanded","true");
+      }
+    }
+  }
+
   b.addEventListener("click", function(){
     var open = n.classList.toggle("is-open");
     b.setAttribute("aria-expanded", open ? "true" : "false");
   });
+  window.addEventListener("resize", function(){
+    window.requestAnimationFrame(updateNavOverflow);
+  });
+  window.addEventListener("load", updateNavOverflow);
+  updateNavOverflow();
 })();
 </script>
 

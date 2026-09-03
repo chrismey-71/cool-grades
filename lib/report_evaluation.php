@@ -326,6 +326,18 @@ function report_eval_note_proposal(int $count, int $distinctDates, array $scores
   ];
 }
 
+function report_eval_note_proposal_short_label(array $proposal): string {
+  $short = trim((string)($proposal['short'] ?? ''));
+  if($short !== '') return $short;
+
+  $label = trim((string)($proposal['label'] ?? ''));
+  if($label === '') return '–';
+
+  $label = preg_replace('/\b(Mitarbeitsnotenvorschlag|Notenvorschlag)\b\s*:?/iu', '', $label);
+  $label = trim(preg_replace('/\s+/u', ' ', (string)$label));
+  return $label !== '' ? $label : '–';
+}
+
 function report_eval_join_top_counts(array $counts, int $limit = 3, int $clipLength = 26): string {
   if(!$counts) return '–';
   arsort($counts);

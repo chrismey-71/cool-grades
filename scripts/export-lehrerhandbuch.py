@@ -61,7 +61,11 @@ def read_version(project_root: Path) -> str:
     data = json.loads(version_file.read_text(encoding="utf-8"))
     if "version" in data:
         return str(data["version"])
-    return f"{int(data.get('a', 1))}.{int(data.get('b', 0)):02d}"
+    version = f"{int(data.get('a', 1))}.{int(data.get('b', 0)):02d}"
+    patch = int(data.get("c", 0) or 0)
+    if patch > 0:
+        version += f".{patch}"
+    return version
 
 
 def parse_inline(text: str) -> list[tuple[str, bool]]:

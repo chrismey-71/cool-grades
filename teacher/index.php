@@ -96,8 +96,12 @@ render_header('Dashboard',$u);
 <div class="grid">
   <div class="col-12">
     <div class="card">
-      <h1>Dashboard</h1>
-      <p class="muted">Wähle den passenden Arbeitsbereich: Leistungen erfassen, Einträge bearbeiten, Abschlussbeurteilungen festlegen oder Berichte und Auswertungen öffnen.</p>
+      <div class="dashboard-hero">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="muted">Schneller Einstieg in die drei Erfassungsbereiche. Abschlussbeurteilung sowie Berichte &amp; Auswertungen sind oben als eigene Menüpunkte erreichbar.</p>
+        </div>
+      </div>
 
       <?php if(count($teacherSchools)>1): ?>
         <form method="get" class="dashboard-school-selection" data-school-selection style="margin-top:14px">
@@ -115,12 +119,13 @@ render_header('Dashboard',$u);
         <div class="dashboard-school-single" style="margin-top:14px"><span>Arbeitsbereich Schule</span><b><?php echo h($selectedSchoolName); ?></b></div>
       <?php endif; ?>
 
-      <div class="grid" style="margin-top:14px">
-        <div class="col-12 col-md-6">
-          <div class="card" style="padding:14px">
-            <h2 style="margin:0 0 8px 0">Mitarbeit schnell erfassen</h2>
+      <div class="dashboard-entry-grid" style="margin-top:16px">
+          <div class="card dashboard-entry-card dashboard-entry-participation">
+            <div class="dashboard-entry-kicker">laufende Unterrichtsbeobachtung</div>
+            <h2>Mitarbeit erfassen</h2>
+            <p class="muted">Für kurze, laufende Beobachtungen im Unterricht. Diese Einträge bilden die Grundlage für Mitarbeitsauswertungen und spätere Entscheidungshilfen.</p>
             <?php if($quickMode==='buttons'): ?>
-              <div class="small" style="margin-bottom:8px">Tippe eine Kombination an (Klasse + Fach). Einstellung: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-entry-ui">Konto → Schnellerfassung: Auswahlmodus</a>.</div>
+              <div class="small dashboard-entry-note">Tippe eine Kombination an (Klasse + Fach). Einstellung: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-entry-ui">Konto → Schnellerfassung: Auswahlmodus</a>.</div>
               <?php if(!$combos): ?>
                 <div class="flash error">Keine Zuordnungen gefunden. Bitte im Admin unter „Lehrerzuordnung“ Klasse/Fach zuweisen.</div>
               <?php else: ?>
@@ -152,54 +157,20 @@ render_header('Dashboard',$u);
                   <button class="btn" style="min-width:190px">Mitarbeit erfassen</button>
                 </div>
               </form>
-              <div class="small" style="margin-top:8px">Du kannst hier auch Buttons verwenden: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-entry-ui">Konto → Schnellerfassung: Auswahlmodus</a>.</div>
+              <div class="small dashboard-entry-note">Du kannst hier auch Buttons verwenden: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-entry-ui">Konto → Schnellerfassung: Auswahlmodus</a>.</div>
             <?php endif; ?>
 
-            <div class="muted" style="margin-top:10px;font-size:13px">
-              Tipp: Für typische Unterrichtssituationen nutze die <b>Stundenerfassung</b> (Schnell + Detail) und erfasse mehrere Schüler:innen gemeinsam.
-            </div>
-
-            <div style="height:10px"></div>
-            <div class="row" style="gap:10px;flex-wrap:wrap">
+            <div class="dashboard-entry-actions">
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/lesson.php">Stundenerfassung (Schnell + Detail)</a>
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/participation_list.php">Einträge bearbeiten</a>
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/student_groups.php">Gruppen verwalten</a>
             </div>
           </div>
 
-          <div class="card" style="padding:14px;margin-top:14px">
-            <h2 style="margin:0 0 8px 0">Abschlussbeurteilung</h2>
-            <div class="muted" style="font-size:13px">
-              Mitarbeit, besondere mündliche und besondere schriftliche Leistungsfeststellungen zu einer Semester- oder Jahresbeurteilung zusammenführen.
-            </div>
-            <div style="height:10px"></div>
-            <div class="muted" style="font-size:13px">
-              Die App zeigt einen Notenvorschlag und dokumentiert die Entscheidungsgrundlage. Die finale Note wird bewusst durch die Lehrkraft festgelegt und gespeichert.
-            </div>
-            <div style="height:10px"></div>
-            <div class="row" style="gap:8px;flex-wrap:wrap">
-              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments.php">Semester- und Jahresbeurteilung festlegen</a>
-              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/final_assessments_overview.php">Notenübersicht öffnen</a>
-            </div>
-          </div>
-
-          <div class="card" style="padding:14px;margin-top:14px">
-            <h2 style="margin:0 0 8px 0">Berichte &amp; Auswertungen</h2>
-            <div class="muted" style="font-size:13px">
-              Gespeicherte Mitarbeit, besondere mündliche und schriftliche Leistungsfeststellungen pro Klasse, Fach und Zeitraum zusammenfassen.
-            </div>
-            <div style="height:10px"></div>
-            <div class="muted" style="font-size:13px">
-              Dieser Bereich verändert keine Einträge. Er dient der Kontrolle, pädagogischen Interpretation und dem PDF-Export.
-            </div>
-            <div style="height:10px"></div>
-            <a class="btn secondary" href="<?php echo h($bp); ?>/reports.php">Berichte &amp; Auswertungen öffnen</a>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <div class="card" style="padding:14px">
-            <h2 style="margin:0 0 8px 0">Bes. mündl. Leistungsfeststellung</h2>
+          <div class="card dashboard-entry-card dashboard-entry-oral">
+            <div class="dashboard-entry-kicker">besondere Leistungsfeststellung</div>
+            <h2>Bes. mündl. Leistung erfassen</h2>
+            <p class="muted">Für mündliche Prüfungen oder mündliche Übungen, die getrennt von der laufenden Mitarbeit dokumentiert werden.</p>
             <form class="row" method="get" action="<?php echo h($bp); ?>/teacher/oral_new.php" style="gap:10px;align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
               <div style="flex:1 1 220px">
                 <label class="muted">Klasse</label>
@@ -226,14 +197,15 @@ render_header('Dashboard',$u);
               </div>
             </form>
 
-            <div style="height:10px"></div>
-            <div class="muted" style="font-size:13px">Mündliche Prüfungen und mündliche Übungen werden getrennt erfasst und mit Eindruck/Relevanz dokumentiert.</div>
-            <div style="height:10px"></div>
-            <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/orals.php">Mündliche Leistungsfeststellungen bearbeiten</a>
+            <div class="dashboard-entry-actions">
+              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/orals.php">Mündliche Leistungen bearbeiten</a>
+            </div>
           </div>
 
-          <div class="card" style="padding:14px;margin-top:14px">
-            <h2 style="margin:0 0 8px 0">Bes. schriftl. Leistungsfeststellung</h2>
+          <div class="card dashboard-entry-card dashboard-entry-written">
+            <div class="dashboard-entry-kicker">besondere Leistungsfeststellung</div>
+            <h2>Bes. schriftl. Leistung erfassen</h2>
+            <p class="muted">Für Schularbeiten, Tests, Diktate oder andere schriftliche Leistungsfeststellungen mit klassischer Note.</p>
             <form class="row" method="get" action="<?php echo h($bp); ?>/teacher/exam_new.php" style="gap:10px;align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
               <div style="flex:1 1 220px">
                 <label class="muted">Klasse</label>
@@ -247,7 +219,7 @@ render_header('Dashboard',$u);
                   <?php foreach($subjects as $s): ?><option value="<?php echo (int)$s['id']; ?>"><?php echo h($s['code'].' – '.$s['name']); ?></option><?php endforeach; ?>
                 </select>
               </div>
-              <div style="flex:0 0 190px">
+              <div style="flex:0 0 220px">
                 <label class="muted">Art</label>
                 <select class="input" name="exam_type" required>
                   <?php foreach($written_type_options as $typeValue => $typeLabel): ?>
@@ -261,13 +233,10 @@ render_header('Dashboard',$u);
               </div>
             </form>
 
-            <div style="height:10px"></div>
-            <div class="muted" style="font-size:13px">Schriftliche Leistungsfeststellungen bleiben klassische Noten (1–5). Mitarbeit bleibt dokumentationsorientiert (LBV).</div>
-            <div style="height:10px"></div>
-            <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/exams.php">Schriftliche Leistungsfeststellungen bearbeiten</a>
+            <div class="dashboard-entry-actions">
+              <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/exams.php">Schriftliche Leistungen bearbeiten</a>
+            </div>
           </div>
-        </div>
-
       </div>
 
     </div>

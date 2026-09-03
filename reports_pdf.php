@@ -93,17 +93,18 @@ $pdf->boxedSection(
   'LBV-Hinweis',
   [
     'Die Auswertung orientiert sich insbesondere an §§ 3, 4 und 11 LBV; besondere mündliche und schriftliche Leistungsfeststellungen werden – sofern vorhanden – gesondert ausgewiesen.',
-    'Ein Notenvorschlag wird nur als nachvollziehbare Entscheidungshilfe dargestellt. Die abschließende Leistungsbeurteilung bleibt pädagogische Aufgabe der Lehrkraft.',
+    'Der MA-Vorschlag bezieht sich ausschließlich auf die dokumentierte Mitarbeit. Die abschließende Leistungsbeurteilung bleibt pädagogische Aufgabe der Lehrkraft.',
   ],
   [248,250,252],
   [207,214,223]
 );
 $pdf->boxedSection(
-  'Methodik des Mitarbeitsnotenvorschlags',
+  'Methodik des MA-Vorschlags',
   [
     'Grundlage sind ausschließlich die dokumentierten Mitarbeitseinträge im gewählten Zeitraum.',
     'Ab 3 dokumentierten Tagen oder 3 verwertbaren Einträgen ist eine erste Einschätzung möglich; ab 6 dokumentierten Tagen gilt die Datenbasis in der Regel als gut.',
-    'Bei positiver Tendenz ergibt sich eher ein Mitarbeitsnotenvorschlag 1 oder 2, bei gemischter Datenlage eher 3, bei kritischer Tendenz eher 4 oder 5.',
+    'Bei positiver Tendenz ergibt sich eher 1 oder 2, bei gemischter Datenlage eher 3, bei kritischer Tendenz eher 4 oder 5.',
+    'Besondere mündliche und schriftliche Leistungsfeststellungen werden daneben getrennt ausgewiesen und nicht in den MA-Vorschlag eingerechnet.',
   ],
   [248,250,252],
   [207,214,223]
@@ -120,13 +121,13 @@ if(!$summaries){
 $headers = [
   'Schüler:in',
   'Mitarbeit',
+  'MA-Vorschlag',
   'Bes. mündl.',
   'Bes. schriftl.',
-  'Vorschläge',
   'Endnote',
   'Hinweis / Kommentare',
 ];
-$widths = [95,112,104,112,92,88,150];
+$widths = [95,112,60,104,112,92,178];
 $rows = [];
 foreach($summaries as $summary){
   $qualityCell = $summary['quality']['label'];
@@ -138,13 +139,18 @@ foreach($summaries as $summary){
   $finalStatus = $final ? final_assessment_status_label((string)$final['status']) : 'offen';
   $finalSuggestion = $final ? trim((string)($final['suggestion_label'] ?? '')) : '';
   if($finalSuggestion === '') $finalSuggestion = '–';
+  $maProposalShort = report_eval_note_proposal_short_label($summary['note_proposal']);
+  $finalCell = $finalGrade.' · '.$finalStatus;
+  if($finalSuggestion !== '–'){
+    $finalCell .= ' · gesp. Vorschlag: '.$finalSuggestion;
+  }
   $rows[] = [
     $summary['student_name'],
     (int)$summary['participation_count'].' Eintr. · '.(int)($summary['documented_day_count'] ?? count($summary['distinct_dates'])).' Tg. · pos '.$summary['positive_count'].' / neutral '.$summary['neutral_count'].' / neg '.$summary['negative_count'].' · '.$qualityCell.' · '.report_eval_data_basis_level_label($summary['data_basis']),
+    $maProposalShort.' · '.$summary['note_proposal']['explanation'],
     $summary['oral_text'],
     $summary['written_text'],
-    $summary['note_proposal']['label'].' · Notenvorschlag: '.$finalSuggestion,
-    $finalGrade.' · '.$finalStatus,
+    $finalCell,
     $summary['semester_hint'].' · Kriterien: '.$summary['top_criteria'].' · Kommentare: '.$summary['comments_text'],
   ];
 }
@@ -164,7 +170,7 @@ if($student_id && $selectedSummary){
   $proposal = $selectedSummary['note_proposal'];
   $recommendationLines = [
     'Datenbasis: '.report_eval_data_basis_level_label($selectedSummary['data_basis']),
-    $proposal['label'],
+    'MA-Vorschlag: '.report_eval_note_proposal_short_label($proposal),
     $proposal['explanation'],
     'Hinweis für die Semesterbeurteilung: '.$selectedSummary['semester_hint'],
     'Wichtige Kriterien / Anlässe: '.$selectedSummary['top_criteria'],

@@ -56,7 +56,11 @@
       <a href="<?php echo h($homeHref); ?>">Dashboard</a>
       <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/manage.php">Verwaltung</a><?php endif; ?>
       <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/settings_index.php">Einstellungen</a><?php endif; ?>
-      <?php if(($u['role'] ?? '')==='teacher'): ?><a href="<?php echo h($bp); ?>/teacher/manage.php">Verwaltung</a><?php endif; ?>
+      <?php if(($u['role'] ?? '')==='teacher'): ?>
+        <a href="<?php echo h($bp); ?>/reports.php">Berichte &amp; Auswertungen</a>
+        <a href="<?php echo h($bp); ?>/teacher/final_assessments.php">Abschlussbeurteilung</a>
+        <a href="<?php echo h($bp); ?>/teacher/manage.php">Verwaltung</a>
+      <?php endif; ?>
       <a href="<?php echo h($bp); ?>/account.php">Konto</a>
       <form method="post" action="<?php echo h($bp); ?>/logout.php" class="logout-stack">
         <?php echo csrf_input(); ?>

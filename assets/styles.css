@@ -172,6 +172,32 @@ button.small{width:auto;padding:7px 10px;border-radius:10px}
   margin:0;                /* avoid flex row spacing issues */
 }
 
+.topbar.nav-overflow .wrap{
+  flex-wrap:wrap;
+  justify-content:space-between;
+  gap:10px;
+}
+.topbar.nav-overflow .burger{display:flex !important}
+.topbar.nav-overflow .nav{display:none;width:100%}
+.topbar.nav-overflow .nav.is-open{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  background:rgba(0,0,0,.12);
+  padding:10px;
+  border-radius:14px;
+}
+.topbar.nav-overflow .nav a,
+.topbar.nav-overflow .nav .navbtn{
+  padding:12px 12px;
+  border-radius:12px;
+  white-space:normal;
+}
+.topbar.nav-overflow .userpill{
+  margin-left:0;
+  align-self:flex-start;
+}
+
 
 /* --- Mobile responsiveness (Burger + Karten-Tabellen) --- */
 @media (max-width: 720px){

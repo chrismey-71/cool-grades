@@ -284,6 +284,101 @@
 .quick-combos{display:flex;flex-wrap:wrap;gap:10px}
 .quick-combo{min-width:160px}
 
+/* Teacher dashboard: focused entry page for the three daily input paths. */
+.dashboard-hero{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+}
+.dashboard-hero h1{margin-bottom:6px}
+.dashboard-entry-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  align-items:stretch;
+}
+.dashboard-entry-card{
+  margin:0;
+  padding:18px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(228,231,236,.9);
+  background:linear-gradient(180deg,#fff 0%,#fbfcff 100%);
+}
+html[data-entry-contrast="high"] .dashboard-entry-card::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:6px;
+  background:var(--menu-accent,var(--dashboard-entry-accent,#2F6F3A));
+}
+.dashboard-entry-card h2{
+  margin:2px 0 8px 0;
+  font-size:20px;
+}
+.dashboard-entry-kicker{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.055em;
+}
+html[data-entry-contrast="high"] .dashboard-entry-kicker{
+  color:var(--menu-accent,var(--dashboard-entry-accent,#2F6F3A));
+}
+.dashboard-entry-note{margin:10px 0}
+.dashboard-entry-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid rgba(228,231,236,.9);
+}
+.dashboard-entry-participation{--dashboard-entry-accent:#2F6F3A;grid-column:1/-1}
+.dashboard-entry-oral{--dashboard-entry-accent:#8B6F26}
+.dashboard-entry-written{--dashboard-entry-accent:#246B8F}
+.dashboard-entry-card .row>*{min-width:180px}
+@media(max-width:980px){
+  .dashboard-entry-grid{grid-template-columns:1fr}
+}
+
+.teacher-section-choice-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+  margin-top:14px;
+}
+.teacher-section-choice{
+  display:block;
+  padding:14px;
+  border:1px solid var(--border);
+  border-left:6px solid var(--blue);
+  border-radius:14px;
+  background:linear-gradient(135deg,rgba(47,111,58,.08),#fff);
+  color:inherit;
+  text-decoration:none;
+}
+.teacher-section-choice:hover{
+  text-decoration:none;
+  filter:brightness(1.01);
+}
+.teacher-section-choice strong{
+  display:block;
+  margin-bottom:5px;
+  color:var(--text);
+}
+.teacher-section-choice .muted{
+  display:block;
+  font-size:13px;
+  line-height:1.35;
+}
+.teacher-section-choice.is-secondary{
+  border-left-color:#246B8F;
+  background:linear-gradient(135deg,rgba(36,107,143,.08),#fff);
+}
+
 /* Criteria category accordion (participation_new.php) */
 .criteria-accordion{display:flex;flex-direction:column;gap:10px}
 .accordion{
@@ -434,6 +529,8 @@ html[data-entry-contrast="high"] .section-details{
 /* Menu/navigation cards also follow the contrast preference. The normal design stays calm;
    only high contrast gets stronger visual anchors for faster orientation. */
 html[data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card,
+html[data-entry-contrast="high"] .dashboard-entry-card,
+html[data-entry-contrast="high"] .teacher-section-choice,
 html[data-entry-contrast="high"] .card-grid .set-card{
   --menu-accent:#2F6F8F;
   --menu-border:#9FC9E2;
@@ -448,6 +545,25 @@ html[data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card:nth-of-
   --menu-accent:#4F7D35;
   --menu-border:#B9DDB0;
   --menu-bg:#EEF8EC;
+}
+
+html[data-entry-contrast="high"] .dashboard-entry-participation{
+  --menu-accent:#2F6F3A;
+  --menu-border:#B9DDB0;
+  --menu-bg:#EEF8EC;
+}
+
+html[data-entry-contrast="high"] .dashboard-entry-oral{
+  --menu-accent:#8B6F26;
+  --menu-border:#D8C9A9;
+  --menu-bg:#FFF8E7;
+}
+
+html[data-entry-contrast="high"] .dashboard-entry-written,
+html[data-entry-contrast="high"] .teacher-section-choice.is-secondary{
+  --menu-accent:#246B8F;
+  --menu-border:#9FC9E2;
+  --menu-bg:#EEF8FD;
 }
 
 html[data-entry-contrast="high"] .card > .grid > [class*="col-"]:nth-of-type(2n) > .card:nth-of-type(1),
@@ -473,11 +589,15 @@ html[data-entry-contrast="high"] .card-grid .set-card:nth-of-type(4n+4){
 html[data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card h1:first-child,
 html[data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card h2:first-child,
 html[data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card h3:first-child,
+html[data-entry-contrast="high"] .dashboard-entry-card h2,
+html[data-entry-contrast="high"] .teacher-section-choice strong,
 html[data-entry-contrast="high"] .card-grid .set-card strong:first-child{
   color:#17364A;
 }
 
 html[data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card .muted,
+html[data-entry-contrast="high"] .dashboard-entry-card .muted,
+html[data-entry-contrast="high"] .teacher-section-choice .muted,
 html[data-entry-contrast="high"] .card-grid .set-card .meta,
 html[data-entry-contrast="high"] .card-grid .set-card .muted{
   color:#35465B;

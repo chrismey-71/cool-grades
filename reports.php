@@ -116,6 +116,14 @@ else render_header('Berichte & Auswertungen',$u);
 ?>
 <div class="grid"><div class="col-12"><div class="card">
 <h1>Berichte &amp; Auswertungen</h1>
+<div class="report-focus-block" style="margin-top:10px;margin-bottom:14px">
+  <strong>Zusammenfassende Auswertung der erfassten Leistungen</strong>
+  <div class="muted" style="margin-top:6px">
+    Dieser Bereich bündelt ausschließlich die drei dokumentierten Erfassungsbereiche:
+    Mitarbeit, besondere mündliche Leistungsfeststellungen und besondere schriftliche Leistungsfeststellungen.
+    Gespeicherte Abschlussbeurteilungen werden ergänzend angezeigt, aber hier nicht festgelegt.
+  </div>
+</div>
 <form method="get" class="row" style="align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
   <div><label class="muted">Klasse</label>
     <select class="input" name="class_id"><option value="0">–</option>
@@ -267,13 +275,13 @@ else render_header('Berichte & Auswertungen',$u);
 
 <?php if(!$is_print): ?>
   <details class="accordion" style="margin-top:12px">
-    <summary><span class="acc-title">So entsteht der Mitarbeitsnotenvorschlag</span></summary>
+    <summary><span class="acc-title">So entsteht der MA-Vorschlag</span></summary>
     <div class="acc-body">
       <div class="muted">
-        Der Vorschlag berücksichtigt nur die dokumentierte Mitarbeit im gewählten Zeitraum: Anzahl der Einträge, Verteilung positiv/neutral/negativ, zeitliche Streuung sowie die zusammengefasste Eindruckstendenz.
+        Der MA-Vorschlag berücksichtigt ausschließlich die dokumentierte Mitarbeit im gewählten Zeitraum: Anzahl der Einträge, Verteilung positiv/neutral/negativ, zeitliche Streuung sowie die zusammengefasste Eindruckstendenz.
         <br>Ab 3 dokumentierten Tagen oder 3 verwertbaren Einträgen ist eine erste Einschätzung möglich; ab 6 dokumentierten Tagen gilt die Datenbasis in der Regel als gut.
-        <br>Schwellen für den Mitarbeitsnotenvorschlag: sehr stark positiv = eher 1, überwiegend positiv = eher 2, gemischt = eher 3, kritisch = eher 4, deutlich kritisch = eher 5.
-        <br>Besondere mündliche und schriftliche Leistungen werden getrennt ausgewiesen und nur als Entscheidungshilfe für das Gesamtbild herangezogen.
+        <br>Schwellen für den MA-Vorschlag: sehr stark positiv = eher 1, überwiegend positiv = eher 2, gemischt = eher 3, kritisch = eher 4, deutlich kritisch = eher 5.
+        <br>Besondere mündliche und schriftliche Leistungen werden daneben getrennt ausgewiesen. Sie fließen in dieser Berichtsansicht nicht in den MA-Vorschlag ein.
       </div>
     </div>
   </details>
@@ -302,7 +310,7 @@ else render_header('Berichte & Auswertungen',$u);
 <div style="height:14px"></div>
 <h2>Zusammenfassende Auswertung pro Schüler:in</h2>
 <div class="muted">
-  Die Haupttabelle bündelt Mitarbeit, besondere mündliche und besondere schriftliche Leistungsfeststellungen zu einer kompakten Entscheidungsgrundlage. Mitarbeitsnotenvorschlag und gewichteter Notenvorschlag sind transparente Entscheidungshilfen und ersetzen keine pädagogische Endentscheidung.
+  Die Haupttabelle bündelt Mitarbeit, besondere mündliche und besondere schriftliche Leistungsfeststellungen zu einer kompakten Entscheidungsgrundlage. Der MA-Vorschlag steht direkt bei der Mitarbeit, weil er nur aus den Mitarbeitseinträgen berechnet wird. Gespeicherte Abschlussnoten und deren gespeicherte Vorschläge werden getrennt angezeigt.
 </div>
 
 <?php if(!$studentSummaries): ?>
@@ -316,9 +324,9 @@ else render_header('Berichte & Auswertungen',$u);
         <tr>
           <th>Schüler:in</th>
           <th>Mitarbeit</th>
+          <th>MA-Vorschlag</th>
           <th>Bes. mündlich</th>
           <th>Bes. schriftlich</th>
-          <th>Vorschläge</th>
           <th>Endnote</th>
           <th>Hinweis</th>
         </tr>
@@ -337,6 +345,7 @@ else render_header('Berichte & Auswertungen',$u);
             $finalGradeText = _reports_final_grade_label($final);
             $finalSuggestionText = _reports_final_suggestion_label($final);
             $finalStatusText = $final ? final_assessment_status_label((string)$final['status']) : 'offen';
+            $maProposalShort = report_eval_note_proposal_short_label($summary['note_proposal']);
           ?>
           <tr class="<?php echo h($rowClass); ?>">
             <td style="min-width:150px"><strong><?php echo h($summary['student_name']); ?></strong></td>
@@ -350,13 +359,19 @@ else render_header('Berichte & Auswertungen',$u);
                 <br><span class="muted">Ø <?php echo h(number_format((float)$summary['quality']['avg'], 2, ',', '.')); ?></span>
               <?php endif; ?>
             </td>
+            <td>
+              <strong><?php echo h($maProposalShort); ?></strong><br>
+              <span class="muted"><?php echo h($summary['note_proposal']['explanation']); ?></span>
+            </td>
             <td><?php echo h($summary['oral_text']); ?></td>
             <td><?php echo h($summary['written_text']); ?></td>
             <td>
-              <?php echo h($summary['note_proposal']['label']); ?><br>
-              Notenvorschlag: <?php echo h($finalSuggestionText); ?>
+              <?php echo h($finalGradeText); ?><br>
+              <span class="muted"><?php echo h($finalStatusText); ?></span>
+              <?php if($finalSuggestionText !== '–'): ?>
+                <br><span class="muted">gesp. Vorschlag: <?php echo h($finalSuggestionText); ?></span>
+              <?php endif; ?>
             </td>
-            <td><?php echo h($finalGradeText); ?><br><span class="muted"><?php echo h($finalStatusText); ?></span></td>
             <td><?php echo h($summary['semester_hint']); ?></td>
           </tr>
         <?php endforeach; ?>
@@ -375,6 +390,7 @@ else render_header('Berichte & Auswertungen',$u);
           $finalSuggestionText = _reports_final_suggestion_label($final);
           $finalStatusText = $final ? final_assessment_status_label((string)$final['status']) : 'offen';
           $finalTone = ($final && (string)$final['status'] === 'final') ? 'positive' : 'neutral';
+          $maProposalShort = report_eval_note_proposal_short_label($summary['note_proposal']);
         ?>
         <details class="report-student-card report-student-row-card <?php echo h($cardClass); ?>" <?php echo $student_id && (int)$summary['student_id']===$student_id ? 'open' : ''; ?>>
           <summary class="report-student-row-summary">
@@ -392,6 +408,11 @@ else render_header('Berichte & Auswertungen',$u);
               <span class="report-mini-note"><?php echo h($summary['quality']['short']); ?> · <?php echo h(report_eval_data_basis_level_label($summary['data_basis'])); ?></span>
             </span>
             <span class="report-row-cell">
+              <span class="report-row-label">MA-Vorschlag</span>
+              <span class="report-chip <?php echo h($summary['note_proposal']['tone']); ?>"><?php echo h($maProposalShort); ?></span>
+              <span class="report-mini-note">nur Mitarbeit</span>
+            </span>
+            <span class="report-row-cell">
               <span class="report-row-label">bes. mündlich</span>
               <strong><?php echo h($summary['oral_text']); ?></strong>
             </span>
@@ -400,14 +421,12 @@ else render_header('Berichte & Auswertungen',$u);
               <strong><?php echo h($summary['written_text']); ?></strong>
             </span>
             <span class="report-row-cell">
-              <span class="report-row-label">Vorschläge</span>
-              <span class="report-chip <?php echo h($summary['note_proposal']['tone']); ?>"><?php echo h($summary['note_proposal']['label']); ?></span>
-              <span class="report-mini-note">Notenvorschlag: <?php echo h($finalSuggestionText); ?></span>
-            </span>
-            <span class="report-row-cell">
               <span class="report-row-label">Endnote</span>
               <span class="report-chip <?php echo h($finalTone); ?>"><?php echo h($finalGradeText); ?></span>
               <span class="report-mini-note"><?php echo h($finalStatusText); ?></span>
+              <?php if($finalSuggestionText !== '–'): ?>
+                <span class="report-mini-note">gesp. Vorschlag: <?php echo h($finalSuggestionText); ?></span>
+              <?php endif; ?>
             </span>
           </summary>
           <div class="report-student-body">
@@ -415,13 +434,13 @@ else render_header('Berichte & Auswertungen',$u);
               <div class="item"><span class="label">Mitarbeit positiv / neutral / negativ</span><strong><?php echo h($summary['positive_neutral_negative']); ?></strong></div>
               <div class="item"><span class="label">Qualität</span><strong><?php echo h($summary['quality']['label']); ?></strong><?php if($summary['quality']['avg'] !== null): ?><div class="muted">Ø <?php echo h(number_format((float)$summary['quality']['avg'], 2, ',', '.')); ?></div><?php endif; ?></div>
               <div class="item"><span class="label">Wichtige Kriterien</span><strong><?php echo h($summary['top_criteria']); ?></strong></div>
+              <div class="item"><span class="label">MA-Vorschlag</span><strong><?php echo h($maProposalShort); ?></strong><div class="muted"><?php echo h($summary['note_proposal']['explanation']); ?></div></div>
               <div class="item"><span class="label">Besondere mündliche Leistungen</span><strong><?php echo h($summary['oral_text']); ?></strong></div>
               <div class="item"><span class="label">Besondere schriftliche Leistungen</span><strong><?php echo h($summary['written_text']); ?></strong></div>
-              <div class="item"><span class="label">Mitarbeitsnotenvorschlag</span><strong><?php echo h($summary['note_proposal']['label']); ?></strong><div class="muted"><?php echo h($summary['note_proposal']['explanation']); ?></div></div>
-              <div class="item"><span class="label">Notenvorschlag / gespeicherte Note</span><strong><?php echo h($finalSuggestionText); ?> · <?php echo h($finalGradeText); ?></strong><div class="muted"><?php echo h($finalStatusText); ?></div></div>
+              <div class="item"><span class="label">Gespeicherte Endnote</span><strong><?php echo h($finalGradeText); ?></strong><div class="muted"><?php echo h($finalStatusText); ?><?php echo $finalSuggestionText !== '–' ? ' · gespeicherter Vorschlag: '.h($finalSuggestionText) : ''; ?></div></div>
               <div class="item"><span class="label">Kommentare / Auffälligkeiten</span><strong><?php echo h($summary['comments_text']); ?></strong></div>
             </div>
-            <div class="muted" style="margin-top:10px"><strong>Entscheidungshilfe:</strong> <?php echo h($summary['semester_hint']); ?> · <?php echo h($summary['note_proposal']['explanation']); ?></div>
+            <div class="muted" style="margin-top:10px"><strong>Entscheidungshilfe:</strong> <?php echo h($summary['semester_hint']); ?> · MA-Vorschlag: <?php echo h($maProposalShort); ?> (<?php echo h($summary['note_proposal']['explanation']); ?>)</div>
             <div class="report-inline-events">
               <strong>Mitarbeitseinträge – Kurzüberblick</strong>
               <?php if($summary['participation_details']): ?>
@@ -874,7 +893,7 @@ else render_header('Berichte & Auswertungen',$u);
       </span>
       <strong><?php echo h($selectedStudentSummary['quality']['label']); ?></strong>
       <span class="report-chip <?php echo h($selectedStudentSummary['note_proposal']['tone']); ?>">
-        <?php echo h($selectedStudentSummary['note_proposal']['label']); ?>
+        MA-Vorschlag: <?php echo h(report_eval_note_proposal_short_label($selectedStudentSummary['note_proposal'])); ?>
       </span>
       <span class="report-chip <?php echo h($selectedStudentSummary['data_basis']['tone']); ?>">
         <?php echo h(report_eval_data_basis_display($selectedStudentSummary['data_basis'])); ?>
@@ -911,18 +930,18 @@ else render_header('Berichte & Auswertungen',$u);
         </div>
       </div>
       <div style="flex:1">
-        <b>Empfehlung (aus den dokumentierten Beobachtungen)</b>
+        <b>Empfehlung (aus den dokumentierten Mitarbeit-Beobachtungen)</b>
         <div class="muted" style="margin-top:8px;line-height:1.5">
           <?php
             echo 'Datenbasis: <b>'.h(report_eval_data_basis_level_label($selectedStudentSummary['data_basis'])).'</b>. ';
             echo h($selectedStudentSummary['note_proposal']['explanation']).'. ';
-            echo '<b>'.h($selectedStudentSummary['note_proposal']['label']).'</b>. ';
+            echo '<b>MA-Vorschlag: '.h(report_eval_note_proposal_short_label($selectedStudentSummary['note_proposal'])).'</b>. ';
             echo 'Wichtige Kriterien: <b>'.h($selectedStudentSummary['top_criteria']).'</b>. ';
             echo 'Hinweis für die Semesterbeurteilung: <b>'.h($selectedStudentSummary['semester_hint']).'</b>.';
           ?>
         </div>
         <div class="muted" style="margin-top:8px;font-size:12px">
-          Hinweis: Das ist eine <b>transparente Entscheidungshilfe</b> aus den erfassten Daten. Die endgültige Beurteilung trifft weiterhin die Lehrkraft.
+          Hinweis: Das ist eine <b>transparente Entscheidungshilfe</b> aus den erfassten Mitarbeitdaten. Besondere Leistungsfeststellungen werden getrennt ausgewiesen; die endgültige Beurteilung trifft weiterhin die Lehrkraft.
         </div>
       </div>
     </div>

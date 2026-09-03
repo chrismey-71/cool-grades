@@ -72,6 +72,19 @@ html[data-theme="dark"] .badge{
 html[data-theme="dark"] .multi-field,
 html[data-theme="dark"] .set-card{background:var(--card)}
 
+html[data-theme="dark"] .dashboard-entry-card{
+  background:linear-gradient(180deg,var(--card) 0%,#111827 100%);
+  border-color:rgba(38,50,71,.9);
+}
+html[data-theme="dark"] .teacher-section-choice{
+  background:linear-gradient(135deg,rgba(79,159,194,.14),var(--card));
+  border-color:rgba(38,50,71,.9);
+}
+html[data-theme="dark"] .teacher-section-choice.is-secondary{
+  background:linear-gradient(135deg,rgba(36,107,143,.18),var(--card));
+}
+html[data-theme="dark"] .teacher-section-choice strong{color:var(--text)}
+
 html[data-theme="dark"] .student-already-rated{
   background:rgba(255,255,255,.045);
   border-color:rgba(168,179,199,.35);
@@ -564,6 +577,8 @@ html[data-theme="dark"][data-entry-contrast="high"] .section-details{
 }
 
 html[data-theme="dark"][data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card,
+html[data-theme="dark"][data-entry-contrast="high"] .dashboard-entry-card,
+html[data-theme="dark"][data-entry-contrast="high"] .teacher-section-choice,
 html[data-theme="dark"][data-entry-contrast="high"] .card-grid .set-card{
   --menu-accent:#4F9FC2;
   --menu-border:#3F728F;
@@ -578,6 +593,25 @@ html[data-theme="dark"][data-entry-contrast="high"] .card > .grid > [class*="col
   --menu-accent:#79B568;
   --menu-border:#3D6D49;
   --menu-bg:#16281B;
+}
+
+html[data-theme="dark"][data-entry-contrast="high"] .dashboard-entry-participation{
+  --menu-accent:#79B568;
+  --menu-border:#3D6D49;
+  --menu-bg:#16281B;
+}
+
+html[data-theme="dark"][data-entry-contrast="high"] .dashboard-entry-oral{
+  --menu-accent:#D1B167;
+  --menu-border:#756245;
+  --menu-bg:#2A241A;
+}
+
+html[data-theme="dark"][data-entry-contrast="high"] .dashboard-entry-written,
+html[data-theme="dark"][data-entry-contrast="high"] .teacher-section-choice.is-secondary{
+  --menu-accent:#4F9FC2;
+  --menu-border:#3F728F;
+  --menu-bg:#122631;
 }
 
 html[data-theme="dark"][data-entry-contrast="high"] .card > .grid > [class*="col-"]:nth-of-type(2n) > .card:nth-of-type(1),
@@ -603,11 +637,15 @@ html[data-theme="dark"][data-entry-contrast="high"] .card-grid .set-card:nth-of-
 html[data-theme="dark"][data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card h1:first-child,
 html[data-theme="dark"][data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card h2:first-child,
 html[data-theme="dark"][data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card h3:first-child,
+html[data-theme="dark"][data-entry-contrast="high"] .dashboard-entry-card h2,
+html[data-theme="dark"][data-entry-contrast="high"] .teacher-section-choice strong,
 html[data-theme="dark"][data-entry-contrast="high"] .card-grid .set-card strong:first-child{
   color:#F5F8FF;
 }
 
 html[data-theme="dark"][data-entry-contrast="high"] .card > .grid > [class*="col-"] > .card .muted,
+html[data-theme="dark"][data-entry-contrast="high"] .dashboard-entry-card .muted,
+html[data-theme="dark"][data-entry-contrast="high"] .teacher-section-choice .muted,
 html[data-theme="dark"][data-entry-contrast="high"] .card-grid .set-card .meta,
 html[data-theme="dark"][data-entry-contrast="high"] .card-grid .set-card .muted{
   color:#C3CDDF;
