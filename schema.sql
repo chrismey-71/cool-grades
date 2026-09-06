@@ -15,6 +15,12 @@ CREATE TABLE IF NOT EXISTS users (
   pref_compact_forms_enabled TINYINT(1) NOT NULL DEFAULT 0,
   pref_visual_contrast VARCHAR(16) NOT NULL DEFAULT 'normal',
   pref_simple_participation_entry TINYINT(1) NOT NULL DEFAULT 0,
+  pref_nav_style VARCHAR(16) NOT NULL DEFAULT 'text',
+  pref_participation_tile_order TEXT NULL,
+  webuntis_ical_url_enc TEXT NULL,
+  webuntis_ical_saved_at DATETIME NULL,
+  webuntis_ical_last_import_at DATETIME NULL,
+  webuntis_ical_last_import_summary TEXT NULL,
   created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -152,12 +158,21 @@ CREATE TABLE IF NOT EXISTS lesson_sessions (
   subject_id INT NOT NULL,
   lesson_date DATE NOT NULL,
   lesson_unit VARCHAR(16) NULL,
+  start_time TIME NULL,
+  end_time TIME NULL,
+  room VARCHAR(64) NULL,
+  source VARCHAR(16) NOT NULL DEFAULT 'manual',
+  external_uid VARCHAR(128) NULL,
+  webuntis_subgroup CHAR(1) NULL,
   topic VARCHAR(255) NULL,
   created_at DATETIME NOT NULL,
   FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
   FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
-  INDEX idx_lesson_teacher_date (teacher_id, lesson_date)
+  UNIQUE KEY uniq_lesson_slot (class_id, subject_id, lesson_date, lesson_unit),
+  UNIQUE KEY uniq_lesson_time_slot (class_id, subject_id, lesson_date, start_time),
+  INDEX idx_lesson_teacher_date (teacher_id, lesson_date),
+  INDEX idx_lesson_sessions_source (teacher_id, source, lesson_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS participation_options (
@@ -201,7 +216,7 @@ CREATE TABLE IF NOT EXISTS participation_events (
   homework_option_id INT NULL,
 
   reason_text VARCHAR(255) NULL,
-  note TEXT NULL,
+  note TEXT NULL, -- deprecated: retired in favour of reason_text alone ("Kurze Beobachtung / Anlass"); see migrations/2026-09-06_participation_note_merge.sql. Kept only so historical rows are never lost; entry masks no longer write to it.
   pedagogical_mode VARCHAR(16) NULL,
   created_at DATETIME NOT NULL,
 
@@ -266,11 +281,15 @@ CREATE TABLE IF NOT EXISTS oral_assessments (
   impact_option_id INT NULL,
   impact_label VARCHAR(128) NULL,
   impact_kind VARCHAR(16) NULL,
+  grade TINYINT NULL,
+  tendency VARCHAR(120) NULL,
+  remark TEXT NULL,
   weight_multiplier DECIMAL(3,1) NOT NULL DEFAULT 1.0,
   topic_area VARCHAR(255) NULL,
   questions TEXT NULL,
   category VARCHAR(120) NULL,
   title VARCHAR(255) NULL,
+  feedback TEXT NULL, -- required for ORAL_EXERCISE (mündliche Übung): a short written justification of the grade. NULL for ORAL_EXAM since that type documents its grade via topic_area/questions instead.
   created_at DATETIME NOT NULL,
   FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
   FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
@@ -384,6 +403,38 @@ CREATE TABLE IF NOT EXISTS assessment_weight_settings (
   FOREIGN KEY (school_period_set_id) REFERENCES school_period_sets(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS webuntis_subject_mappings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  teacher_id INT NOT NULL,
+  webuntis_code VARCHAR(32) NOT NULL,
+  action VARCHAR(16) NOT NULL,
+  subject_id INT NULL,
+  note VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uniq_webuntis_subject_mapping (teacher_id, webuntis_code),
+  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS webuntis_unmapped_events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  teacher_id INT NOT NULL,
+  external_uid VARCHAR(128) NULL,
+  webuntis_code VARCHAR(32) NOT NULL,
+  webuntis_description VARCHAR(255) NULL,
+  lesson_date DATE NOT NULL,
+  start_time TIME NULL,
+  end_time TIME NULL,
+  room VARCHAR(64) NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'unmapped_subject',
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uniq_webuntis_unmapped_event (teacher_id, external_uid),
+  INDEX idx_webuntis_unmapped_lookup (teacher_id, status, webuntis_code),
+  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS teacher_student_groups (
   id INT AUTO_INCREMENT PRIMARY KEY,
   teacher_id INT NOT NULL,
@@ -446,7 +497,9 @@ CREATE TABLE IF NOT EXISTS final_assessments (
   oral_positive_count INT NOT NULL DEFAULT 0,
   oral_neutral_count INT NOT NULL DEFAULT 0,
   oral_negative_count INT NOT NULL DEFAULT 0,
+  oral_avg DECIMAL(5,2) NULL,
   oral_summary_text VARCHAR(255) NULL,
+  oral_type_summary_json LONGTEXT NULL,
   written_count INT NOT NULL DEFAULT 0,
   written_avg DECIMAL(5,2) NULL,
   written_summary_text VARCHAR(255) NULL,

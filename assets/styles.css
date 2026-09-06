@@ -50,13 +50,24 @@ a:hover{text-decoration:underline}
 }
 .topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .brand{font-weight:800;letter-spacing:.2px}
-.nav{display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:1}
-.nav a{color:#fff;text-decoration:none;opacity:.95;padding:8px 10px;border-radius:10px}
+.nav{display:flex;flex-wrap:wrap;gap:4px;align-items:center;flex:1}
+.nav a{display:inline-flex;align-items:center;gap:6px;color:#fff;text-decoration:none;opacity:.92;padding:7px 10px;border-radius:9px;font-size:14px;font-weight:600;transition:background-color .12s ease,opacity .12s ease}
 .nav form{margin:0}
-.nav .navbtn{appearance:none;border:0;background:transparent;color:#fff;opacity:.95;padding:8px 10px;border-radius:10px;font:inherit;cursor:pointer}
-.nav a:hover{background:rgba(255,255,255,.12)}
-.nav .navbtn:hover{background:rgba(255,255,255,.12)}
-.nav a.active{background:rgba(255,255,255,.22);opacity:1}
+.nav .navbtn{display:inline-flex;align-items:center;gap:6px;appearance:none;border:0;background:transparent;color:#fff;opacity:.92;padding:7px 10px;border-radius:9px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background-color .12s ease,opacity .12s ease}
+.nav a:hover{background:rgba(255,255,255,.12);opacity:1}
+.nav .navbtn:hover{background:rgba(255,255,255,.12);opacity:1}
+.nav a.active{background:rgba(255,255,255,.20);opacity:1}
+.nav-icon{flex:0 0 auto;display:block}
+
+/* Navigation style preference (Konto): text (default), icon-only, or icon+text. */
+html[data-nav-style="text"] .nav-icon{display:none}
+html[data-nav-style="icon"] .nav-label{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+html[data-nav-style="icon"] .nav a,
+html[data-nav-style="icon"] .nav .navbtn{padding:9px;border-radius:10px}
+html[data-nav-style="icon_text"] .nav-icon{opacity:.9}
 .userpill{display:flex;align-items:center;gap:8px;color:#fff;opacity:.95}
 .userpill .badge{background:rgba(255,255,255,.18);color:#fff}
 .card{background:var(--card);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin:12px 0;border:1px solid rgba(228,231,236,.6)}
@@ -88,13 +99,14 @@ a:hover{text-decoration:underline}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .row>*{flex:1;min-width:220px}
 label{display:block;font-size:13px;color:var(--muted);margin:6px 0}
-input,select,button,textarea{font:inherit;padding:10px 12px;border-radius:12px;border:1px solid var(--border);width:100%;background:#fff}
+input,select,button,textarea{font:inherit;padding:10px 12px;border-radius:11px;border:1px solid var(--border);width:100%;background:#fff}
 select{appearance:auto}
-button{background:var(--blue);color:#fff;border:none;cursor:pointer}
-button:hover{filter:brightness(1.03)}
-button.secondary{background:#e1e5ea}
-button.danger{background:var(--danger)}
-button.small{width:auto;padding:7px 10px;border-radius:10px}
+button{background:var(--blue);color:var(--on-brand,#fff);border:none;font-weight:700;cursor:pointer;transition:filter .12s ease,transform .12s ease,box-shadow .12s ease}
+button:hover{filter:brightness(1.05);transform:translateY(-1px);box-shadow:0 3px 8px rgba(16,24,40,.16)}
+button:active{transform:translateY(0);box-shadow:none;filter:brightness(.98)}
+button.secondary{background:#e1e5ea;color:var(--text)}
+button.danger{background:var(--danger);color:#7a1f22}
+button.small{width:auto;padding:7px 10px;border-radius:9px}
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
 .table th{font-size:13px;color:var(--muted);font-weight:700}

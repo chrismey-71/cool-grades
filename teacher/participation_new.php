@@ -55,10 +55,65 @@ if(!$class||!$subject){
 require_teacher_active_assignment($u,$class_id,$subject_id);
 require_class_writable($pdo,$class_id);
 
-// Recent lessons for this teacher+class+subject
-$st=$pdo->prepare("SELECT id, lesson_date, lesson_unit, topic FROM lesson_sessions WHERE class_id=? AND subject_id=? ORDER BY lesson_date DESC, id DESC LIMIT 25");
+// Recent lessons for this teacher+class+subject. Ordered by closeness to
+// today (not simply "newest first"): a WebUntis import can pre-create
+// lesson slots for the whole school year, which would otherwise bury
+// today's actual lesson under a wall of far-future dates.
+$st=$pdo->prepare("SELECT id, lesson_date, lesson_unit, start_time, end_time, room, source, webuntis_subgroup, topic FROM lesson_sessions
+                   WHERE class_id=? AND subject_id=?
+                   ORDER BY (lesson_date = CURDATE()) DESC, ABS(DATEDIFF(lesson_date, CURDATE())) ASC, lesson_date DESC, start_time IS NULL, start_time ASC, id DESC
+                   LIMIT 25");
 $st->execute([$class_id,$subject_id]);
 $recent_lessons=$st->fetchAll();
+
+// Suggest today's matching WebUntis lesson (by current clock time) as the
+// pre-selected option in "Bestehende Stunde auswählen" – but only as a
+// suggestion, never locking the field: the teacher can still pick another
+// lesson or "– keine Verknüpfung –". Only applies on a fresh GET view;
+// a fixed $lesson_id (via GET) or a resubmitted form keep their own value.
+$suggested_lesson_id=0;
+if(!$lesson_id && $_SERVER['REQUEST_METHOD']!=='POST'){
+  $st=$pdo->prepare("SELECT id, start_time, end_time FROM lesson_sessions
+                     WHERE class_id=? AND subject_id=? AND lesson_date=CURDATE() AND source='webuntis'
+                     ORDER BY start_time ASC");
+  $st->execute([$class_id,$subject_id]);
+  $todays_webuntis_lessons=$st->fetchAll();
+  $nowTime=date('H:i:s');
+  $fallback_upcoming=null;
+  $fallback_past=null;
+  foreach($todays_webuntis_lessons as $tw){
+    $start=(string)($tw['start_time'] ?? '');
+    $end=(string)($tw['end_time'] ?? '');
+    if($start!=='' && $end!=='' && $nowTime>=$start && $nowTime<=$end){
+      $suggested_lesson_id=(int)$tw['id'];
+      break;
+    }
+    if($start!=='' && $start>$nowTime && $fallback_upcoming===null){
+      $fallback_upcoming=(int)$tw['id'];
+    }
+    if($start!=='' && $start<=$nowTime){
+      $fallback_past=(int)$tw['id'];
+    }
+  }
+  if(!$suggested_lesson_id){
+    $suggested_lesson_id=(int)($fallback_upcoming ?? $fallback_past ?? 0);
+  }
+}
+
+// Shared label for a lesson_sessions row: UE number (manual lessons) or
+// start–end time + room (WebUntis-imported lessons), plus topic.
+$lesson_label=function(array $ls): string {
+  $txt=(string)($ls['lesson_date'] ?? '');
+  if(!empty($ls['lesson_unit'])){
+    $txt.=' · UE '.$ls['lesson_unit'];
+  } elseif(!empty($ls['start_time'])){
+    $txt.=' · '.substr((string)$ls['start_time'],0,5);
+    if(!empty($ls['end_time'])) $txt.='–'.substr((string)$ls['end_time'],0,5);
+  }
+  if(!empty($ls['room'])) $txt.=' · Raum '.$ls['room'];
+  if(!empty($ls['topic'])) $txt.=' · '.$ls['topic'];
+  return $txt;
+};
 
 // Fixed lesson context (optional)
 $lesson=null;
@@ -72,6 +127,18 @@ if($lesson_id){
 // Students
 $students=load_class_students($pdo,$class_id,false);
 $studentGroups=load_teacher_student_groups($pdo,(int)$u['id'],$class_id,$subject_id);
+
+// Maps WebUntis subgroup letters ('a'/'b') onto this teacher's own
+// same-named groups (if any), so a lesson imported for a single subgroup
+// can auto-check the matching students instead of the whole class.
+$subgroup_member_ids=[];
+foreach($studentGroups as $studentGroupRow){
+  $groupNameKey=strtolower(trim((string)($studentGroupRow['name'] ?? '')));
+  if($groupNameKey==='a' || $groupNameKey==='b'){
+    $subgroup_member_ids[$groupNameKey]=array_map('intval',(array)($studentGroupRow['member_ids'] ?? []));
+  }
+}
+
 $selectedStudentGroup=null;
 if($selected_student_group_id>0){
   foreach($studentGroups as $studentGroupRow){
@@ -279,7 +346,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $hw_id=(int)($_POST['homework_option_id'] ?? 0);
 
   $reason_text=trim($_POST['reason_text'] ?? '');
-  $note=trim($_POST['note'] ?? '');
 
   $sel_student_ids=$_POST['student_ids'] ?? [];
   $sel_criteria_ids=$_POST['criteria_ids'] ?? [];
@@ -289,11 +355,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $preset_name_input=trim((string)($_POST['preset_name'] ?? ''));
 
   if($simple_entry_mode){
-    $social_id = 0;
-    $phase_id = 0;
-    $hw_id = 0;
+    // Unterrichtskontext (Sozialform/Phase/Hausübung) is shown and saved in
+    // simple mode too - only the fachspezifische Detailkriterien stay hidden.
     $sel_criteria_ids = [];
-    $note = '';
   }
 
   if($form_action==='apply_preset'){
@@ -309,7 +373,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $phase_id=(int)($_POST['phase_option_id'] ?? 0);
       $hw_id=(int)($_POST['homework_option_id'] ?? 0);
       $reason_text=trim($_POST['reason_text'] ?? '');
-      $note=trim($_POST['note'] ?? '');
       $sel_student_ids=$_POST['student_ids'] ?? [];
       $sel_criteria_ids=$_POST['criteria_ids'] ?? [];
       $sel_perf_ids=$_POST['performance_option_ids'] ?? [];
@@ -400,8 +463,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     try{
       $ins=$pdo->prepare("INSERT INTO participation_events
         (student_id,teacher_id,class_id,subject_id,lesson_id,event_date,reason_option_id,reason_label,impact_option_id,rating,impact_kind,
-         social_form_option_id,phase_option_id,homework_option_id,reason_text,note,created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+         social_form_option_id,phase_option_id,homework_option_id,reason_text,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
       $linkC=$pdo->prepare("INSERT IGNORE INTO participation_event_criteria (event_id,criteria_id) VALUES (?,?)");
       $linkO=$pdo->prepare("INSERT IGNORE INTO participation_event_options (event_id,option_id) VALUES (?,?)");
 
@@ -410,7 +473,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           (int)$sid,(int)$u['id'],$class_id,$subject_id,$lesson_id?:null,$date,
           $reason_id,$reason_label,$impact_id,$impact_label,$impact_kind,
           $social_id?:null,$phase_id?:null,$hw_id?:null,
-          $reason_text?:null,$note?:null,now_iso()
+          $reason_text?:null,now_iso()
         ]);
         $eid=(int)$pdo->lastInsertId();
         foreach($sel_criteria_ids as $cid){ $linkC->execute([$eid,(int)$cid]); }
@@ -439,7 +502,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           foreach($stp->fetchAll() as $rr){ $perf_labels[]=$rr['label']; }
         }
 
-        $tags=lbvo_auto_tags($reason_label,$phase_label,$hw_label,$crit_labels,$perf_labels,$note,$reason_text);
+        $tags=lbvo_auto_tags($reason_label,$phase_label,$hw_label,$crit_labels,$perf_labels,'',$reason_text);
         $insT=$pdo->prepare("INSERT IGNORE INTO participation_event_lbvo (event_id,tag,source,created_at) VALUES (?,?, 'auto', ?)");
         foreach($tags as $t){ $insT->execute([$eid,$t,now_iso()]); }
       }
@@ -536,11 +599,10 @@ $performance_section_open = !empty($checked_perf);
 $context_section_open = (int)($_POST['social_form_option_id'] ?? 0)>0
   || (int)($_POST['phase_option_id'] ?? 0)>0
   || (int)($_POST['homework_option_id'] ?? 0)>0
-  || trim((string)($_POST['note'] ?? ''))!=='';
+  || trim((string)($_POST['reason_text'] ?? ''))!=='';
 $group_section_open = !empty($checked_groups) || $_SERVER['REQUEST_METHOD']==='POST';
 $details_section_open = !empty($checked_criteria);
 $students_section_open = !empty($checked_students);
-$note_section_open = trim((string)($_POST['reason_text'] ?? '')) !== '';
 $current_reason_id=(int)($_POST['reason_option_id'] ?? 0);
 $current_phase_id=(int)($_POST['phase_option_id'] ?? 0);
 $current_impact_id=(int)($_POST['impact_option_id'] ?? 0);
@@ -569,12 +631,12 @@ render_header('Mitarbeit',$u);
 <div class="grid"><div class="col-12"><div class="card">
   <h1>Mitarbeit erfassen</h1>
   <div class="muted">Klasse: <b><?php echo h($class['name']); ?></b> · Fach: <b><?php echo h($subject['code']); ?></b>
-    <?php if($lesson): ?> · Stunde: <b><?php echo h($lesson['lesson_date']); ?><?php echo $lesson['lesson_unit']?(' · UE '.$lesson['lesson_unit']):''; ?></b><?php endif; ?>
+    <?php if($lesson): ?> · Stunde: <b><?php echo h($lesson_label($lesson)); ?></b><?php endif; ?>
   </div>
   <?php if($simple_entry_mode): ?>
     <div class="card" style="margin-top:10px;border-color:#cfe5ff;background:#eef6ff">
       <b>Vereinfachte Eingabe aktiv</b><br>
-      Es wird nur die Alltagsebene der Mitarbeitserfassung angezeigt: Datum, Grund/Anlass, Eindruck/Relevanz, Beobachtungsbereich, Leistungsart, kurze Beobachtung und Schüler:innen. Die fachliche Tiefe mit Unterrichtskontext und Detailkriterien bleibt ausgeblendet.
+      Es wird nur die Alltagsebene der Mitarbeitserfassung angezeigt: Datum, Grund/Anlass, Eindruck/Relevanz, Beobachtungsbereich, Leistungsart, Unterrichtskontext, kurze Beobachtung und Schüler:innen. Die fachliche Tiefe mit Detailkriterien bleibt ausgeblendet.
       <div class="small muted" style="margin-top:6px">
         Einstellung ändern:
         <a href="<?php echo h($bp); ?>/account.php#account-pref-simple-participation">Konto → Vereinfachte Eingabe bei Mitarbeit</a>
@@ -658,13 +720,21 @@ render_header('Mitarbeit',$u);
       <input type="hidden" name="fixed_lesson_id" value="<?php echo (int)$lesson_id; ?>">
     <?php endif; ?>
 
+    <?php
+      // Each of the 9 blocks below (8 named tiles plus the fixed "core"
+      // Datum/Grund/Eindruck block) is captured into its own buffer instead
+      // of being echoed directly, so they can be printed afterwards in the
+      // teacher's saved drag-and-drop order. Nothing about a tile's own
+      // markup/logic changes — only where its output ends up.
+      ob_start();
+    ?>
     <?php if(!$simple_entry_mode): ?>
-    <?php accordion_section_start($compact_forms, 'Stundenkontext (optional)', $hours_section_open, 'margin-top:12px', '', 'contrast-panel section-hours'); ?>
+    <?php accordion_section_start($compact_forms, 'Stundenkontext (optional)', $hours_section_open, 'margin-top:12px', '', 'contrast-panel section-hours', participation_tile_drag_handle()); ?>
     <fieldset class="multi-field contrast-panel section-hours" style="<?php echo $compact_forms?'margin-top:0':'margin-top:12px'; ?>">
-      <?php if(!$compact_forms): ?><legend>Stundenkontext (optional)</legend><?php endif; ?>
+      <?php if(!$compact_forms): ?><legend><?php echo participation_tile_drag_handle(); ?>Stundenkontext (optional)</legend><?php endif; ?>
 
       <?php if($lesson_id && $lesson): ?>
-        <div class="muted">Verknüpft mit: <b><?php echo h($lesson['lesson_date']); ?><?php echo $lesson['lesson_unit']?(' · UE '.$lesson['lesson_unit']):''; ?><?php echo $lesson['topic']?(' · '.$lesson['topic']):''; ?></b></div>
+        <div class="muted">Verknüpft mit: <b><?php echo h($lesson_label($lesson)); ?></b><?php if(($lesson['source'] ?? 'manual')==='webuntis'): ?> <span class="small muted">(aus WebUntis übernommen)</span><?php endif; ?></div>
         <div class="small muted" style="margin-top:6px">Tipp: Stunde (Thema/UE) verwaltest du unter <a href="<?php echo h($bp); ?>/teacher/lesson.php?lesson_id=<?php echo (int)$lesson_id; ?>">Stundenerfassung</a>.</div>
       <?php else: ?>
         <div class="row" style="align-items:end">
@@ -674,13 +744,17 @@ render_header('Mitarbeit',$u);
               <option value="0">– keine Verknüpfung –</option>
               <?php foreach($recent_lessons as $ls): ?>
                 <?php
-                  $txt=$ls['lesson_date'];
-                  if($ls['lesson_unit']) $txt.=' · UE '.$ls['lesson_unit'];
-                  if($ls['topic']) $txt.=' · '.$ls['topic'];
+                  $txt=$lesson_label($ls);
+                  $is_selected = isset($_POST['lesson_id'])
+                    ? ((int)$_POST['lesson_id']===(int)$ls['id'])
+                    : ($suggested_lesson_id>0 && $suggested_lesson_id===(int)$ls['id']);
                 ?>
-                <option value="<?php echo (int)$ls['id']; ?>" data-date="<?php echo h($ls['lesson_date']); ?>" <?php echo (isset($_POST['lesson_id']) && (int)$_POST['lesson_id']===(int)$ls['id'])?'selected':''; ?>><?php echo h($txt); ?></option>
+                <option value="<?php echo (int)$ls['id']; ?>" data-date="<?php echo h($ls['lesson_date']); ?>" data-subgroup="<?php echo h(strtolower((string)($ls['webuntis_subgroup'] ?? ''))); ?>" <?php echo $is_selected?'selected':''; ?>><?php echo h($txt); ?><?php echo ($ls['source'] ?? 'manual')==='webuntis' ? ' (WebUntis)' : ''; ?></option>
               <?php endforeach; ?>
             </select>
+            <?php if($suggested_lesson_id>0 && !isset($_POST['lesson_id'])): ?>
+              <div class="small muted" style="margin-top:6px">Vorschlag auf Basis der heutigen WebUntis-Stunde – du kannst eine andere Stunde wählen oder die Verknüpfung entfernen.</div>
+            <?php endif; ?>
             <div class="small muted" style="margin-top:6px">Oder du legst hier direkt eine neue Stunde an (ohne extra Seite).</div>
           </div>
           <div style="flex:0 0 auto">
@@ -711,12 +785,13 @@ render_header('Mitarbeit',$u);
     </fieldset>
     <?php accordion_section_end($compact_forms); ?>
     <?php endif; ?>
+    <?php $tile_hours = ob_get_clean(); ob_start(); ?>
 
     <?php if(!$simple_entry_mode): ?>
     <?php if(!$compact_forms): ?><div style="height:12px"></div><?php endif; ?>
-    <?php accordion_section_start($compact_forms, 'Preset (ohne Stunde, Datum und Schüler:innen)', $preset_section_open, 'margin-top:12px', '', 'contrast-panel section-preset'); ?>
+    <?php accordion_section_start($compact_forms, 'Preset (ohne Stunde, Datum und Schüler:innen)', $preset_section_open, 'margin-top:12px', '', 'contrast-panel section-preset', participation_tile_drag_handle()); ?>
     <fieldset class="multi-field contrast-panel section-preset" style="<?php echo $compact_forms?'margin-top:0':''; ?>">
-      <?php if(!$compact_forms): ?><legend>Preset (ohne Stunde, Datum und Schüler:innen)</legend><?php endif; ?>
+      <?php if(!$compact_forms): ?><legend><?php echo participation_tile_drag_handle(); ?>Preset (ohne Stunde, Datum und Schüler:innen)</legend><?php endif; ?>
       <div class="row" style="align-items:end">
         <div style="flex:1 1 280px">
           <label class="muted">Gespeichertes Preset</label>
@@ -747,12 +822,14 @@ render_header('Mitarbeit',$u);
           </button>
         </div>
       </div>
-      <div class="small muted" style="margin-top:6px">Ein Preset füllt typische Felder erst nach Klick auf „Preset anwenden“. Gespeichert werden Grund, Eindruck, Beobachtungsbereich, Leistungsart, Sozialform, Unterrichtsphase, Hausübung, Kurzbeschreibung, Notiz und Kriterien. Stunde, Datum und Schüler:innen bleiben bewusst außen vor. Presets gelten pro Fach, nicht pro Klasse.</div>
+      <div class="small muted" style="margin-top:6px">Ein Preset füllt typische Felder erst nach Klick auf „Preset anwenden“. Gespeichert werden Grund, Eindruck, Beobachtungsbereich, Leistungsart, Sozialform, Unterrichtsphase, Hausübung, kurze Beobachtung und Kriterien. Stunde, Datum und Schüler:innen bleiben bewusst außen vor. Presets gelten pro Fach, nicht pro Klasse.</div>
     </fieldset>
     <?php accordion_section_end($compact_forms); ?>
     <?php endif; ?>
+    <?php $tile_preset = ob_get_clean(); ob_start(); ?>
 
-    <div class="contrast-block section-core">
+    <fieldset class="multi-field contrast-panel section-core" style="margin-top:12px">
+      <legend><?php echo participation_tile_drag_handle(); ?>Datum, Grund/Anlass &amp; Eindruck/Relevanz</legend>
     <div class="row">
       <div>
         <label class="muted">Datum</label>
@@ -795,12 +872,13 @@ render_header('Mitarbeit',$u);
       <div id="pedagogicalHintBox" class="flash <?php echo $current_hint['level']==='error' ? 'error' : 'info'; ?>" style="margin-top:10px">
         <?php echo h($current_hint['text']); ?>
       </div>
-    </div>
+    </fieldset>
+    <?php $tile_core = ob_get_clean(); ob_start(); ?>
 
     <?php if(!$compact_forms): ?><div style="height:12px"></div><?php endif; ?>
-    <?php accordion_section_start($compact_forms, 'Leistungsart (Mehrfach)', $performance_section_open, 'margin-top:12px', '', 'contrast-panel section-performance'); ?>
+    <?php accordion_section_start($compact_forms, 'Leistungsart (Mehrfach)', $performance_section_open, 'margin-top:12px', '', 'contrast-panel section-performance', participation_tile_drag_handle()); ?>
     <fieldset class="multi-field contrast-panel section-performance" style="<?php echo $compact_forms?'margin-top:0':''; ?>">
-      <?php if(!$compact_forms): ?><legend>Leistungsart (Mehrfach)</legend><?php endif; ?>
+      <?php if(!$compact_forms): ?><legend><?php echo participation_tile_drag_handle(); ?>Leistungsart (Mehrfach)</legend><?php endif; ?>
       <div class="multi-grid">
         <?php foreach($perfs as $o): ?>
           <label class="multi-item">
@@ -813,11 +891,11 @@ render_header('Mitarbeit',$u);
       <div class="small muted hint">Die Leistungsart beschreibt, welche Form der Leistung beobachtet wurde. Die Auswahl erscheint später in Auswertung und PDF, löst aber keine Beurteilung aus.</div>
     </fieldset>
     <?php accordion_section_end($compact_forms); ?>
+    <?php $tile_performance = ob_get_clean(); ob_start(); ?>
 
-    <?php if(!$simple_entry_mode): ?>
     <div style="height:12px"></div>
     <details class="accordion contrast-panel section-context" <?php echo $context_section_open?'open':''; ?> style="margin-top:12px">
-      <summary><span class="acc-title">Unterrichtskontext</span></summary>
+      <summary><span class="acc-title-group"><?php echo participation_tile_drag_handle(); ?><span class="acc-title">Unterrichtskontext</span></span></summary>
       <div class="acc-body">
         <fieldset class="multi-field contrast-panel section-context" style="margin-top:0">
           <legend>Unterrichtskontext</legend>
@@ -853,34 +931,24 @@ render_header('Mitarbeit',$u);
           </div>
 
           <div style="height:12px"></div>
-          <label class="muted">Notiz (optional)</label>
-          <textarea class="input" name="note" rows="3" placeholder="1–2 Sätze als Beleg/Beobachtung."><?php echo h($_POST['note'] ?? ''); ?></textarea>
-        </fieldset>
-      </div>
-    </details>
-    <?php endif; ?>
-
-    <details class="accordion contrast-panel section-context" <?php echo $note_section_open?'open':''; ?> style="margin-top:12px">
-      <summary><span class="acc-title">Kurze Beobachtung / Anlass</span></summary>
-      <div class="acc-body">
-        <div class="contrast-block section-context" style="margin-top:0">
           <label class="muted">Kurze Beobachtung / Anlass</label>
           <textarea class="input" name="reason_text" rows="3" <?php echo $simple_entry_mode?'required':''; ?> placeholder="z.B. Fallbeispiel nachvollziehbar erklärt."><?php echo h($_POST['reason_text'] ?? ''); ?></textarea>
           <div class="small muted" style="margin-top:6px">
             <?php if($simple_entry_mode): ?>
-              Die vereinfachte Eingabe dokumentiert die laufende Beobachtung mit Anlass, Beobachtungsbereich und Leistungsart. Die fachliche Tiefe bleibt verborgen, damit die Erfassung im Unterricht schneller bleibt.
+              Die vereinfachte Eingabe dokumentiert die laufende Beobachtung mit Anlass, Beobachtungsbereich und Leistungsart. Die fachliche Tiefe mit Detailkriterien bleibt verborgen, damit die Erfassung im Unterricht schneller bleibt.
             <?php else: ?>
               Kurz und alltagsnah dokumentieren. Wenn du fachlich genauer festhalten möchtest, nutze darunter die optionalen fachlichen Details.
             <?php endif; ?>
           </div>
-        </div>
+        </fieldset>
       </div>
     </details>
+    <?php $tile_context = ob_get_clean(); ob_start(); ?>
 
     <?php if(!$compact_forms): ?><div style="height:12px"></div><?php endif; ?>
-    <?php accordion_section_start($compact_forms, 'Beobachtungsbereich', $group_section_open, 'margin-top:12px', '', 'contrast-panel section-context'); ?>
+    <?php accordion_section_start($compact_forms, 'Beobachtungsbereich', $group_section_open, 'margin-top:12px', '', 'contrast-panel section-context', participation_tile_drag_handle()); ?>
     <fieldset class="multi-field contrast-panel section-context" style="<?php echo $compact_forms?'margin-top:0':''; ?>">
-      <?php if(!$compact_forms): ?><legend>Beobachtungsbereich</legend><?php endif; ?>
+      <?php if(!$compact_forms): ?><legend><?php echo participation_tile_drag_handle(); ?>Beobachtungsbereich</legend><?php endif; ?>
       <div class="multi-grid">
         <?php foreach($groups as $o): ?>
           <label class="multi-item">
@@ -898,13 +966,14 @@ render_header('Mitarbeit',$u);
       </div>
     </fieldset>
     <?php accordion_section_end($compact_forms); ?>
+    <?php $tile_groups = ob_get_clean(); ob_start(); ?>
 
     <?php if(!$simple_entry_mode): ?>
     <div style="height:14px"></div>
     <?php $criteria_total=count($criteria); $criteria_selected_total=count($checked_criteria); ?>
     <details class="accordion contrast-panel section-criteria" <?php echo $details_section_open?'open':''; ?>>
       <summary>
-        <span class="acc-title">Kriterien (fachspezifisch / LBV-orientiert)</span>
+        <span class="acc-title-group"><?php echo participation_tile_drag_handle(); ?><span class="acc-title">Kriterien (fachspezifisch / LBV-orientiert)</span></span>
         <span class="acc-meta"><?php if($criteria_total>0): ?><span class="badge"><?php echo (int)$criteria_selected_total; ?>/<?php echo (int)$criteria_total; ?></span><?php endif; ?></span>
       </summary>
       <div class="acc-body">
@@ -955,11 +1024,11 @@ render_header('Mitarbeit',$u);
       </div>
     </details>
     <?php endif; ?>
+    <?php $tile_criteria = ob_get_clean(); ob_start(); ?>
 
-    <?php if(!$compact_forms): ?><div style="height:14px"></div><h2>Schüler:innen auswählen (Mehrfach)</h2><?php endif; ?>
-    <?php accordion_section_start($compact_forms, 'Schüler:innen auswählen (Mehrfach)', $students_section_open, 'margin-top:14px', '', 'contrast-panel section-students'); ?>
-    <fieldset class="multi-field contrast-panel section-students" style="<?php echo $compact_forms?'margin-top:0':''; ?>">
-      <?php if(!$compact_forms): ?><legend>Auswahl</legend><?php endif; ?>
+    <?php accordion_section_start($compact_forms, 'Schüler:innen auswählen (Mehrfach)', $students_section_open, 'margin-top:14px', '', 'contrast-panel section-students', participation_tile_drag_handle()); ?>
+    <fieldset class="multi-field contrast-panel section-students" style="<?php echo $compact_forms?'margin-top:0':'margin-top:14px'; ?>">
+      <?php if(!$compact_forms): ?><legend><?php echo participation_tile_drag_handle(); ?>Schüler:innen auswählen (Mehrfach)</legend><?php endif; ?>
       <div class="muted">Tipp: meistens 3–10 Schüler:innen pro Woche auswählen.</div>
       <div id="studentAlreadyRatedHint" class="student-already-rated-hint" style="<?php echo $has_lesson_entry_counts?'':'display:none'; ?>">
         Blass dargestellte Schüler:innen wurden in dieser Stunde bereits bewertet. Die Zahl in Klammern zeigt die Anzahl der vorhandenen Einträge.
@@ -1019,6 +1088,26 @@ render_header('Mitarbeit',$u);
       </div>
     </fieldset>
     <?php accordion_section_end($compact_forms); ?>
+    <?php $tile_students = ob_get_clean(); ?>
+
+    <?php
+      $participation_tiles = [
+        'hours' => $tile_hours,
+        'preset' => $tile_preset,
+        'core' => $tile_core,
+        'performance' => $tile_performance,
+        'context' => $tile_context,
+        'groups' => $tile_groups,
+        'criteria' => $tile_criteria,
+        'students' => $tile_students,
+      ];
+      foreach(participation_tile_order($u) as $participation_tile_key){
+        echo participation_tile_wrap(
+          $participation_tile_key,
+          $participation_tiles[$participation_tile_key] ?? ''
+        );
+      }
+    ?>
 
     <div class="participation-save-bar">
       <div>
@@ -1036,6 +1125,24 @@ render_header('Mitarbeit',$u);
   <script>
   const lessonEntryCountsByLesson = <?php echo json_encode($lesson_entry_counts_by_lesson, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
   const fixedLessonId = <?php echo (int)$lesson_id; ?>;
+  const fixedLessonSubgroup = <?php echo json_encode($lesson ? strtolower((string)($lesson['webuntis_subgroup'] ?? '')) : '', JSON_UNESCAPED_UNICODE); ?>;
+  const subgroupMemberIds = <?php echo json_encode($subgroup_member_ids, JSON_UNESCAPED_UNICODE); ?>;
+
+  function applyLessonSubgroupGroup(){
+    let subgroup = fixedLessonSubgroup;
+    if(!fixedLessonId){
+      const sel=document.getElementById('lessonSelect');
+      if(sel && parseInt(sel.value || '0', 10) > 0){
+        const opt=sel.options[sel.selectedIndex];
+        subgroup = opt ? (opt.getAttribute('data-subgroup') || '') : '';
+      } else {
+        subgroup = '';
+      }
+    }
+    if(subgroup && subgroupMemberIds[subgroup]){
+      applyStudentGroup(subgroupMemberIds[subgroup]);
+    }
+  }
 
   function updateAlreadyRatedStudents(){
     const sel=document.getElementById('lessonSelect');
@@ -1291,6 +1398,7 @@ render_header('Mitarbeit',$u);
       sel.addEventListener('change', ()=>{
         syncEventDateFromLessonContext();
         updateAlreadyRatedStudents();
+        applyLessonSubgroupGroup();
       });
     }
     if(lessonDateInput){
@@ -1299,6 +1407,97 @@ render_header('Mitarbeit',$u);
     }
     syncEventDateFromLessonContext();
     updateAlreadyRatedStudents();
+    applyLessonSubgroupGroup();
+  })();
+  </script>
+
+  <script>
+  // Reorder tiles by dragging the left-side handle (☰). The new order is
+  // saved immediately per teacher, but the page is NOT reloaded afterwards —
+  // this is a live data-entry form and a reload would discard unsaved input.
+  (function(){
+    var root = document.getElementById('participationForm');
+    if(!root) return;
+    var dragSrc = null;
+    var armedTile = null;
+
+    function tileFromEvent(e){
+      var el = e.target;
+      while(el && !(el.classList && el.classList.contains('reorder-tile'))) el = el.parentNode;
+      return el;
+    }
+    function handleFromEvent(e){
+      if(!e.target || !e.target.closest) return null;
+      return e.target.closest('.tile-drag-handle');
+    }
+
+    root.addEventListener('mousedown', function(e){
+      var handle = handleFromEvent(e);
+      armedTile = handle ? tileFromEvent(e) : null;
+    });
+    root.addEventListener('mouseup', function(){ armedTile = null; });
+
+    // The handle lives inside the tile's own <summary> for collapsible tiles
+    // (so it stays visible while collapsed, and reads as part of that tile's
+    // border). A plain click there must not also toggle the accordion open/
+    // closed — only an actual drag should do anything.
+    root.addEventListener('click', function(e){
+      if(handleFromEvent(e)) e.preventDefault();
+    });
+
+    root.addEventListener('dragstart', function(e){
+      var tile = tileFromEvent(e);
+      if(!tile || !tile.classList.contains('reorder-tile')){ e.preventDefault(); return; }
+      if(armedTile !== tile && !handleFromEvent(e)){ e.preventDefault(); return; }
+      dragSrc = tile;
+      tile.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', tile.getAttribute('data-tile-key') || ''); }catch(err){}
+    });
+
+    root.addEventListener('dragend', function(){
+      if(dragSrc) dragSrc.classList.remove('dragging');
+      dragSrc = null;
+      armedTile = null;
+    });
+
+    root.addEventListener('dragover', function(e){
+      if(!dragSrc) return;
+      e.preventDefault();
+      var tile = tileFromEvent(e);
+      if(!tile || tile === dragSrc || !tile.classList.contains('reorder-tile')) return;
+      var rect = tile.getBoundingClientRect();
+      var next = (e.clientY - rect.top) > (rect.height / 2);
+      tile.parentNode.insertBefore(dragSrc, next ? tile.nextSibling : tile);
+    });
+
+    root.addEventListener('drop', function(e){
+      if(!dragSrc) return;
+      e.preventDefault();
+      dragSrc.classList.remove('dragging');
+      dragSrc = null;
+
+      var keys = [].map.call(root.querySelectorAll('.reorder-tile'), function(t){ return t.getAttribute('data-tile-key'); }).filter(Boolean);
+      if(!keys.length) return;
+
+      var tokenEl = document.querySelector('meta[name="csrf-token"]');
+      if(!tokenEl) return;
+
+      var fd = new FormData();
+      keys.forEach(function(k){ fd.append('order[]', k); });
+      fd.append('_csrf', tokenEl.getAttribute('content') || '');
+
+      fetch('<?php echo h($bp); ?>/teacher/participation_tile_order_save.php', {method:'POST', body:fd, credentials:'same-origin'})
+        .then(function(r){ return r.json().catch(function(){ return {ok:false}; }); })
+        .then(function(j){
+          if(!j || !j.ok){
+            window.alert('Die Reihenfolge konnte nicht gespeichert werden.');
+          }
+        })
+        .catch(function(){
+          window.alert('Die Reihenfolge konnte nicht gespeichert werden.');
+        });
+    });
   })();
   </script>
 </div></div></div>

@@ -215,7 +215,6 @@ $form_social_id=(int)($e['social_form_option_id'] ?? 0);
 $form_phase_id=(int)($e['phase_option_id'] ?? 0);
 $form_hw_id=(int)($e['homework_option_id'] ?? 0);
 $form_reason_text=(string)($e['reason_text'] ?? '');
-$form_note=(string)($e['note'] ?? '');
 $preset_name_input=trim((string)($_POST['preset_name'] ?? ''));
 _participation_edit_append_stored_options_by_ids($pdo,$perfs,$selPerfs,'performance');
 _participation_edit_append_stored_options_by_ids($pdo,$groups,$selGroups,'observation_group');
@@ -264,7 +263,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $form_phase_id=(int)($_POST['phase_option_id'] ?? 0);
     $form_hw_id=(int)($_POST['homework_option_id'] ?? 0);
     $form_reason_text=trim((string)($_POST['reason_text'] ?? ''));
-    $form_note=trim((string)($_POST['note'] ?? ''));
     $selCriteria=array_map('intval',(array)($_POST['criteria_ids'] ?? []));
     $selPerfs=array_map('intval',(array)($_POST['performance_option_ids'] ?? []));
     $selGroups=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['group_option_ids'] ?? [])), fn($v)=>$v>0)));
@@ -290,7 +288,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       foreach(participation_option_labels_by_ids($groups,$selGroups) as $group_label){ $cLabs[] = $group_label; }
       $pLabs=[]; foreach($selPerfs as $oid){ $pLabs[] = $optLabel[$oid] ?? ''; }
 
-      $tags=lbvo_auto_tags($e['reason_label'],$phase_label,$hw_label,$cLabs,$pLabs,$e['note']??'', $e['reason_text']??'');
+      $tags=lbvo_auto_tags($e['reason_label'],$phase_label,$hw_label,$cLabs,$pLabs,'', $e['reason_text']??'');
       $insT=$pdo->prepare("INSERT IGNORE INTO participation_event_lbvo (event_id,tag,source,created_at) VALUES (?,?, 'auto', ?)");
       foreach($tags as $t){ $insT->execute([$id,$t,now_iso()]); }
 
@@ -330,7 +328,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $hw_id=$form_hw_id;
 
     $reason_text=$form_reason_text;
-    $note=$form_note;
 
     if(!$new_student_id) $err='Bitte Schüler:in wählen.';
     elseif(!$event_date) $err='Bitte Datum wählen.';
@@ -357,14 +354,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
               reason_option_id=?, reason_label=?,
               impact_option_id=?, rating=?, impact_kind=?,
               social_form_option_id=?, phase_option_id=?, homework_option_id=?,
-              reason_text=?, note=?
+              reason_text=?
           WHERE id=? AND teacher_id=?")
           ->execute([
             $new_student_id, $event_date, $new_lesson_id,
             $reason_option_id_for_db, $reason_label,
             $impact_option_id_for_db, $impact_label, $impact_kind,
             ($social_id?:null), ($phase_id?:null), ($hw_id?:null),
-            ($reason_text?:null), ($note?:null),
+            ($reason_text?:null),
             $id, (int)$u['id']
           ]);
 
@@ -391,7 +388,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         foreach(participation_option_labels_by_ids($groups,$selGroups) as $group_label){ $cLabs[] = $group_label; }
         $pLabs=[]; foreach($selPerfs as $oid){ $pLabs[] = $optLabel[$oid] ?? ''; }
 
-        $tags=lbvo_auto_tags($reason_label,$phase_label,$hw_label,$cLabs,$pLabs,$note,$reason_text);
+        $tags=lbvo_auto_tags($reason_label,$phase_label,$hw_label,$cLabs,$pLabs,'',$reason_text);
         $pdo->prepare("DELETE FROM participation_event_lbvo WHERE event_id=? AND source='auto'")->execute([$id]);
         $insT=$pdo->prepare("INSERT IGNORE INTO participation_event_lbvo (event_id,tag,source,created_at) VALUES (?,?, 'auto', ?)");
         foreach($tags as $t){ $insT->execute([$id,$t,now_iso()]); }
@@ -439,7 +436,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $form_phase_id=(int)($e['phase_option_id'] ?? 0);
         $form_hw_id=(int)($e['homework_option_id'] ?? 0);
         $form_reason_text=(string)($e['reason_text'] ?? '');
-        $form_note=(string)($e['note'] ?? '');
         _participation_edit_append_stored_options_by_ids($pdo,$perfs,$selPerfs,'performance');
         _participation_edit_append_stored_options_by_ids($pdo,$groups,$selGroups,'observation_group');
         _participation_edit_append_stored_options_by_ids($pdo,$socials,[$form_social_id],'social_form');
@@ -468,7 +464,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         'phase_option_id'=>$form_phase_id,
         'homework_option_id'=>$form_hw_id,
         'reason_text'=>$form_reason_text,
-        'note'=>$form_note,
         'criteria_ids'=>array_values(array_filter($selCriteria, fn($v)=>$v>0)),
       ];
       $preset_name_input=participation_preset_name($preset_name_input);
@@ -487,7 +482,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
 $effective = $manual ?: $auto;
 $main_form_dirty_initial = ($_SERVER['REQUEST_METHOD']==='POST' && ($action==='save_preset' || ($action==='save' && $err!=='')));
-$details_open = $form_social_id>0 || $form_phase_id>0 || $form_hw_id>0 || trim($form_note)!=='' || !empty($selCriteria);
+$details_open = $form_social_id>0 || $form_phase_id>0 || $form_hw_id>0 || trim($form_reason_text)!=='' || !empty($selCriteria);
 $current_suggested_mode=participation_pedagogical_mode_suggestion($reasons,$phases,$form_reason_id,$form_phase_id);
 $current_impact_label='';
 $current_impact_kind='';
@@ -625,7 +620,7 @@ render_header('Mitarbeit bearbeiten',$u);
     </fieldset>
 
     <div style="height:12px"></div>
-    <details class="accordion" <?php echo ($form_social_id>0 || $form_phase_id>0 || $form_hw_id>0 || trim($form_note)!=='')?'open':''; ?>>
+    <details class="accordion" <?php echo ($form_social_id>0 || $form_phase_id>0 || $form_hw_id>0)?'open':''; ?>>
       <summary><span class="acc-title">Unterrichtskontext</span></summary>
       <div class="acc-body">
         <fieldset class="multi-field" style="margin-top:0">
@@ -660,10 +655,6 @@ render_header('Mitarbeit bearbeiten',$u);
               </select>
             </div>
           </div>
-
-          <div style="height:12px"></div>
-          <label class="muted">Notiz (optional)</label>
-          <textarea class="input" name="note" rows="3" placeholder="1–2 Sätze als Beleg/Beobachtung."><?php echo h($form_note); ?></textarea>
         </fieldset>
       </div>
     </details>
@@ -703,7 +694,7 @@ render_header('Mitarbeit bearbeiten',$u);
           <button class="btn secondary" name="action" value="save_preset" formnovalidate>Aktuelle Auswahl als Preset speichern</button>
         </div>
       </div>
-      <div class="small muted" style="margin-top:6px">Gespeichert werden Grund, Eindruck, Beobachtungsbereich, Leistungsart, Sozialform, Unterrichtsphase, Hausübung, Kurzbeschreibung, Notiz und Kriterien. Schüler:in, Datum und Stunde bleiben außen vor. Presets gelten pro Fach.</div>
+      <div class="small muted" style="margin-top:6px">Gespeichert werden Grund, Eindruck, Beobachtungsbereich, Leistungsart, Sozialform, Unterrichtsphase, Hausübung, Kurzbeschreibung und Kriterien. Schüler:in, Datum und Stunde bleiben außen vor. Presets gelten pro Fach.</div>
     </fieldset>
 
     <div style="height:14px"></div>

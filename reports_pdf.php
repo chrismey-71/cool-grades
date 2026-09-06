@@ -203,7 +203,7 @@ if($student_id && $selectedSummary){
   $oralLines = [];
   foreach($selectedSummary['oral_rows'] as $row){
     $type = oral_assessment_normalize_type((string)($row['assessment_type'] ?? ''));
-    $line = (string)$row['assessment_date'].' · '.oral_assessment_type_label($type).' · '.trim((string)($row['impact_label'] ?? '–'));
+    $line = (string)$row['assessment_date'].' · '.oral_assessment_type_label($type).' · '.oral_assessment_grade_display($row);
     $primary = $type === 'ORAL_EXAM' ? trim((string)($row['topic_area'] ?? '')) : trim((string)($row['category'] ?? ''));
     $secondary = $type === 'ORAL_EXAM' ? trim((string)($row['questions'] ?? '')) : trim((string)($row['title'] ?? ''));
     if($primary !== '') $line .= ' · '.$primary;

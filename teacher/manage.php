@@ -259,7 +259,7 @@ render_header('Verwaltung',$u);
               <div class="assessment-weight-field oral">
                 <label for="oralWeight">Bes. mündl. Leistungsfeststellung</label>
                 <div class="assessment-weight-input"><input class="input" id="oralWeight" type="number" min="0" max="100" step="1" name="special_oral_weight" value="<?php echo h($displayWeight($weightValues['oral'])); ?>" required><span>%</span></div>
-                <div class="small muted">Bereichswert aus Eindruck/Relevanz.</div>
+                <div class="small muted">Bereichswert aus Noten; optionale Einzelgewichte werden berücksichtigt.</div>
                 <?php if(!empty($weightFieldErrors['special_oral_weight'])): ?><div class="field-error"><?php echo h($weightFieldErrors['special_oral_weight']); ?></div><?php endif; ?>
               </div>
               <div class="assessment-weight-field written">

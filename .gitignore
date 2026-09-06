@@ -34,3 +34,8 @@ Thumbs.db
 # Dependency folders, if added locally
 vendor/
 node_modules/
+
+# Local SQLite dev-mode shim (never part of a release/deployment)
+lib/db_sqlite_compat.php
+tools/dev_bootstrap_sqlite.php
+docs/local-dev-sqlite.md

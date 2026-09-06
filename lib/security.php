@@ -166,3 +166,57 @@ function login_rate_limit_blocked(string $username): array {
 
   return ['blocked' => false];
 }
+
+/**
+ * Derives a symmetric key for encrypting small app-level secrets at rest
+ * (e.g. a teacher's private WebUntis iCal link). Reuses the install-wide
+ * secret already relied on elsewhere (see login_attempt_ip_hash()) instead
+ * of introducing a second secret that would need its own safekeeping.
+ */
+function security_secret_key(): string {
+  $secret = (string)(cfg()['install_token'] ?? cfg()['session_name'] ?? 'coolgrades');
+  return hash('sha256', 'coolgrades-secret-v1|'.$secret, true);
+}
+
+/**
+ * Encrypts a short plaintext string (AES-256-GCM) for storage in the
+ * database. Returns a self-contained base64 blob (iv+tag+ciphertext).
+ * Never log the plaintext or the return value in full.
+ */
+function security_encrypt_secret(string $plaintext): string {
+  $iv = random_bytes(12);
+  $tag = '';
+  $ciphertext = openssl_encrypt($plaintext, 'aes-256-gcm', security_secret_key(), OPENSSL_RAW_DATA, $iv, $tag);
+  if ($ciphertext === false) {
+    throw new RuntimeException('Verschlüsselung fehlgeschlagen.');
+  }
+  return base64_encode($iv.$tag.$ciphertext);
+}
+
+/**
+ * Decrypts a value produced by security_encrypt_secret(). Returns null on
+ * any failure (corrupt/foreign data, wrong key) instead of throwing, so
+ * callers can treat "not decryptable" the same as "not configured".
+ */
+function security_decrypt_secret(?string $encoded): ?string {
+  if ($encoded === null || $encoded === '') return null;
+  $raw = base64_decode($encoded, true);
+  if ($raw === false || strlen($raw) < 29) return null;
+  $iv = substr($raw, 0, 12);
+  $tag = substr($raw, 12, 16);
+  $ciphertext = substr($raw, 28);
+  $plaintext = openssl_decrypt($ciphertext, 'aes-256-gcm', security_secret_key(), OPENSSL_RAW_DATA, $iv, $tag);
+  return $plaintext === false ? null : $plaintext;
+}
+
+/**
+ * Masks a URL for display in the frontend: keeps only the scheme and host
+ * so a teacher can recognize which link is stored, without ever showing
+ * the path/query where a WebUntis access token lives.
+ */
+function security_mask_url(string $url): string {
+  $parts = @parse_url($url);
+  if (!is_array($parts) || empty($parts['host'])) return '••••••••';
+  $scheme = (string)($parts['scheme'] ?? 'https');
+  return $scheme.'://'.$parts['host'].'/••••••••';
+}

@@ -617,13 +617,19 @@ function demo_installation_seed_lessons_and_participation(PDO $pdo, int $teacher
         ][$impactKey];
         $impactKind = in_array($impactKey, ['positive','strong'], true) ? 'positive' : (in_array($impactKey, ['negative','weak'], true) ? 'negative' : 'neutral');
         $mode = in_array($impactKind, ['negative'], true) ? 'summative' : 'formative';
-        $note = $impactKind === 'positive'
+        // "Notiz (optional)" was retired in favour of a single free-text
+        // field ("Kurze Beobachtung / Anlass" / reason_text) - demo data
+        // therefore combines what used to be the separate topic and note
+        // sentence into reason_text instead of writing to the note column.
+        $observation = $impactKind === 'positive'
           ? 'Demo: fachlicher Beitrag gut nachvollziehbar.'
           : ($impactKind === 'negative' ? 'Demo: Fachbezug bleibt in dieser Situation noch unsicher.' : 'Demo: Beobachtung ohne klare Tendenz.');
+        $topicText = trim((string)($topics[$code][$idx] ?? ''));
+        $reasonText = $topicText !== '' ? $topicText.' · '.$observation : $observation;
 
-        $pdo->prepare("INSERT INTO participation_events(student_id,teacher_id,class_id,subject_id,lesson_id,event_date,reason_option_id,reason_label,impact_option_id,rating,impact_kind,reason_text,note,pedagogical_mode,created_at)
-                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-            ->execute([$studentId, $teacherId, $classId, $subjectId, $lessonId, $date, $reasonId, 'Demo-Anlass', $impactId, $impactLabel, $impactKind, $topics[$code][$idx] ?? '', $note, $mode, now_iso()]);
+        $pdo->prepare("INSERT INTO participation_events(student_id,teacher_id,class_id,subject_id,lesson_id,event_date,reason_option_id,reason_label,impact_option_id,rating,impact_kind,reason_text,pedagogical_mode,created_at)
+                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+            ->execute([$studentId, $teacherId, $classId, $subjectId, $lessonId, $date, $reasonId, 'Demo-Anlass', $impactId, $impactLabel, $impactKind, $reasonText, $mode, now_iso()]);
         $eventId = (int)$pdo->lastInsertId();
 
         $pdo->prepare("INSERT INTO participation_event_options(event_id,option_id) VALUES(?,?)")->execute([$eventId, $performanceOptions[$idx % count($performanceOptions)]]);
@@ -643,18 +649,22 @@ function demo_installation_seed_lessons_and_participation(PDO $pdo, int $teacher
 }
 
 function demo_installation_seed_oral_assessments(PDO $pdo, int $teacherId, int $classId, array $subjectIds, array $studentIds, array $impactOptions, array $period): void {
+  // Besondere mündliche Leistungsfeststellungen (§ 5/6 LBV) are discrete graded
+  // assessments, just like Schularbeiten/Tests - demo data therefore uses a
+  // real Note (1-5) plus Tendenz/Bemerkung (see demo_installation_seed_written_assessments),
+  // never the old Eindruck/Relevanz impression scale. $impactOptions is kept
+  // in the signature for call-site compatibility but is no longer used.
   foreach($subjectIds as $code => $subjectId){
     foreach($studentIds as $pos => $studentId){
       if($pos % 3 === 1) continue;
-      $impactKey = ($pos % 4 === 3) ? 'negative' : (($pos % 4 === 2) ? 'neutral' : 'positive');
+      $grade = min(5, max(1, (($pos % 4) + 1) + ($pos % 5 === 0 ? 1 : 0) - ($pos % 4 === 0 ? 1 : 0)));
+      $tendency = $grade <= 2 ? 'plus' : ($grade >= 4 ? 'minus' : '');
       $date = demo_installation_school_date($period, $code === 'BW' ? '03-24' : '04-16');
-      $pdo->prepare("INSERT INTO oral_assessments(class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,impact_option_id,impact_label,impact_kind,weight_multiplier,topic_area,questions,category,title,created_at)
+      $pdo->prepare("INSERT INTO oral_assessments(class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,grade,tendency,remark,weight_multiplier,topic_area,questions,category,title,created_at)
                      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
           ->execute([
             $classId, $subjectId, $teacherId, $studentId, 'ORAL_EXAM', $date,
-            $impactOptions[$impactKey],
-            $impactKey === 'positive' ? 'positiv (+)' : ($impactKey === 'negative' ? 'negativ (-)' : 'unauffällig (~)'),
-            $impactKey === 'positive' ? 'positive' : ($impactKey === 'negative' ? 'negative' : 'neutral'),
+            $grade, $tendency, 'Demo-Bewertung für Auswertungen.',
             $pos % 5 === 0 ? 1.5 : 1.0,
             $code === 'BW' ? 'Fallbeispiel und Fachbegriffe' : 'Projektplanung und Teamrolle',
             'Demo-Fragen zur fachlichen Begründung und Anwendung.',

@@ -73,6 +73,24 @@ function _mix_colors(string $from, string $to, float $ratioTo): string {
   ]);
 }
 
+/**
+ * Picks a readable text color (near-black or near-white) for a given
+ * background color, based on WCAG relative luminance. Used so that button
+ * text stays legible regardless of which brand color an admin picks.
+ */
+function _readable_text_color(string $bgHex): string {
+  [$r, $g, $b] = _hex_to_rgb($bgHex);
+  $lin = static function (int $c): float {
+    $c = $c / 255;
+    return $c <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
+  };
+  $luminance = 0.2126 * $lin($r) + 0.7152 * $lin($g) + 0.0722 * $lin($b);
+  // Contrast against near-black (#101828) vs. near-white (#ffffff); pick whichever wins.
+  $contrastWithWhite = (1.0 + 0.05) / ($luminance + 0.05);
+  $contrastWithBlack = ($luminance + 0.05) / (0.0 + 0.05);
+  return $contrastWithWhite >= $contrastWithBlack ? '#ffffff' : '#101828';
+}
+
 function app_brand_palette(): array {
   $primary = sanitize_hex_color((string)app_setting_get('brand_primary_color', '#2F6F3A'), '#2F6F3A');
   $dark = _mix_colors($primary, '#000000', 0.16);
@@ -106,6 +124,8 @@ function app_brand_css_vars(): string {
     '--brand-primary-soft:', $palette['soft'], ';',
     '--brand-primary-soft-alt:', $palette['soft_alt'], ';',
     '--brand-primary-ring:', $palette['ring'], ';',
+    // Readable text color for the brand/button background, whatever the admin picked as brand color.
+    '--on-brand:', _readable_text_color($palette['dark']), ';',
   ]);
 }
 

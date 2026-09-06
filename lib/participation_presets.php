@@ -67,7 +67,6 @@ function participation_preset_payload_from_request(array $src): array {
     'phase_option_id'=>(int)($src['phase_option_id'] ?? 0),
     'homework_option_id'=>(int)($src['homework_option_id'] ?? 0),
     'reason_text'=>trim((string)($src['reason_text'] ?? '')),
-    'note'=>trim((string)($src['note'] ?? '')),
     'criteria_ids'=>array_values(array_filter(array_map('intval',(array)($src['criteria_ids'] ?? [])), fn($v)=>$v>0)),
   ];
 }
@@ -81,7 +80,6 @@ function apply_participation_preset_to_request(array $payload): void {
   $_POST['phase_option_id']=(int)($payload['phase_option_id'] ?? 0);
   $_POST['homework_option_id']=(int)($payload['homework_option_id'] ?? 0);
   $_POST['reason_text']=(string)($payload['reason_text'] ?? '');
-  $_POST['note']=(string)($payload['note'] ?? '');
   $_POST['criteria_ids']=array_values((array)($payload['criteria_ids'] ?? []));
 }
 

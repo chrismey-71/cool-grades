@@ -240,10 +240,6 @@ render_header('Preset-Verwaltung',$u);
             <label class="muted">Kurzbeschreibung (optional)</label>
             <input class="input" name="reason_text" value="<?php echo h((string)($payload['reason_text'] ?? '')); ?>" placeholder="z.B. Falllösung sauber erklärt.">
 
-            <div style="height:12px"></div>
-            <label class="muted">Notiz (optional)</label>
-            <textarea class="input" name="note" rows="3" placeholder="1–2 Sätze als Beleg/Beobachtung."><?php echo h((string)($payload['note'] ?? '')); ?></textarea>
-
             <div style="height:14px"></div>
             <h2>Kriterien</h2>
             <fieldset class="multi-field">

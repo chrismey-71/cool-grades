@@ -42,7 +42,7 @@ if($class_id && $subject_id){
   $classContext=class_context($pdo,$class_id);
   $assignmentReadOnly=!teacher_can_edit_assignment((int)$u['id'],$class_id,$subject_id) || ($classContext && class_is_readonly($classContext));
 
-  $sql="SELECT oa.id, oa.assessment_date, oa.assessment_type, oa.impact_label, oa.weight_multiplier, oa.topic_area, oa.questions, oa.category, oa.title,
+  $sql="SELECT oa.id, oa.assessment_date, oa.assessment_type, oa.impact_label, oa.grade, oa.tendency, oa.weight_multiplier, oa.topic_area, oa.questions, oa.category, oa.title,
                st.last_name, st.first_name
         FROM oral_assessments oa
         JOIN students st ON st.id=oa.student_id
@@ -134,14 +134,14 @@ render_header('Besondere mündliche Leistungsfeststellungen',$u);
   <?php if($rows): ?>
     <div style="height:12px"></div>
     <table class="table">
-      <thead><tr><th>Datum</th><th>Art</th><th>Schüler:in</th><th>Eindruck/Relevanz</th><th>Gewicht</th><th>Details</th><th>Aktion</th></tr></thead>
+      <thead><tr><th>Datum</th><th>Art</th><th>Schüler:in</th><th>Note</th><th>Gewicht</th><th>Details</th><th>Aktion</th></tr></thead>
       <tbody>
       <?php foreach($rows as $row): ?>
         <tr>
           <td><?php echo h($row['assessment_date']); ?></td>
           <td><?php echo h(oral_assessment_type_label((string)$row['assessment_type'])); ?></td>
           <td><?php echo h($row['last_name'].', '.$row['first_name']); ?></td>
-          <td><?php echo h((string)($row['impact_label'] ?? '—')); ?></td>
+          <td><?php echo h(oral_assessment_grade_display($row)); ?></td>
           <td><?php echo h(number_format(assessment_weight_multiplier_normalize($row['weight_multiplier'] ?? 1), 1, ',', '.')); ?> x</td>
           <td><?php echo h(oral_assessment_detail($row)); ?></td>
           <td><a class="btn small" href="<?php echo h($bp); ?>/teacher/oral_edit.php?id=<?php echo (int)$row['id']; ?>">Bearbeiten</a></td>

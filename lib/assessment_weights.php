@@ -337,9 +337,13 @@ function assessment_weight_value_from_qualitative_average(float $average): float
 }
 
 /**
- * Produces comparable 1-5 proposal values without turning qualitative entries
- * into stored individual grades. Participation and oral use impression/relevance;
- * written assessments use their stored grades and optional assessment weights.
+ * Produces comparable 1-5 proposal values. Participation stays qualitative
+ * (Eindruck/Relevanz - § 4 LBV never grades a single Mitarbeit contribution).
+ * Besondere mündliche Leistungsfeststellungen (§ 5/6 LBV) are, like written
+ * assessments, discrete graded assessments and use their stored Noten and
+ * optional assessment weights directly, the same way written does. Oral rows
+ * saved before Noten were required (Eindruck/Relevanz only, no grade) are not
+ * included in this average - see report_eval_oral_summary().
  */
 function assessment_weight_area_values(array $summary): array {
   $participationProposal = $summary['note_proposal'] ?? [];
@@ -352,23 +356,9 @@ function assessment_weight_area_values(array $summary): array {
     $participationValue = (float)$participationProposal['value'];
   }
 
-  $oralScores = [];
-  $oralWeightedSum = 0.0;
-  $oralWeightSum = 0.0;
-  foreach((array)($summary['oral_rows'] ?? []) as $oralRow){
-    $score = report_eval_rating_score(
-      (string)($oralRow['impact_label'] ?? ''),
-      (string)($oralRow['impact_kind'] ?? '')
-    );
-    if($score !== null){
-      $weight = assessment_weight_multiplier_normalize($oralRow['weight_multiplier'] ?? 1);
-      $oralScores[] = $score;
-      $oralWeightedSum += $score * $weight;
-      $oralWeightSum += $weight;
-    }
-  }
-  $oralAverage = $oralWeightSum > 0 ? $oralWeightedSum / $oralWeightSum : null;
-  $oralValue = $oralAverage !== null ? (float)assessment_weight_value_from_qualitative_average($oralAverage) : null;
+  $oralGradedCount = (int)($summary['oral_graded_count'] ?? 0);
+  $oralAverage = ($summary['oral_avg'] ?? null) !== null ? (float)$summary['oral_avg'] : null;
+  $oralValue = ($oralGradedCount > 0 && $oralAverage !== null) ? $oralAverage : null;
 
   $writtenCount = (int)($summary['written_count'] ?? 0);
   $writtenAverage = ($summary['written_avg'] ?? null) !== null ? (float)$summary['written_avg'] : null;
@@ -388,13 +378,11 @@ function assessment_weight_area_values(array $summary): array {
     'oral' => [
       'available' => $oralValue !== null,
       'value' => $oralValue,
-      'count' => count($oralScores),
-      'kind' => 'Eindruck/Relevanz',
+      'count' => $oralGradedCount,
+      'kind' => 'Noten',
       'basis' => $oralValue !== null
-        ? count($oralScores).' verwertbare Eindruckswerte, gewichteter qualitativer Bereichswert '.assessment_weight_grade_format($oralValue)
-        : 'keine verwertbaren Eindruckswerte',
-      'qualitative_average' => $oralAverage,
-      'weight_sum' => $oralWeightSum,
+        ? $oralGradedCount.' Note(n), gewichteter Durchschnitt '.assessment_weight_grade_format($oralValue)
+        : 'keine verwertbaren Noten',
     ],
     'written' => [
       'available' => $writtenValue !== null,

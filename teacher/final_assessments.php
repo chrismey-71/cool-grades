@@ -73,31 +73,66 @@ function _fa_avg_grade_tone($avg): string {
   return 'neutral';
 }
 
-function _fa_oral_assessment_display(array $summary): array {
-  $count = (int)($summary['oral_count'] ?? 0);
-  if($count <= 0){
+function _fa_oral_assessment_display(array $oralRows): array {
+  $byType = [];
+  $legacyParts = [];
+  foreach($oralRows as $row){
+    $grade = (int)($row['grade'] ?? 0);
+    if($grade >= 1 && $grade <= 5){
+      $type = oral_assessment_normalize_type((string)($row['assessment_type'] ?? 'ORAL_EXAM'));
+      if(!isset($byType[$type])){
+        $byType[$type] = [
+          'label' => oral_assessment_type_label($type),
+          'count' => 0,
+          'grades' => [],
+          'details' => [],
+        ];
+      }
+      $symbol = oral_assessment_grade_symbol($grade, (string)($row['tendency'] ?? ''));
+      $weight = assessment_weight_multiplier_normalize($row['weight_multiplier'] ?? 1);
+      $weightSuffix = abs($weight - 1.0) > 0.001 ? ' · '.number_format($weight, 1, ',', '.').'x' : '';
+      $byType[$type]['count']++;
+      $byType[$type]['grades'][] = $symbol.$weightSuffix;
+      $detail = trim((string)($row['assessment_date'] ?? ''));
+      $extra = oral_assessment_detail($row);
+      if($extra !== '—' && $extra !== '') $detail .= ($detail !== '' ? ' · ' : '').$extra;
+      $detail .= ($detail !== '' ? ': ' : '').$symbol.$weightSuffix;
+      $byType[$type]['details'][] = $detail;
+    } else {
+      $label = trim((string)($row['impact_label'] ?? ''));
+      if($label !== '') $legacyParts[] = $label;
+    }
+  }
+
+  $legacyNote = $legacyParts
+    ? count($legacyParts).' ältere Eintrag/Einträge nur mit Eindruck/Relevanz (zählt nicht in die Notenberechnung): '.implode(', ', array_slice($legacyParts, 0, 3)).(count($legacyParts) > 3 ? ', …' : '')
+    : '';
+
+  if(!$byType){
     return [
-      'label' => 'keine mündliche Sonderleistung',
-      'tone' => 'neutral',
-      'text' => 'Keine besonderen mündlichen Leistungen erfasst.',
+      'types' => 'Keine benoteten besonderen mündlichen Leistungen erfasst.',
+      'grades' => '–',
+      'details' => '–',
+      'legacy_note' => $legacyNote,
     ];
   }
-  $positive = (int)($summary['oral_positive_count'] ?? 0);
-  $neutral = (int)($summary['oral_neutral_count'] ?? 0);
-  $negative = (int)($summary['oral_negative_count'] ?? 0);
-  $tone = 'neutral';
-  $label = 'gemischte / neutrale Beurteilung';
-  if($positive > $negative && $positive >= $neutral){
-    $tone = 'positive';
-    $label = 'überwiegend positiv';
-  } elseif($negative > $positive && $negative >= $neutral){
-    $tone = 'critical';
-    $label = 'kritisch zu würdigen';
+
+  $typeParts = [];
+  $gradeParts = [];
+  $detailParts = [];
+  foreach($byType as $data){
+    $typeParts[] = $data['label'].' ('.(int)$data['count'].')';
+    $gradeParts[] = $data['label'].': '.implode(', ', array_slice($data['grades'], 0, 4)).(count($data['grades']) > 4 ? ', …' : '');
+    foreach(array_slice($data['details'], 0, 3) as $detail){
+      if($detail !== '') $detailParts[] = $detail;
+    }
   }
+
   return [
-    'label' => $label,
-    'tone' => $tone,
-    'text' => (string)($summary['oral_text'] ?? ''),
+    'types' => implode(' · ', $typeParts),
+    'grades' => implode(' · ', $gradeParts),
+    'details' => implode(' | ', array_slice($detailParts, 0, 4)).(count($detailParts) > 4 ? ' | …' : ''),
+    'legacy_note' => $legacyNote,
   ];
 }
 
@@ -625,8 +660,9 @@ render_header('Abschlussbeurteilung', $u);
           if(($subjectContext['status'] ?? 'unset') === 'yes') $schularbeitCompactNote = 'Schularbeitsleistungen gesondert berücksichtigen.';
           elseif(($subjectContext['status'] ?? 'unset') === 'no') $schularbeitCompactNote = 'Kein Schularbeitsfach.';
           $writtenAssessmentDisplay = _fa_written_assessment_display((array)($summary['written_rows'] ?? []));
-          $oralAssessmentDisplay = _fa_oral_assessment_display($summary);
+          $oralAssessmentDisplay = _fa_oral_assessment_display((array)($summary['oral_rows'] ?? []));
           $writtenGradeTone = _fa_avg_grade_tone($summary['written_avg'] ?? null);
+          $oralGradeTone = _fa_avg_grade_tone($summary['oral_avg'] ?? null);
           $participationCount = (int)($summary['participation_count'] ?? 0);
           $lowParticipationCount = $participationCount < 3;
           $sem1ForCurrent = null;
@@ -758,19 +794,21 @@ render_header('Abschlussbeurteilung', $u);
                   <div class="final-performance-card-head">
                     <div>
                       <strong>Besondere mündliche Leistungen</strong>
-                      <div class="muted small"><?php echo (int)$summary['oral_count']; ?> Eintrag/Einträge</div>
+                      <div class="muted small"><?php echo (int)$summary['oral_graded_count']; ?> benotete Eintrag/Einträge</div>
                     </div>
-                    <div class="final-performance-result final-oral-card">
-                      <span class="label">Beurteilung</span>
-                      <strong class="final-signal-value <?php echo h($oralAssessmentDisplay['tone']); ?>"><?php echo h($oralAssessmentDisplay['label']); ?></strong>
+                    <div class="final-performance-result final-grade-card">
+                      <span class="label">Noten</span>
+                      <strong class="final-signal-value <?php echo h($oralGradeTone); ?>"><?php echo h($oralAssessmentDisplay['grades']); ?></strong>
                     </div>
                   </div>
                   <div class="final-performance-meta">
-                    <span class="final-count-chip final-count-positive">positiv <?php echo (int)$summary['oral_positive_count']; ?></span>
-                    <span class="final-count-chip final-count-neutral">neutral <?php echo (int)$summary['oral_neutral_count']; ?></span>
-                    <span class="final-count-chip final-count-negative">negativ <?php echo (int)$summary['oral_negative_count']; ?></span>
+                    <span><strong>Ø:</strong> <?php echo $summary['oral_avg'] !== null ? h(number_format((float)$summary['oral_avg'], 2, ',', '.')) : '-'; ?></span>
+                    <span><strong>Leistungsarten:</strong> <?php echo h($oralAssessmentDisplay['types']); ?></span>
                   </div>
-                  <div class="muted final-performance-details"><?php echo h($summary['oral_count'] > 0 ? $summary['oral_text'] : 'Keine besonderen mündlichen Leistungen erfasst.'); ?></div>
+                  <div class="muted final-performance-details"><strong>Details:</strong> <?php echo h($summary['oral_graded_count'] > 0 ? $oralAssessmentDisplay['details'] : 'Keine benoteten besonderen mündlichen Leistungen erfasst.'); ?></div>
+                  <?php if($oralAssessmentDisplay['legacy_note'] !== ''): ?>
+                    <div class="muted small final-performance-legacy-note"><?php echo h($oralAssessmentDisplay['legacy_note']); ?></div>
+                  <?php endif; ?>
                 </div>
 
                 <div class="final-performance-card report-written">
@@ -871,8 +909,11 @@ render_header('Abschlussbeurteilung', $u);
             <div class="final-decision-evidence oral">
               <div class="final-decision-evidence-head"><span>Bes. mündl. Leistungsfeststellung</span><strong><?php echo h($proposalAreaDisplay($oralProposalArea)); ?></strong></div>
               <div class="small"><strong><?php echo h($proposalAreaContextLabel); ?></strong></div>
-              <div class="muted small">Eindruck/Relevanz: <?php echo h($oralAssessmentDisplay['label']); ?>, keine gespeicherte Einzelnote</div>
-              <div class="muted small"><?php echo (int)$summary['oral_count']; ?> Eintrag/Einträge · <?php echo h((string)$summary['oral_text']); ?></div>
+              <div class="muted small">Noten im Überblick: <?php echo h($oralAssessmentDisplay['grades']); ?></div>
+              <div class="muted small"><?php echo (int)$summary['oral_graded_count']; ?> Eintrag/Einträge · Ø <?php echo $summary['oral_avg'] !== null ? h(number_format((float)$summary['oral_avg'], 2, ',', '.')) : '–'; ?></div>
+              <?php if($oralAssessmentDisplay['legacy_note'] !== ''): ?>
+                <div class="muted small"><?php echo h($oralAssessmentDisplay['legacy_note']); ?></div>
+              <?php endif; ?>
               <div class="muted small final-evidence-basis"><?php echo h($proposalAreaBasisDisplay($oralProposalArea)); ?></div>
             </div>
             <div class="final-decision-evidence written">

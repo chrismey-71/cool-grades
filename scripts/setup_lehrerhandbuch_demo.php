@@ -326,11 +326,15 @@ try {
         }
     }
 
-    $stOral = $pdo->prepare("INSERT INTO oral_assessments(class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,impact_option_id,impact_label,topic_area,questions,category,title,created_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-    $stOral->execute([$classId,$amId,$teacherId,$studentIds['Anna'],'ORAL_EXERCISE','2026-04-30',$impactPositive,'positiv (+)',null,null,'Kurzpräsentation','Diagramme vergleichen',now_iso_demo()]);
-    $stOral->execute([$classId,$amId,$teacherId,$studentIds['Daniel'],'ORAL_EXAM','2026-05-07',$impactNegative,'negativ (-)','Lineare Funktionen','Was bedeutet die Steigung? | Wie liest man den Achsenabschnitt?',null,null,now_iso_demo()]);
-    $stOral->execute([$classId,$dId,$teacherId,$studentIds['Greta'],'ORAL_EXERCISE','2026-04-24',$impactPositive,'positiv (+)',null,null,'Referat','Sprachliche Mittel in Sachtexten',now_iso_demo()]);
+    // Besondere mündliche Leistungsfeststellungen (§ 5/6 LBV) sind wie
+    // Schularbeiten/Tests diskrete, mit einer echten Note (1-5) zu beurteilende
+    // Leistungsfeststellungen - daher auch hier grade/tendency/remark statt der
+    // alten Eindruck/Relevanz-Skala (vgl. $gradeSets für die Schularbeiten).
+    $stOral = $pdo->prepare("INSERT INTO oral_assessments(class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,grade,tendency,remark,topic_area,questions,category,title,created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    $stOral->execute([$classId,$amId,$teacherId,$studentIds['Anna'],'ORAL_EXERCISE','2026-04-30',1,null,'sicher und vollständig',null,null,'Kurzpräsentation','Diagramme vergleichen',now_iso_demo()]);
+    $stOral->execute([$classId,$amId,$teacherId,$studentIds['Daniel'],'ORAL_EXAM','2026-05-07',4,'minus','Transfer noch unsicher','Lineare Funktionen','Was bedeutet die Steigung? | Wie liest man den Achsenabschnitt?',null,null,now_iso_demo()]);
+    $stOral->execute([$classId,$dId,$teacherId,$studentIds['Greta'],'ORAL_EXERCISE','2026-04-24',2,null,'sprachlich sicher',null,null,'Referat','Sprachliche Mittel in Sachtexten',now_iso_demo()]);
 
     $stExam = $pdo->prepare("INSERT INTO exams(class_id,subject_id,teacher_id,exam_type,exam_date,title,created_at) VALUES (?,?,?,?,?,?,?)");
     $stGrade = $pdo->prepare("INSERT INTO exam_grades(exam_id,student_id,grade,tendency,remark) VALUES (?,?,?,?,?)");

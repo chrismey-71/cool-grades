@@ -242,6 +242,99 @@ function _ensure_schema(PDO $pdo): void {
   }catch(Exception $e){ /* ignore */ }
 
   try{
+    // WebUntis iCal import (issue #2): lessons are matched/deduplicated by
+    // real clock time instead of a UE number, since the feed has no period
+    // field. start_time/end_time stay NULL for ordinary manually-entered
+    // lessons, so this never collides with the existing uniq_lesson_slot key.
+    $st=$pdo->query("SHOW COLUMNS FROM lesson_sessions LIKE 'start_time'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD COLUMN start_time TIME NULL AFTER lesson_unit");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM lesson_sessions LIKE 'end_time'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD COLUMN end_time TIME NULL AFTER start_time");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM lesson_sessions LIKE 'room'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD COLUMN room VARCHAR(64) NULL AFTER end_time");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM lesson_sessions LIKE 'source'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT 'manual' AFTER room");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM lesson_sessions LIKE 'external_uid'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD COLUMN external_uid VARCHAR(128) NULL AFTER source");
+    }
+    // Set only when a WebUntis event names exactly one of a class's a/b
+    // subgroups (e.g. "3FSBa" alone) rather than both together – lets the
+    // participation form auto-apply the matching teacher_student_groups
+    // group ("a"/"b") instead of showing the whole class.
+    $st=$pdo->query("SHOW COLUMNS FROM lesson_sessions LIKE 'webuntis_subgroup'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD COLUMN webuntis_subgroup CHAR(1) NULL AFTER external_uid");
+    }
+    $st=$pdo->query("SHOW INDEX FROM lesson_sessions WHERE Key_name='uniq_lesson_time_slot'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD UNIQUE KEY uniq_lesson_time_slot (class_id, subject_id, lesson_date, start_time)");
+    }
+    $st=$pdo->query("SHOW INDEX FROM lesson_sessions WHERE Key_name='idx_lesson_sessions_source'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE lesson_sessions ADD INDEX idx_lesson_sessions_source (teacher_id, source, lesson_date)");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // Per-teacher decision for a WebUntis SUMMARY code that doesn't match
+    // any subjects.code exactly: either alias it onto an existing subject,
+    // or mark it as not a real teaching lesson (e.g. "SPRE" = Sprechstunde).
+    $st=$pdo->query("SHOW TABLES LIKE 'webuntis_subject_mappings'");
+    if(!$st->fetch()){
+      $pdo->exec("CREATE TABLE webuntis_subject_mappings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        teacher_id INT NOT NULL,
+        webuntis_code VARCHAR(32) NOT NULL,
+        action VARCHAR(16) NOT NULL,
+        subject_id INT NULL,
+        note VARCHAR(255) NULL,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_webuntis_subject_mapping (teacher_id, webuntis_code),
+        FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // Raw WebUntis events that did not become a lesson_sessions row because
+    // their subject code was unrecognized ('unmapped_subject') or was
+    // explicitly marked as not a real lesson ('ignored') – the data behind
+    // the review/correction page, and (for 'ignored') future timetable
+    // display, since these events are otherwise nowhere else in the DB.
+    $st=$pdo->query("SHOW TABLES LIKE 'webuntis_unmapped_events'");
+    if(!$st->fetch()){
+      $pdo->exec("CREATE TABLE webuntis_unmapped_events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        teacher_id INT NOT NULL,
+        external_uid VARCHAR(128) NULL,
+        webuntis_code VARCHAR(32) NOT NULL,
+        webuntis_description VARCHAR(255) NULL,
+        lesson_date DATE NOT NULL,
+        start_time TIME NULL,
+        end_time TIME NULL,
+        room VARCHAR(64) NULL,
+        status VARCHAR(24) NOT NULL DEFAULT 'unmapped_subject',
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_webuntis_unmapped_event (teacher_id, external_uid),
+        INDEX idx_webuntis_unmapped_lookup (teacher_id, status, webuntis_code),
+        FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
     $st=$pdo->query("SHOW TABLES LIKE 'criteria_suggestions'");
     $has=$st->fetch();
     if(!$has){
@@ -395,6 +488,43 @@ function _ensure_schema(PDO $pdo): void {
     $has=$st->fetch();
     if(!$has){
       $pdo->exec("ALTER TABLE users ADD COLUMN pref_simple_participation_entry TINYINT(1) NOT NULL DEFAULT 0 AFTER pref_visual_contrast");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'pref_nav_style'");
+    $has=$st->fetch();
+    if(!$has){
+      $pdo->exec("ALTER TABLE users ADD COLUMN pref_nav_style VARCHAR(16) NOT NULL DEFAULT 'text' AFTER pref_simple_participation_entry");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'pref_participation_tile_order'");
+    $has=$st->fetch();
+    if(!$has){
+      $pdo->exec("ALTER TABLE users ADD COLUMN pref_participation_tile_order TEXT NULL AFTER pref_nav_style");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // WebUntis iCal import (issue #2): the link itself is stored encrypted
+    // (security_encrypt_secret()) – see lib/webuntis_ical.php.
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'webuntis_ical_url_enc'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN webuntis_ical_url_enc TEXT NULL AFTER pref_participation_tile_order");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'webuntis_ical_saved_at'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN webuntis_ical_saved_at DATETIME NULL AFTER webuntis_ical_url_enc");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'webuntis_ical_last_import_at'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN webuntis_ical_last_import_at DATETIME NULL AFTER webuntis_ical_saved_at");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'webuntis_ical_last_import_summary'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN webuntis_ical_last_import_summary TEXT NULL AFTER webuntis_ical_last_import_at");
     }
   }catch(Exception $e){ /* ignore */ }
 
@@ -1028,12 +1158,112 @@ function _ensure_schema(PDO $pdo): void {
     }
   }catch(Exception $e){ /* ignore */ }
 
+  try{
+    // Besondere mündliche Leistungsfeststellungen (§ 5/6 LBV) are, like
+    // Schularbeiten/Tests, discrete graded assessments and must be beurteilt
+    // with a real Note (1-5) rather than the Eindruck/Relevanz impression
+    // scale used for ongoing Mitarbeit (§ 4 LBV never grades single
+    // contributions). Existing impact_option_id/impact_label/impact_kind rows
+    // stay untouched as historical data; entry masks stop writing to them and
+    // use grade/tendency/remark (mirroring exam_grades) from here on.
+    $st=$pdo->query("SHOW COLUMNS FROM oral_assessments LIKE 'grade'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE oral_assessments ADD COLUMN grade TINYINT NULL AFTER impact_kind");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM oral_assessments LIKE 'tendency'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE oral_assessments ADD COLUMN tendency VARCHAR(120) NULL AFTER grade");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM oral_assessments LIKE 'remark'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE oral_assessments ADD COLUMN remark TEXT NULL AFTER tendency");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // Snapshot storage for the recomputed grade-based oral area (see above),
+    // mirroring written_avg/written_type_summary_json.
+    $st=$pdo->query("SHOW COLUMNS FROM final_assessments LIKE 'oral_avg'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE final_assessments ADD COLUMN oral_avg DECIMAL(5,2) NULL AFTER oral_negative_count");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM final_assessments LIKE 'oral_type_summary_json'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE final_assessments ADD COLUMN oral_type_summary_json LONGTEXT NULL AFTER oral_summary_text");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // "Notiz (optional)" was a second free-text field alongside "Kurze
+    // Beobachtung / Anlass" (reason_text) on Mitarbeit-Einträge. To simplify
+    // entry, the two are consolidated into one field going forward: entry
+    // masks stop offering Notiz entirely, so its content is merged into
+    // reason_text once here for every existing row, and the note column is
+    // then cleared (nothing is lost - it now lives in reason_text). Guarded
+    // by an app_settings flag so this one-time merge never re-runs; a
+    // participation_events row can therefore never end up with note content
+    // again afterwards (entry masks no longer write to it).
+    $st=$pdo->prepare("SELECT `value` FROM app_settings WHERE `key`=? LIMIT 1");
+    $st->execute(['participation_note_merged_into_reason_text']);
+    $alreadyMerged=(string)($st->fetchColumn() ?: '')==='1';
+    if(!$alreadyMerged){
+      $st=$pdo->query("SELECT id, reason_text, note FROM participation_events WHERE note IS NOT NULL AND TRIM(note) <> ''");
+      $upd=$pdo->prepare("UPDATE participation_events SET reason_text=?, note=NULL WHERE id=?");
+      foreach($st->fetchAll() as $row){
+        $existing=trim((string)($row['reason_text'] ?? ''));
+        $noteText=trim((string)($row['note'] ?? ''));
+        if($noteText==='') continue;
+        if($existing===''){
+          $merged=$noteText;
+        } elseif(stripos($existing,$noteText)!==false){
+          // Already contains this text (e.g. a re-run before the flag was
+          // set) - avoid duplicating it.
+          $merged=$existing;
+        } else {
+          $merged=$existing.' · '.$noteText;
+        }
+        $upd->execute([$merged,(int)$row['id']]);
+      }
+      $now=date('Y-m-d H:i:s');
+      $pdo->prepare("INSERT INTO app_settings(`key`,`value`,updated_at,created_at) VALUES(?,?,?,?)
+                     ON DUPLICATE KEY UPDATE value=VALUES(value), updated_at=VALUES(updated_at)")
+          ->execute(['participation_note_merged_into_reason_text','1',$now,$now]);
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // A mündliche Übung (§ 6 LBV) is a closed, prepared performance (e.g. a
+    // Referat) that teachers must justify with a short written Rückmeldung
+    // documenting how the grade was reached - unlike a mündliche Prüfung,
+    // which already documents itself via topic_area/questions. Entry masks
+    // require this for ORAL_EXERCISE rows; it stays NULL for ORAL_EXAM rows.
+    $st=$pdo->query("SHOW COLUMNS FROM oral_assessments LIKE 'feedback'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE oral_assessments ADD COLUMN feedback TEXT NULL AFTER title");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
 }
 
 function db(): PDO {
   static $pdo=null;
   if ($pdo) return $pdo;
   $c=cfg()['db'];
+
+  // DEV-ONLY local testing path: config.php may set db.driver = 'sqlite' to run
+  // against a local SQLite file instead of MySQL/MariaDB (see docs/local-dev-sqlite.md).
+  // Production installs never set this and are unaffected.
+  if((string)($c['driver'] ?? 'mysql') === 'sqlite'){
+    require_once __DIR__.'/db_sqlite_compat.php';
+    $path=(string)($c['path'] ?? (__DIR__.'/../data/dev.sqlite'));
+    $pdo=new SqliteCompatPdo("sqlite:$path", null, null, [
+      PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,
+      PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,
+    ]);
+    _ensure_schema($pdo);
+    return $pdo;
+  }
+
   $dsn=(string)($c['dsn'] ?? '');
   if($dsn===''){
     $dsn="mysql:host={$c['host']};dbname={$c['name']};charset={$c['charset']}";

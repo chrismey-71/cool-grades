@@ -5,6 +5,7 @@
   $theme = 'light';
   if (!empty($u) && (($u['pref_theme'] ?? '') === 'dark')) $theme = 'dark';
   $entryContrast = entry_contrast_mode($u);
+  $navStyle = nav_style_mode($u);
   $brandPalette = app_brand_palette();
   $brandCssVars = app_brand_css_vars();
   $timeoutMin = 0;
@@ -14,7 +15,7 @@
   }
 ?>
 <!doctype html>
-<html lang="de" data-theme="<?php echo h($theme); ?>" data-entry-contrast="<?php echo h($entryContrast); ?>" style="<?php echo h($brandCssVars); ?>">
+<html lang="de" data-theme="<?php echo h($theme); ?>" data-entry-contrast="<?php echo h($entryContrast); ?>" data-nav-style="<?php echo h($navStyle); ?>" style="<?php echo h($brandCssVars); ?>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -53,24 +54,24 @@
 
   <nav class="nav" id="mainNav">
     <?php if($u): ?>
-      <a href="<?php echo h($homeHref); ?>">Dashboard</a>
-      <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/manage.php">Verwaltung</a><?php endif; ?>
-      <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/settings_index.php">Einstellungen</a><?php endif; ?>
+      <a href="<?php echo h($homeHref); ?>"><?php echo nav_icon('dashboard'); ?><span class="nav-label">Dashboard</span></a>
+      <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/manage.php"><?php echo nav_icon('manage'); ?><span class="nav-label">Verwaltung</span></a><?php endif; ?>
+      <?php if(($u['role'] ?? '')==='admin'): ?><a href="<?php echo h($bp); ?>/admin/settings_index.php"><?php echo nav_icon('settings'); ?><span class="nav-label">Einstellungen</span></a><?php endif; ?>
       <?php if(($u['role'] ?? '')==='teacher'): ?>
-        <a href="<?php echo h($bp); ?>/reports.php">Berichte &amp; Auswertungen</a>
-        <a href="<?php echo h($bp); ?>/teacher/final_assessments.php">Abschlussbeurteilung</a>
-        <a href="<?php echo h($bp); ?>/teacher/manage.php">Verwaltung</a>
+        <a href="<?php echo h($bp); ?>/reports.php"><?php echo nav_icon('reports'); ?><span class="nav-label">Berichte &amp; Auswertungen</span></a>
+        <a href="<?php echo h($bp); ?>/teacher/final_assessments.php"><?php echo nav_icon('final_assessment'); ?><span class="nav-label">Abschlussbeurteilung</span></a>
+        <a href="<?php echo h($bp); ?>/teacher/manage.php"><?php echo nav_icon('manage'); ?><span class="nav-label">Verwaltung</span></a>
       <?php endif; ?>
-      <a href="<?php echo h($bp); ?>/account.php">Konto</a>
+      <a href="<?php echo h($bp); ?>/account.php"><?php echo nav_icon('account'); ?><span class="nav-label">Konto</span></a>
       <form method="post" action="<?php echo h($bp); ?>/logout.php" class="logout-stack">
         <?php echo csrf_input(); ?>
-        <button type="submit" class="navbtn">Logout</button>
+        <button type="submit" class="navbtn"><?php echo nav_icon('logout'); ?><span class="nav-label">Logout</span></button>
         <?php if($timeoutMin > 0): ?>
           <span class="timeout-pill" id="sessionTimeoutCountdown" title="Automatischer Logout bei Inaktivität"><?php echo (int)$timeoutMin; ?> min</span>
         <?php endif; ?>
       </form>
     <?php else: ?>
-      <a href="<?php echo h($bp); ?>/login.php">Login</a>
+      <a href="<?php echo h($bp); ?>/login.php"><?php echo nav_icon('login'); ?><span class="nav-label">Login</span></a>
     <?php endif; ?>
   </nav>
 

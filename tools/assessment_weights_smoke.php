@@ -78,32 +78,53 @@ aw_assert_same(2, $participationOnly['value'], 'Ein vorhandener Mitarbeit-Bereic
 aw_assert_same(100.0, round((float)$participationOnly['weighting']['effective']['participation'], 4), 'Ein allein vorhandener nicht-schriftlicher Bereich muss auf 100 % normalisiert werden.');
 aw_assert_true(stripos(implode(' ', $participationOnly['weighting']['warnings']), 'nicht berücksichtigt') !== false, 'Ausgeschlossene Bereiche müssen erläutert werden.');
 
+// Besondere mündliche Leistungsfeststellungen (§ 5/6 LBV) sind seit der
+// Notenpflicht-Umstellung diskrete, mit einer echten Note (1-5) zu beurteilende
+// Leistungsfeststellungen wie Schularbeiten/Tests - assessment_weight_area_values()
+// konsumiert daher direkt den vorab in report_eval_oral_summary() berechneten
+// gewichteten Notendurchschnitt (oral_avg/oral_graded_count) statt der alten
+// Eindruck/Relevanz-Skala (oral_rows/impact_label).
 $participationOral = assessment_weight_compute_area_proposal(aw_summary([
-  'oral_rows' => [
-    ['impact_label'=>'positiv (+)'],
-    ['impact_label'=>'unauffällig (~)'],
-  ],
+  'oral_graded_count' => 2,
+  'oral_avg' => 2.25,
 ]), $defaults);
 aw_assert_same(75.0, round((float)$participationOral['weighting']['effective']['participation'], 4), '60/20 muss bei fehlendem Schriftbereich zu 75/25 werden.');
 aw_assert_same(25.0, round((float)$participationOral['weighting']['effective']['oral'], 4), '60/20 muss bei fehlendem Schriftbereich zu 75/25 werden.');
-aw_assert_same(2.25, $participationOral['areas']['oral']['value'], 'Positiv plus unauffällig muss qualitativ zu einem positiven mündlichen Bereichswert verdichtet werden.');
+aw_assert_same(2.25, $participationOral['areas']['oral']['value'], 'Der vorab berechnete mündliche Notendurchschnitt muss unverändert als Bereichswert übernommen werden.');
 
 $oralNeutral = assessment_weight_area_values(aw_summary([
   'participation_count'=>0,
   'note_proposal'=>['value'=>null],
-  'oral_rows'=>[['impact_label'=>'unauffällig (~)']],
+  'oral_graded_count'=>1,
+  'oral_avg'=>3.0,
 ]));
-aw_assert_same(3.0, $oralNeutral['oral']['value'], 'Unauffällig (~) muss als neutraler qualitativer Bereichswert 3 verdichtet werden.');
+aw_assert_same(3.0, $oralNeutral['oral']['value'], 'Ein einzelner benoteter mündlicher Eintrag muss unverändert als Bereichswert übernommen werden.');
 
-$oralWeighted = assessment_weight_area_values(aw_summary([
+$oralWithoutGrades = assessment_weight_area_values(aw_summary([
   'participation_count'=>0,
   'note_proposal'=>['value'=>null],
-  'oral_rows'=>[
-    ['impact_label'=>'positiv (+)','weight_multiplier'=>3],
-    ['impact_label'=>'negativ (-)','weight_multiplier'=>0.5],
-  ],
+  'oral_graded_count'=>0,
+  'oral_avg'=>null,
 ]));
-aw_assert_same(1.93, $oralWeighted['oral']['value'], 'Besondere mündliche Leistungsfeststellungen müssen optionale Einzelgewichte berücksichtigen.');
+aw_assert_same(null, $oralWithoutGrades['oral']['value'], 'Ohne benotete Einträge darf kein mündlicher Bereichswert entstehen (auch nicht mehr aus Eindruck/Relevanz).');
+
+// Die gewichtete Durchschnittsbildung selbst (inkl. optionaler Einzelgewichte)
+// erfolgt jetzt in report_eval_oral_summary(), mit denselben echten Noten wie
+// bei den schriftlichen Leistungsfeststellungen (siehe $writtenSummary unten).
+$oralWeightedSummary = report_eval_oral_summary([
+  ['assessment_date'=>'2026-03-01','assessment_type'=>'ORAL_EXAM','grade'=>2,'tendency'=>'','weight_multiplier'=>3],
+  ['assessment_date'=>'2026-04-01','assessment_type'=>'ORAL_EXERCISE','grade'=>4,'tendency'=>'','weight_multiplier'=>0.5],
+]);
+aw_assert_same(2, $oralWeightedSummary['graded_count'], 'Beide benoteten Einträge müssen als benotet gezählt werden.');
+aw_assert_same(2.2857142857142856, $oralWeightedSummary['avg'], 'Besondere mündliche Leistungsfeststellungen müssen optionale Einzelgewichte im Notendurchschnitt berücksichtigen.');
+
+$oralLegacyMix = report_eval_oral_summary([
+  ['assessment_date'=>'2026-03-01','assessment_type'=>'ORAL_EXAM','grade'=>2,'tendency'=>'plus','weight_multiplier'=>1],
+  ['assessment_date'=>'2026-02-01','assessment_type'=>'ORAL_EXAM','grade'=>0,'impact_label'=>'positiv (+)','impact_kind'=>'positive'],
+]);
+aw_assert_same(1, $oralLegacyMix['graded_count'], 'Nur Einträge mit echter Note dürfen in den Notendurchschnitt einfließen.');
+aw_assert_same(2.0, $oralLegacyMix['avg'], 'Der Notendurchschnitt darf nicht durch ältere ungenotete Eindruck/Relevanz-Einträge verfälscht werden.');
+aw_assert_same(1, $oralLegacyMix['positive'], 'Ältere Eindruck/Relevanz-Einträge müssen weiterhin zur historischen Übersicht gezählt werden.');
 
 $writtenSummary = report_eval_written_summary([
   ['grade'=>2,'exam_type'=>'TEST','tendency'=>'','weight_multiplier'=>0.5,'exam_date'=>'2026-03-01'],

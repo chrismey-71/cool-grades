@@ -580,7 +580,6 @@ else render_header('Berichte & Auswertungen',$u);
           <?php
             $shortBits=[];
             if($e['reason_text']) $shortBits[] = h($e['reason_text']);
-            elseif($e['note']) $shortBits[] = h((string)$e['note']);
             if($e['lesson_unit']) $shortBits[] = 'UE '.h($e['lesson_unit']);
             if($e['topic']) $shortBits[] = h((string)$e['topic']);
           ?>
@@ -603,7 +602,7 @@ else render_header('Berichte & Auswertungen',$u);
 <?php else: ?>
   <table class="table">
   <thead><tr>
-    <th>Datum</th><th>Schüler:in</th><th>UE / Thema</th><th>Grund</th><th>Eindruck</th><th>LBV</th><th>Kontext</th><th>Kriterien</th><th>Notiz</th>
+    <th>Datum</th><th>Schüler:in</th><th>UE / Thema</th><th>Grund</th><th>Eindruck</th><th>LBV</th><th>Kontext</th><th>Kriterien</th>
   </tr></thead>
   <tbody>
   <?php foreach($events as $e): ?>
@@ -644,7 +643,6 @@ else render_header('Berichte & Auswertungen',$u);
     <td class="muted" style="font-size:12px">
       <?php echo !empty($critMap[(int)$e['id']]) ? h(implode('; ',$critMap[(int)$e['id']])) : '–'; ?>
     </td>
-    <td><?php echo $e['note']?nl2br(h($e['note'])):'<span class="muted">–</span>'; ?></td>
   </tr>
   <?php endforeach; ?>
   </tbody>
@@ -797,7 +795,7 @@ else render_header('Berichte & Auswertungen',$u);
 
 <div style="height:18px"></div>
 <h2>Besondere mündliche Leistungsfeststellungen</h2>
-<div class="muted">Mündliche Prüfungen und mündliche Übungen werden hier mit Eindruck/Relevanz sowie den erfassten Details ausgegeben und in der Druckansicht mit berücksichtigt.</div>
+<div class="muted">Mündliche Prüfungen und mündliche Übungen werden hier mit Note sowie den erfassten Details ausgegeben und in der Druckansicht mit berücksichtigt. Ältere Einträge ohne Note stammen aus der Zeit vor der Notenpflicht und sind entsprechend gekennzeichnet.</div>
 
 <?php
   $whereOral = "oa.class_id=? AND oa.subject_id=?";
@@ -840,7 +838,7 @@ else render_header('Berichte & Auswertungen',$u);
       <th>Datum</th>
       <th>Art</th>
       <?php if(!$student_id): ?><th>Schüler:in</th><?php endif; ?>
-      <th>Eindruck/Relevanz</th>
+      <th>Note</th>
       <th><?php echo $student_id ? 'Themengebiet / Kategorie' : 'Details'; ?></th>
       <th><?php echo $student_id ? 'Fragen / Thema' : 'Zusatz'; ?></th>
     </tr></thead>
@@ -857,7 +855,7 @@ else render_header('Berichte & Auswertungen',$u);
           <?php if(!$student_id): ?>
             <td><?php echo h($row['last_name'].', '.$row['first_name']); ?></td>
           <?php endif; ?>
-          <td><?php echo h((string)($row['impact_label'] ?? '–')); ?></td>
+          <td><?php echo h(oral_assessment_grade_display($row)); ?></td>
           <td><?php echo $detailPrimary!=='' ? h($detailPrimary) : '<span class="muted">–</span>'; ?></td>
           <td><?php echo $detailSecondary!=='' ? nl2br(h($detailSecondary)) : '<span class="muted">–</span>'; ?></td>
         </tr>

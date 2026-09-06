@@ -52,6 +52,21 @@ html[data-theme="dark"] .btn.secondary{
   color:var(--text);
   border-color:var(--border);
 }
+
+/* The light-theme hover shadow (dark on light) barely shows against dark
+   cards, so dark mode gets its own stronger, theme-appropriate hover: a
+   deeper shadow plus a slightly bigger brightness bump. Buttons whose
+   resting background is nearly transparent (secondary/native "secondary")
+   also get an extra tint so the hover reads clearly even there. */
+html[data-theme="dark"] .btn:hover,
+html[data-theme="dark"] button:hover{
+  filter:brightness(1.2);
+  box-shadow:0 3px 10px rgba(0,0,0,.5);
+}
+html[data-theme="dark"] .btn.secondary:hover,
+html[data-theme="dark"] button.secondary:hover{
+  background:rgba(255,255,255,.10);
+}
 html[data-theme="dark"] .btn.utility-clear{
   background:rgba(139,94,0,.18);
   color:#f4d58d;

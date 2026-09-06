@@ -1,8 +1,6 @@
 <?php
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
-require_once __DIR__.'/../lib/participation_presets.php';
-require_once __DIR__.'/../lib/participation_pedagogical_mode.php';
 require_once __DIR__.'/../lib/oral_assessments.php';
 require_once __DIR__.'/../lib/school_years.php';
 require_once __DIR__.'/../lib/assessment_weights.php';
@@ -30,26 +28,28 @@ $class_id=(int)$oral['class_id'];
 $subject_id=(int)$oral['subject_id'];
 
 $students=load_class_students($pdo,$class_id,false);
-$impacts=load_participation_options($pdo,(int)$u['id'],$subject_id,'impact');
-$impact_labels=[];
-$impact_kinds=[];
-foreach($impacts as $o){
-  $impact_labels[(int)$o['id']] = (string)$o['label'];
-  $impact_kinds[(int)$o['id']] = participation_impact_kind_from_option($o);
-}
+
+// Historical rows saved before Noten were required only have an
+// Eindruck/Relevanz impression and no grade. Kept read-only here for
+// context; saving this form from now on always requires a real Note.
+$legacyImpactLabel=trim((string)($oral['impact_label'] ?? ''));
 
 $form_type=oral_assessment_normalize_type((string)$oral['assessment_type']);
 $form_student_id=(int)$oral['student_id'];
 $form_date=(string)$oral['assessment_date'];
-$form_impact_id=(int)($oral['impact_option_id'] ?? 0);
+$form_grade=($oral['grade'] !== null && (int)$oral['grade'] >= 1) ? (string)(int)$oral['grade'] : '';
+$form_tendency=normalize_exam_grade_tendency((string)($oral['tendency'] ?? ''));
+$form_remark=(string)($oral['remark'] ?? '');
 $form_topic_area=(string)($oral['topic_area'] ?? '');
 $form_questions=(string)($oral['questions'] ?? '');
 $form_category=(string)($oral['category'] ?? '');
 $form_title=(string)($oral['title'] ?? '');
+$form_feedback=(string)($oral['feedback'] ?? '');
 $form_weight=assessment_weight_multiplier_normalize($oral['weight_multiplier'] ?? 1);
 
 $msg='';
 $err='';
+$fieldErrors=[];
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
   verify_csrf();
@@ -78,20 +78,19 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $form_type=oral_assessment_normalize_type((string)($_POST['assessment_type'] ?? $form_type));
     $form_student_id=(int)($_POST['student_id'] ?? $form_student_id);
     $form_date=(string)($_POST['assessment_date'] ?? $form_date);
-    $form_impact_id=(int)($_POST['impact_option_id'] ?? $form_impact_id);
+    $form_grade=(string)($_POST['grade'] ?? '');
+    $form_tendency=normalize_exam_grade_tendency((string)($_POST['tendency'] ?? ''));
+    $form_remark=trim((string)($_POST['remark'] ?? ''));
     $form_topic_area=trim((string)($_POST['topic_area'] ?? ''));
     $form_questions=trim((string)($_POST['questions'] ?? ''));
     $form_category=trim((string)($_POST['category'] ?? ''));
     $form_title=trim((string)($_POST['title'] ?? ''));
+    $form_feedback=trim((string)($_POST['feedback'] ?? ''));
     $form_weight=assessment_weight_multiplier_normalize($_POST['weight_multiplier'] ?? $form_weight);
 
     if(!$form_student_id) $err='Bitte Schüler:in wählen.';
     elseif(!$form_date) $err='Bitte Datum wählen.';
-    elseif(!$form_impact_id) $err='Bitte Eindruck/Relevanz wählen.';
-
-    $impact_label=$impact_labels[$form_impact_id] ?? '';
-    $impact_kind=$impact_kinds[$form_impact_id] ?? participation_impact_kind_from_label($impact_label);
-    if($err==='' && $impact_label==='') $err='Ungültiger Eindruck/Relevanz.';
+    elseif($form_grade==='' || !preg_match('/^[1-5]$/', $form_grade)) $err='Bitte eine Note (1–5) wählen.';
 
     if($err===''){
       if($form_type==='ORAL_EXAM'){
@@ -100,21 +99,23 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       } else {
         if($form_category==='') $err='Bitte Kategorie eingeben.';
         elseif($form_title==='') $err='Bitte Thema/Titel eingeben.';
+        elseif($form_feedback==='') $err='Bitte eine Rückmeldung erfassen.';
       }
     }
 
     if($err===''){
       try{
         $pdo->prepare("UPDATE oral_assessments
-                       SET student_id=?, assessment_type=?, assessment_date=?, impact_option_id=?, impact_label=?, impact_kind=?, weight_multiplier=?,
-                           topic_area=?, questions=?, category=?, title=?
+                       SET student_id=?, assessment_type=?, assessment_date=?, grade=?, tendency=?, remark=?, weight_multiplier=?,
+                           topic_area=?, questions=?, category=?, title=?, feedback=?
                        WHERE id=? AND teacher_id=?")
           ->execute([
-            $form_student_id,$form_type,$form_date,$form_impact_id,$impact_label,$impact_kind,$form_weight,
+            $form_student_id,$form_type,$form_date,(int)$form_grade,$form_tendency!==''?$form_tendency:null,$form_remark!==''?$form_remark:null,$form_weight,
             $form_type==='ORAL_EXAM' ? $form_topic_area : null,
             $form_type==='ORAL_EXAM' ? $form_questions : null,
             $form_type==='ORAL_EXERCISE' ? $form_category : null,
             $form_type==='ORAL_EXERCISE' ? $form_title : null,
+            $form_type==='ORAL_EXERCISE' ? $form_feedback : null,
             $id,(int)$u['id']
           ]);
         emit_event('oral_assessment_updated',[
@@ -123,7 +124,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
           'student_id'=>$form_student_id,
           'class_id'=>$class_id,
           'subject_id'=>$subject_id,
-          'impact'=>$impact_label,
+          'grade'=>(int)$form_grade,
           'topic_area'=>$form_type==='ORAL_EXAM' ? $form_topic_area : null,
           'category'=>$form_type==='ORAL_EXERCISE' ? $form_category : null,
           'title'=>$form_type==='ORAL_EXERCISE' ? $form_title : null,
@@ -138,14 +139,18 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                            WHERE oa.id=? AND oa.teacher_id=?");
         $st->execute([$id,(int)$u['id']]);
         $oral=$st->fetch();
+        $legacyImpactLabel=trim((string)($oral['impact_label'] ?? ''));
         $form_type=oral_assessment_normalize_type((string)$oral['assessment_type']);
         $form_student_id=(int)$oral['student_id'];
         $form_date=(string)$oral['assessment_date'];
-        $form_impact_id=(int)($oral['impact_option_id'] ?? 0);
+        $form_grade=($oral['grade'] !== null && (int)$oral['grade'] >= 1) ? (string)(int)$oral['grade'] : '';
+        $form_tendency=normalize_exam_grade_tendency((string)($oral['tendency'] ?? ''));
+        $form_remark=(string)($oral['remark'] ?? '');
         $form_topic_area=(string)($oral['topic_area'] ?? '');
         $form_questions=(string)($oral['questions'] ?? '');
         $form_category=(string)($oral['category'] ?? '');
         $form_title=(string)($oral['title'] ?? '');
+        $form_feedback=(string)($oral['feedback'] ?? '');
         $form_weight=assessment_weight_multiplier_normalize($oral['weight_multiplier'] ?? 1);
       }catch(Exception $e){
         $err='Fehler beim Speichern: '.$e->getMessage();
@@ -163,6 +168,7 @@ $summary_tooltip_map=[
   'ORAL_EXERCISE'=>oral_assessment_summary_tooltip('ORAL_EXERCISE'),
 ];
 $weight_multiplier_options = assessment_weight_multiplier_options();
+$tendency_choices = exam_grade_tendency_choices();
 
 render_header('Besondere mündliche Leistungsfeststellung bearbeiten',$u);
 ?>
@@ -179,6 +185,10 @@ render_header('Besondere mündliche Leistungsfeststellung bearbeiten',$u);
         <div id="oralSummaryText"><?php echo oral_assessment_summary($form_type); ?></div>
       </div>
     </details>
+  <?php endif; ?>
+
+  <?php if($legacyImpactLabel !== ''): ?>
+    <div class="notice" style="margin-top:10px">Historischer Eintrag: gespeicherter Eindruck/Relevanz-Wert „<?php echo h($legacyImpactLabel); ?>" aus der Zeit vor der Notenpflicht. Dieser Wert bleibt zur Nachvollziehbarkeit erhalten, zählt aber nicht mehr in die Notenberechnung. Bitte oben eine Note (1–5) für diesen Eintrag vergeben.</div>
   <?php endif; ?>
 
   <?php if($msg): ?><div class="flash success" style="margin-top:10px"><?php echo h($msg); ?></div><?php endif; ?>
@@ -221,13 +231,30 @@ render_header('Besondere mündliche Leistungsfeststellung bearbeiten',$u);
     </div>
 
     <div style="height:12px"></div>
-    <label class="muted">Eindruck/Relevanz</label>
-    <select class="input" name="impact_option_id" required>
-      <option value="0">Bitte wählen…</option>
-      <?php foreach($impacts as $o): ?>
-        <option value="<?php echo (int)$o['id']; ?>" <?php echo $form_impact_id===(int)$o['id']?'selected':''; ?>><?php echo h($o['label']); ?></option>
-      <?php endforeach; ?>
-    </select>
+    <div class="row" style="align-items:end">
+      <div>
+        <label class="muted">Note (1–5)</label>
+        <select class="input" name="grade" style="max-width:140px" required>
+          <option value="">–</option>
+          <?php for($i=1;$i<=5;$i++): ?>
+            <option value="<?php echo $i; ?>" <?php echo ($form_grade!=='' && (string)$form_grade===(string)$i)?'selected':''; ?>><?php echo $i; ?></option>
+          <?php endfor; ?>
+        </select>
+      </div>
+      <div>
+        <label class="muted">Tendenz</label>
+        <select class="input" name="tendency" style="max-width:160px">
+          <option value="">–</option>
+          <?php foreach($tendency_choices as $value=>$label): ?>
+            <option value="<?php echo h($value); ?>" <?php echo $form_tendency===$value?'selected':''; ?>><?php echo h($label); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="muted">Bemerkung</label>
+        <textarea class="input" name="remark" rows="2" placeholder="optional"><?php echo h($form_remark); ?></textarea>
+      </div>
+    </div>
 
     <div id="oralExamFields" style="<?php echo $form_type==='ORAL_EXAM'?'':'display:none'; ?>">
       <div style="height:12px"></div>
@@ -247,6 +274,11 @@ render_header('Besondere mündliche Leistungsfeststellung bearbeiten',$u);
       <div style="height:12px"></div>
       <label class="muted">Thema / Titel</label>
       <input class="input" name="title" value="<?php echo h($form_title); ?>">
+
+      <div style="height:12px"></div>
+      <label class="muted">Rückmeldung</label>
+      <textarea class="input" name="feedback" rows="4" placeholder="z.B. Das Referat wird mit Gut beurteilt. Inhalt und Gliederung waren sehr überzeugend; bei der eigenständigen Anwendung auf das Fallbeispiel bestanden noch kleinere Unsicherheiten."><?php echo h($form_feedback); ?></textarea>
+      <div class="small muted" style="margin-top:6px">Kurze schriftliche Rückmeldung, die die vergebene Note nachvollziehbar begründet.</div>
     </div>
 
     <div style="height:14px"></div>

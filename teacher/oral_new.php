@@ -1,8 +1,6 @@
 <?php
 require_once __DIR__.'/../lib/layout.php';
 require_once __DIR__.'/../lib/events.php';
-require_once __DIR__.'/../lib/participation_presets.php';
-require_once __DIR__.'/../lib/participation_pedagogical_mode.php';
 require_once __DIR__.'/../lib/oral_assessments.php';
 require_once __DIR__.'/../lib/school_years.php';
 require_once __DIR__.'/../lib/assessment_weights.php';
@@ -26,13 +24,6 @@ require_teacher_active_assignment($u,$class_id,$subject_id);
 require_class_writable($pdo,$class_id);
 
 $students=load_class_students($pdo,$class_id,false);
-$impacts=load_participation_options($pdo,(int)$u['id'],$subject_id,'impact');
-$impact_labels=[];
-$impact_kinds=[];
-foreach($impacts as $o){
-  $impact_labels[(int)$o['id']] = (string)$o['label'];
-  $impact_kinds[(int)$o['id']] = participation_impact_kind_from_option($o);
-}
 
 $msg='';
 $err='';
@@ -44,11 +35,14 @@ if($notice==='saved'){
 
 $form_student_id=(int)($_POST['student_id'] ?? 0);
 $form_date=(string)($_POST['assessment_date'] ?? date('Y-m-d'));
-$form_impact_id=(int)($_POST['impact_option_id'] ?? 0);
+$form_grade=(string)($_POST['grade'] ?? '');
+$form_tendency=normalize_exam_grade_tendency((string)($_POST['tendency'] ?? ''));
+$form_remark=trim((string)($_POST['remark'] ?? ''));
 $form_topic_area=trim((string)($_POST['topic_area'] ?? ''));
 $form_questions=trim((string)($_POST['questions'] ?? ''));
 $form_category=trim((string)($_POST['category'] ?? ''));
 $form_title=trim((string)($_POST['title'] ?? ''));
+$form_feedback=trim((string)($_POST['feedback'] ?? ''));
 $form_weight=assessment_weight_multiplier_normalize($_POST['weight_multiplier'] ?? 1);
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
@@ -56,11 +50,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
   if(!$form_student_id){ $err='Bitte Schüler:in wählen.'; $fieldErrors['student_id']='Bitte Schüler:in wählen.'; }
   elseif(!$form_date){ $err='Bitte Datum wählen.'; $fieldErrors['assessment_date']='Bitte Datum wählen.'; }
-  elseif(!$form_impact_id){ $err='Bitte Eindruck/Relevanz wählen.'; $fieldErrors['impact_option_id']='Bitte Eindruck/Relevanz wählen.'; }
-
-  $impact_label=$impact_labels[$form_impact_id] ?? '';
-  $impact_kind=$impact_kinds[$form_impact_id] ?? participation_impact_kind_from_label($impact_label);
-  if($err==='' && $impact_label===''){ $err='Ungültiger Eindruck/Relevanz.'; $fieldErrors['impact_option_id']='Dieser Eindruck ist nicht gültig.'; }
+  elseif($form_grade==='' || !preg_match('/^[1-5]$/', $form_grade)){ $err='Bitte eine Note (1–5) wählen.'; $fieldErrors['grade']='Bitte eine Note (1–5) wählen.'; }
 
   if($err===''){
     if($assessment_type==='ORAL_EXAM'){
@@ -69,21 +59,23 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     } else {
       if($form_category===''){ $err='Bitte Kategorie eingeben.'; $fieldErrors['category']='Bitte Kategorie eingeben.'; }
       elseif($form_title===''){ $err='Bitte Thema/Titel eingeben.'; $fieldErrors['title']='Bitte Thema/Titel eingeben.'; }
+      elseif($form_feedback===''){ $err='Bitte eine Rückmeldung erfassen.'; $fieldErrors['feedback']='Bitte eine Rückmeldung erfassen.'; }
     }
   }
 
   if($err===''){
     try{
       $pdo->prepare("INSERT INTO oral_assessments
-        (class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,impact_option_id,impact_label,impact_kind,weight_multiplier,topic_area,questions,category,title,created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        (class_id,subject_id,teacher_id,student_id,assessment_type,assessment_date,grade,tendency,remark,weight_multiplier,topic_area,questions,category,title,feedback,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
         ->execute([
           $class_id,$subject_id,(int)$u['id'],$form_student_id,$assessment_type,$form_date,
-          $form_impact_id,$impact_label,$impact_kind,$form_weight,
+          (int)$form_grade,$form_tendency!==''?$form_tendency:null,$form_remark!==''?$form_remark:null,$form_weight,
           $assessment_type==='ORAL_EXAM' ? $form_topic_area : null,
           $assessment_type==='ORAL_EXAM' ? $form_questions : null,
           $assessment_type==='ORAL_EXERCISE' ? $form_category : null,
           $assessment_type==='ORAL_EXERCISE' ? $form_title : null,
+          $assessment_type==='ORAL_EXERCISE' ? $form_feedback : null,
           now_iso()
         ]);
       $oral_id=(int)$pdo->lastInsertId();
@@ -93,7 +85,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         'student_id'=>$form_student_id,
         'class_id'=>$class_id,
         'subject_id'=>$subject_id,
-        'impact'=>$impact_label,
+        'grade'=>(int)$form_grade,
         'topic_area'=>$assessment_type==='ORAL_EXAM' ? $form_topic_area : null,
         'category'=>$assessment_type==='ORAL_EXERCISE' ? $form_category : null,
         'title'=>$assessment_type==='ORAL_EXERCISE' ? $form_title : null,
@@ -120,6 +112,7 @@ $summary_tooltip_map=[
   'ORAL_EXERCISE'=>oral_assessment_summary_tooltip('ORAL_EXERCISE'),
 ];
 $weight_multiplier_options = assessment_weight_multiplier_options();
+$tendency_choices = exam_grade_tendency_choices();
 $compact_forms = compact_entry_forms_enabled($u);
 
 render_header('Besondere mündliche Leistungsfeststellung',$u);
@@ -182,17 +175,30 @@ render_header('Besondere mündliche Leistungsfeststellung',$u);
 <?php accordion_section_end($compact_forms); ?>
 
 <?php if(!$compact_forms): ?><div style="height:12px"></div><?php endif; ?>
-<?php accordion_section_start($compact_forms, 'Eindruck/Relevanz', $form_impact_id>0 || $_SERVER['REQUEST_METHOD']==='POST', 'margin-top:12px', '', 'contrast-panel section-rating'); ?>
+<?php accordion_section_start($compact_forms, 'Note (1–5)', $form_grade!=='' || $_SERVER['REQUEST_METHOD']==='POST', 'margin-top:12px', '', 'contrast-panel section-rating'); ?>
 <div class="row contrast-form section-rating">
-  <div style="flex:1">
-    <label class="muted">Eindruck/Relevanz</label>
-    <select class="input" name="impact_option_id" required>
-      <option value="0">Bitte wählen…</option>
-      <?php foreach($impacts as $o): ?>
-        <option value="<?php echo (int)$o['id']; ?>" <?php echo $form_impact_id===(int)$o['id']?'selected':''; ?>><?php echo h($o['label']); ?></option>
+  <div>
+    <label class="muted">Note (1–5)</label>
+    <select class="input" name="grade" style="max-width:140px" required>
+      <option value="">–</option>
+      <?php for($i=1;$i<=5;$i++): ?>
+        <option value="<?php echo $i; ?>" <?php echo ($form_grade!=='' && (string)$form_grade===(string)$i)?'selected':''; ?>><?php echo $i; ?></option>
+      <?php endfor; ?>
+    </select>
+    <?php if(!empty($fieldErrors['grade'])): ?><div class="field-error"><?php echo h($fieldErrors['grade']); ?></div><?php endif; ?>
+  </div>
+  <div>
+    <label class="muted">Tendenz</label>
+    <select class="input" name="tendency" style="max-width:160px">
+      <option value="">–</option>
+      <?php foreach($tendency_choices as $value=>$label): ?>
+        <option value="<?php echo h($value); ?>" <?php echo $form_tendency===$value?'selected':''; ?>><?php echo h($label); ?></option>
       <?php endforeach; ?>
     </select>
-    <?php if(!empty($fieldErrors['impact_option_id'])): ?><div class="field-error"><?php echo h($fieldErrors['impact_option_id']); ?></div><?php endif; ?>
+  </div>
+  <div style="flex:1">
+    <label class="muted">Bemerkung</label>
+    <textarea class="input" name="remark" rows="2" placeholder="optional"><?php echo h($form_remark); ?></textarea>
   </div>
 </div>
 <?php accordion_section_end($compact_forms); ?>
@@ -222,6 +228,12 @@ render_header('Besondere mündliche Leistungsfeststellung',$u);
   <label class="muted">Thema / Titel</label>
   <input class="input" name="title" value="<?php echo h($form_title); ?>" placeholder="z.B. Rechte und Pflichten im Lehrvertrag">
   <?php if(!empty($fieldErrors['title'])): ?><div class="field-error"><?php echo h($fieldErrors['title']); ?></div><?php endif; ?>
+
+  <div style="height:12px"></div>
+  <label class="muted">Rückmeldung</label>
+  <textarea class="input" name="feedback" rows="4" placeholder="z.B. Das Referat wird mit Gut beurteilt. Inhalt und Gliederung waren sehr überzeugend; bei der eigenständigen Anwendung auf das Fallbeispiel bestanden noch kleinere Unsicherheiten."><?php echo h($form_feedback); ?></textarea>
+  <div class="small muted" style="margin-top:6px">Kurze schriftliche Rückmeldung, die die vergebene Note nachvollziehbar begründet.</div>
+  <?php if(!empty($fieldErrors['feedback'])): ?><div class="field-error"><?php echo h($fieldErrors['feedback']); ?></div><?php endif; ?>
 </div>
 </div>
 <?php accordion_section_end($compact_forms); ?>

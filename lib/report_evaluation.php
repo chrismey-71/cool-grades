@@ -393,11 +393,23 @@ function report_eval_written_summary(array $writtenRows): array {
   ];
 }
 
+/**
+ * Besondere mündliche Leistungsfeststellungen (§ 5/6 LBV) are discrete graded
+ * assessments, just like Schularbeiten/Tests, so this mirrors
+ * report_eval_written_summary(): a weighted average is built only from real
+ * Noten (grade 1-5). Rows saved before that requirement only carry an
+ * Eindruck/Relevanz label and no grade - they are kept and shown separately
+ * for historical transparency, but never enter the Notendurchschnitt.
+ */
 function report_eval_oral_summary(array $oralRows): array {
   if(!$oralRows){
     return [
       'count' => 0,
+      'graded_count' => 0,
       'text' => '–',
+      'avg' => null,
+      'grades' => [],
+      'type_counts' => [],
       'positive' => 0,
       'neutral' => 0,
       'negative' => 0,
@@ -406,22 +418,55 @@ function report_eval_oral_summary(array $oralRows): array {
   usort($oralRows, static function(array $a, array $b): int {
     return strcmp((string)$a['assessment_date'], (string)$b['assessment_date']) * -1;
   });
-  $parts = [];
+  $symbols = [];
+  $grades = [];
+  $weightedSum = 0.0;
+  $weightSum = 0.0;
+  $typeCounts = [];
+  $legacyParts = [];
   $positive = 0;
   $neutral = 0;
   $negative = 0;
   foreach($oralRows as $row){
-    $label = trim((string)($row['impact_label'] ?? ''));
-    $classification = report_eval_rating_classification($label, (string)($row['impact_kind'] ?? ''));
-    if($classification === 'positive') $positive++;
-    elseif($classification === 'negative') $negative++;
-    elseif($classification === 'neutral') $neutral++;
-    if($label !== '') $parts[] = $label;
+    $grade = (int)($row['grade'] ?? 0);
+    if($grade >= 1 && $grade <= 5){
+      $grades[] = $grade;
+      $weight = function_exists('assessment_weight_multiplier_normalize')
+        ? assessment_weight_multiplier_normalize($row['weight_multiplier'] ?? 1)
+        : max(0.0, (float)($row['weight_multiplier'] ?? 1));
+      if($weight <= 0) $weight = 1.0;
+      $weightedSum += $grade * $weight;
+      $weightSum += $weight;
+      $type = oral_assessment_normalize_type((string)($row['assessment_type'] ?? 'ORAL_EXAM'));
+      $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+      $weightSuffix = abs($weight - 1.0) > 0.001 ? ' · '.number_format($weight, 1, ',', '.').'x' : '';
+      $symbols[] = oral_assessment_type_short_label($type).' '.report_eval_grade_symbol($grade, (string)($row['tendency'] ?? '')).$weightSuffix;
+    } else {
+      $label = trim((string)($row['impact_label'] ?? ''));
+      $classification = report_eval_rating_classification($label, (string)($row['impact_kind'] ?? ''));
+      if($classification === 'positive') $positive++;
+      elseif($classification === 'negative') $negative++;
+      elseif($classification === 'neutral') $neutral++;
+      if($label !== '') $legacyParts[] = $label;
+    }
   }
+  $gradedCount = count($symbols);
+  $avg = $weightSum > 0 ? $weightedSum / $weightSum : null;
   $count = count($oralRows);
+  $textParts = [];
+  if($gradedCount > 0){
+    $textParts[] = $gradedCount.': '.implode(', ', array_slice($symbols, 0, 4)).($gradedCount > 4 ? ', …' : '');
+  }
+  if($legacyParts){
+    $textParts[] = count($legacyParts).' alt/Eindruck: '.implode(', ', array_slice($legacyParts, 0, 3)).(count($legacyParts) > 3 ? ', …' : '');
+  }
   return [
     'count' => $count,
-    'text' => $count ? ($count.': '.implode(', ', array_slice($parts, 0, 3)).($count > 3 ? ', …' : '')) : '–',
+    'graded_count' => $gradedCount,
+    'text' => $textParts ? implode(' · ', $textParts) : '–',
+    'avg' => $avg,
+    'grades' => $grades,
+    'type_counts' => $typeCounts,
     'positive' => $positive,
     'neutral' => $neutral,
     'negative' => $negative,
@@ -552,6 +597,9 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
       'written_count' => 0,
       'written_type_counts' => [],
       'oral_count' => 0,
+      'oral_graded_count' => 0,
+      'oral_avg' => null,
+      'oral_type_counts' => [],
       'oral_positive_count' => 0,
       'oral_neutral_count' => 0,
       'oral_negative_count' => 0,
@@ -613,7 +661,7 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
     else $summaries[$sid]['unrated_count']++;
     if($score !== null) $summaries[$sid]['participation_scores'][] = $score;
 
-    $comment = trim((string)($event['reason_text'] ?: $event['note'] ?: ''));
+    $comment = trim((string)($event['reason_text'] ?? ''));
     if($comment !== ''){
       $priority = ($score !== null && $score < 0) ? 30 : 20;
       $summaries[$sid]['comment_candidates'][] = [
@@ -703,7 +751,7 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
   $paramsOral = [$classId, $subjectId];
   if($dateFrom !== ''){ $whereOral .= " AND oa.assessment_date >= ?"; $paramsOral[] = $dateFrom; }
   if($dateTo !== ''){ $whereOral .= " AND oa.assessment_date <= ?"; $paramsOral[] = $dateTo; }
-  $st = $pdo->prepare("SELECT oa.student_id, oa.assessment_date, oa.assessment_type, oa.impact_label, oa.impact_kind, oa.weight_multiplier, oa.topic_area, oa.questions, oa.category, oa.title
+  $st = $pdo->prepare("SELECT oa.student_id, oa.assessment_date, oa.assessment_type, oa.impact_label, oa.impact_kind, oa.grade, oa.tendency, oa.weight_multiplier, oa.topic_area, oa.questions, oa.category, oa.title
                        FROM oral_assessments oa
                        WHERE $whereOral
                        ORDER BY oa.assessment_date DESC, oa.id DESC");
@@ -712,10 +760,15 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
     $sid = (int)$row['student_id'];
     if(!isset($summaries[$sid])) continue;
     $summaries[$sid]['oral_rows'][] = $row;
-    $classification = report_eval_rating_classification((string)($row['impact_label'] ?? ''), (string)($row['impact_kind'] ?? ''));
-    if($classification === 'positive') $summaries[$sid]['oral_positive_count']++;
-    elseif($classification === 'negative') $summaries[$sid]['oral_negative_count']++;
-    elseif($classification === 'neutral') $summaries[$sid]['oral_neutral_count']++;
+    // Rows with a real Note (grade 1-5) are discrete graded assessments and
+    // no longer classified as an "Eindruck" - only older, ungraded rows
+    // still contribute to these legacy positive/neutral/negative counts.
+    if((int)($row['grade'] ?? 0) <= 0){
+      $classification = report_eval_rating_classification((string)($row['impact_label'] ?? ''), (string)($row['impact_kind'] ?? ''));
+      if($classification === 'positive') $summaries[$sid]['oral_positive_count']++;
+      elseif($classification === 'negative') $summaries[$sid]['oral_negative_count']++;
+      elseif($classification === 'neutral') $summaries[$sid]['oral_neutral_count']++;
+    }
   }
 
   foreach($summaries as $sid => $summary){
@@ -763,6 +816,9 @@ function report_build_student_summaries(PDO $pdo, int $classId, int $subjectId, 
     $summary['written_avg'] = $written['avg'];
     $summary['written_type_counts'] = $written['type_counts'];
     $summary['oral_count'] = (int)$oral['count'];
+    $summary['oral_graded_count'] = (int)$oral['graded_count'];
+    $summary['oral_avg'] = $oral['avg'];
+    $summary['oral_type_counts'] = $oral['type_counts'];
     $summary['oral_text'] = (string)$oral['text'];
     $summary['comments_text'] = $commentsText;
     $summary['note_proposal'] = $proposal;

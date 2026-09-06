@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__.'/helpers.php';
 require_once __DIR__.'/assessment_summaries.php';
 
 function oral_assessment_types(): array {
@@ -18,6 +19,45 @@ function oral_assessment_type_label(string $type): string {
   $type = oral_assessment_normalize_type($type);
   $types = oral_assessment_types();
   return $types[$type];
+}
+
+function oral_assessment_type_short_label(string $type): string {
+  $type = oral_assessment_normalize_type($type);
+  $map = [
+    'ORAL_EXAM' => 'mdl.Pr.',
+    'ORAL_EXERCISE' => 'mdl.Üb.',
+  ];
+  return $map[$type] ?? $type;
+}
+
+/**
+ * A besondere mündliche Leistungsfeststellung (§ 5/6 LBV) is, like a
+ * Schularbeit or Test, a discrete graded assessment: it must be beurteilt
+ * with a real Note (1-5), not the Eindruck/Relevanz impression scale used
+ * for ongoing Mitarbeit. Entry masks stop collecting impact_option_id, but
+ * older rows saved before this change only have an impact_label and no
+ * grade - those stay visible for context but no longer contribute to any
+ * Notendurchschnitt. This renders one row's grade/tendency symbol, or a
+ * clearly marked legacy fallback for such a row.
+ */
+function oral_assessment_grade_symbol(int $grade, ?string $tendency = ''): string {
+  $suffix = '';
+  $tendency = normalize_exam_grade_tendency((string)$tendency);
+  if($tendency === 'plus') $suffix = '+';
+  elseif($tendency === 'minus') $suffix = '-';
+  return (string)$grade.$suffix;
+}
+
+function oral_assessment_grade_display(array $row): string {
+  $grade = (int)($row['grade'] ?? 0);
+  if($grade >= 1 && $grade <= 5){
+    return oral_assessment_grade_symbol($grade, (string)($row['tendency'] ?? ''));
+  }
+  $impactLabel = trim((string)($row['impact_label'] ?? ''));
+  if($impactLabel !== ''){
+    return '– (alt: Eindruck „'.$impactLabel.'", zählt nicht mehr in die Notenberechnung)';
+  }
+  return '–';
 }
 
 function oral_assessment_summary(string $type): string {

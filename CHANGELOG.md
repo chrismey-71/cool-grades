@@ -16,6 +16,29 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.81] - 2026-09-06
+
+### Hinzugefügt
+
+- WebUntis-Stundenplan-Import: Lehrer:innen hinterlegen in ihrem Konto einen privaten, verschlüsselt gespeicherten WebUntis-iCal-Link und stoßen den Import selbst an. Importierte Stunden werden anhand von Uhrzeit und Klasse den eigenen aktiven Zuweisungen zugeordnet; nicht zuordenbare Fächercodes oder Klassen werden nicht geraten, sondern zur manuellen Klärung gemeldet.
+- Neue Seite „WebUntis-Abgleich“: nicht erkannte Fächercodes lassen sich einem echten Fach zuordnen oder als „keine Unterrichtsstunde“ markieren.
+- Stunden, die nur eine a/b-Gruppe betreffen, werden erkannt; über einen Schnellzugriff lassen sich passende Gruppen „a“/„b“ anlegen.
+- Die Stundenauswahl bei der Mitarbeit-Erfassung zeigt importierte Stunden mit Uhrzeit/Raum, schlägt die zeitlich passende Stunde des Tages vor und markiert automatisch die Schüler:innen der passenden a/b-Gruppe.
+- Die Abschnitte der Mitarbeit-Erfassung lassen sich per Ziehen neu anordnen; die Reihenfolge wird pro Lehrkraft gespeichert.
+- Neue Kontoeinstellung für den Navigationsstil (Text / nur Symbol / Symbol und Text).
+- „Mündliche Übung“ (§ 6 LBV) verlangt jetzt eine kurze schriftliche Rückmeldung, die die vergebene Note nachvollziehbar begründet.
+
+### Geändert
+
+- Besondere mündliche Leistungsfeststellungen (§ 5/6 LBV) werden mit einer echten Note (1–5), Tendenz und Gewichtung beurteilt statt der bisherigen Eindruck/Relevanz-Einstufung; Abschlussbeurteilung, Berichte & Auswertungen und PDF-Export berechnen daraus einen gewichteten Notendurchschnitt. Ältere Einträge ohne Note bleiben zur Nachvollziehbarkeit sichtbar, zählen aber nicht mehr in die Berechnung.
+- In der Mitarbeit-Erfassung wurden „Unterrichtskontext“ und „Notiz (optional)“ zu einem Bereich zusammengeführt: Statt der Notiz wird direkt „Kurze Beobachtung / Anlass“ erfasst. Der Unterrichtskontext ist jetzt auch in der vereinfachten Eingabe sichtbar.
+- Bestehende „Notiz“-Einträge wurden automatisch mit „Kurze Beobachtung / Anlass“ zusammengeführt; das separate Notizfeld entfällt in Erfassung, Presets, Berichten und PDF-Export.
+- Schaltflächen zeigen jetzt einen Hover-/Klick-Effekt (Anheben mit Schatten); im Dunkelmodus mit eigener, deutlicherer Hervorhebung.
+
+### Korrigiert
+
+- Die Schriftfarbe auf farbigen Schaltflächen wird automatisch anhand der gewählten Markenfarbe berechnet, damit ausreichender Kontrast erhalten bleibt, statt immer Weiß zu verwenden.
+
 ## [1.80.1] - 2026-08-30
 
 ### Geändert
