@@ -140,6 +140,15 @@ render_header('Einstellungen', $u);
 
         <div class="col-12 col-md-6">
           <div class="card" style="padding:14px">
+            <h2 style="margin:0 0 8px 0">UE-Zeiten</h2>
+            <div class="muted" style="font-size:13px">Uhrzeiten der Unterrichtseinheiten festlegen, damit WebUntis-Importe automatisch der passenden UE zugeordnet werden.</div>
+            <div style="height:10px"></div>
+            <a class="btn" href="<?php echo h($bp); ?>/admin/lesson_unit_times.php">UE-Zeiten öffnen</a>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="card" style="padding:14px">
             <h2 style="margin:0 0 8px 0">Impressum und Datenschutz</h2>
             <div class="muted" style="font-size:13px">Öffentliche Rechtstexte für die Fußzeile mit einem einfachen HTML-Editor pflegen.</div>
             <div style="height:10px"></div>

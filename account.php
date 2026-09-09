@@ -18,6 +18,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
       $quickPickEnabled = (int)($u['pref_participation_quick_pick_enabled'] ?? 1);
       $quickPickLimit = (int)($u['pref_participation_quick_pick_limit'] ?? 10);
+      $lessonLookbackDays = (int)($u['pref_lesson_lookback_days'] ?? 14);
       $legalHintsEnabled = (int)($u['pref_legal_hints_enabled'] ?? 1);
       $compactFormsEnabled = (int)($u['pref_compact_forms_enabled'] ?? 0);
       $visualContrast = (string)($u['pref_visual_contrast'] ?? 'normal');
@@ -58,15 +59,25 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         if($quickPickLimit < 1 || $quickPickLimit > 30){
           throw new Exception('Bitte für den Quick-Pick eine Zahl zwischen 1 und 30 wählen.');
         }
+
+        $lessonLookbackDaysRaw = trim((string)($_POST['pref_lesson_lookback_days'] ?? '14'));
+        if($lessonLookbackDaysRaw==='') $lessonLookbackDaysRaw='14';
+        if(!preg_match('/^\d+$/',$lessonLookbackDaysRaw)){
+          throw new Exception('Bitte für den Stundenkontext eine ganze Zahl Tage eingeben.');
+        }
+        $lessonLookbackDays = (int)$lessonLookbackDaysRaw;
+        if($lessonLookbackDays < 1 || $lessonLookbackDays > 60){
+          throw new Exception('Bitte für den Stundenkontext eine Zahl zwischen 1 und 60 Tagen wählen.');
+        }
       }
 
       $st=db()->prepare("UPDATE users
                          SET pref_theme=?, pref_quick_entry_ui=?,
                              pref_participation_quick_pick_enabled=?, pref_participation_quick_pick_limit=?,
                              pref_legal_hints_enabled=?, pref_compact_forms_enabled=?, pref_visual_contrast=?, pref_simple_participation_entry=?,
-                             pref_nav_style=?
+                             pref_nav_style=?, pref_lesson_lookback_days=?
                          WHERE id=?");
-      $st->execute([$theme,$quick,$quickPickEnabled,$quickPickLimit,$legalHintsEnabled,$compactFormsEnabled,$visualContrast,$simpleParticipationEntry,$navStyle,(int)$u['id']]);
+      $st->execute([$theme,$quick,$quickPickEnabled,$quickPickLimit,$legalHintsEnabled,$compactFormsEnabled,$visualContrast,$simpleParticipationEntry,$navStyle,$lessonLookbackDays,(int)$u['id']]);
       $msg='Einstellungen gespeichert.';
       $u=current_user();
     } elseif($action==='webuntis_save'){
@@ -95,6 +106,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $webuntisImportSummary=webuntis_import_for_teacher(db(),$u);
       $u=current_user();
       $msg='WebUntis-Import abgeschlossen: '.(int)$webuntisImportSummary['imported'].' neue, '.(int)$webuntisImportSummary['updated'].' aktualisierte Stunde(n) übernommen.';
+      if((int)($webuntisImportSummary['pruned_stale'] ?? 0) > 0){
+        $msg.=' '.(int)$webuntisImportSummary['pruned_stale'].' nicht mehr im Stundenplan vorhandene Stunde(n) wurden entfernt.';
+      }
     } elseif($action==='webuntis_create_groups'){
       if(($u['role'] ?? '')!=='teacher'){
         throw new Exception('Nur für Lehrkräfte verfügbar.');
@@ -204,6 +218,15 @@ render_header('Konto',$u);
         <label class="muted">Anzahl angezeigter Schüler:innen</label>
         <input class="input" name="pref_participation_quick_pick_limit" type="number" min="1" max="30" value="<?php echo h((string)((int)($u['pref_participation_quick_pick_limit'] ?? 10) ?: 10)); ?>">
         <div class="small muted settings-panel-note">Zeigt in der Mitarbeit-Erfassung Schüler:innen mit den wenigsten oder keinen bisherigen Bewertungen in diesem Fach und dieser Klasse. Der Quick-Pick ist nur ein Vorschlag und speichert noch keine Auswahl.</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-6">
+      <div class="settings-panel" id="account-pref-lesson-lookback">
+        <div class="settings-panel-title">Stundenkontext: rückwirkende Erfassung <span class="setting-impact">Erfassung</span></div>
+        <label class="muted">Anzahl Tage rückwirkend</label>
+        <input class="input" name="pref_lesson_lookback_days" type="number" min="1" max="60" value="<?php echo h((string)((int)($u['pref_lesson_lookback_days'] ?? 14) ?: 14)); ?>">
+        <div class="small muted settings-panel-note">Bestimmt, wie viele Tage in die Vergangenheit die Auswahl „Bestehende Stunde auswählen“ bei der Mitarbeit-Erfassung zurückreicht, damit auch später nachgetragene Einträge ihre Stunde noch finden. Wirkt nur auf diese Auswahlliste, nicht auf das Datumsfeld selbst.</div>
       </div>
     </div>
 
@@ -406,6 +429,12 @@ render_header('Konto',$u);
         <div class="small muted" style="margin-top:6px">Unbekannte Klassen (keine passende Klasse in COOL-Grades gefunden): <?php echo h(implode(', ',$webuntisImportSummary['unmapped_classes'])); ?></div>
       <?php endif; ?>
       <div class="small muted" style="margin-top:6px">Diese Termine wurden bewusst nicht übernommen, statt sie zu erraten. Unbekannte Fachkürzel kannst du auf der <a href="<?php echo h(cfg()['base_path']); ?>/teacher/webuntis_review.php">Übersichts- und Korrekturseite</a> zuordnen oder als „keine Unterrichtsstunde" markieren.</div>
+
+      <?php if((int)($webuntisImportSummary['pruned_stale'] ?? 0) > 0 || (int)($webuntisImportSummary['pruned_kept_entries'] ?? 0) > 0 || (int)($webuntisImportSummary['pruned_kept_topic'] ?? 0) > 0): ?>
+        <div class="small muted" style="margin-top:6px">
+          Aufräumen bei Stundenplanänderung: <b><?php echo (int)($webuntisImportSummary['pruned_stale'] ?? 0); ?></b> nicht mehr im Stundenplan vorhandene Stunde(n) entfernt<?php if((int)($webuntisImportSummary['pruned_kept_entries'] ?? 0) > 0): ?>, <?php echo (int)$webuntisImportSummary['pruned_kept_entries']; ?> wegen vorhandener Mitarbeit-Einträge behalten<?php endif; ?><?php if((int)($webuntisImportSummary['pruned_kept_topic'] ?? 0) > 0): ?>, <?php echo (int)$webuntisImportSummary['pruned_kept_topic']; ?> wegen vergebenem Thema behalten (nur manuell löschbar)<?php endif; ?>.
+        </div>
+      <?php endif; ?>
 
       <?php
         $webuntisMissingGroupCombos = webuntis_missing_subgroup_combos(db(),(int)$u['id'],$webuntisImportSummary);

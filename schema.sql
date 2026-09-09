@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
   pref_simple_participation_entry TINYINT(1) NOT NULL DEFAULT 0,
   pref_nav_style VARCHAR(16) NOT NULL DEFAULT 'text',
   pref_participation_tile_order TEXT NULL,
+  pref_lesson_sort_default VARCHAR(16) NOT NULL DEFAULT 'date_asc',
+  pref_lesson_lookback_days SMALLINT UNSIGNED NOT NULL DEFAULT 14,
   webuntis_ical_url_enc TEXT NULL,
   webuntis_ical_saved_at DATETIME NULL,
   webuntis_ical_last_import_at DATETIME NULL,
@@ -173,6 +175,21 @@ CREATE TABLE IF NOT EXISTS lesson_sessions (
   UNIQUE KEY uniq_lesson_time_slot (class_id, subject_id, lesson_date, start_time),
   INDEX idx_lesson_teacher_date (teacher_id, lesson_date),
   INDEX idx_lesson_sessions_source (teacher_id, source, lesson_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Admin-configurable clock time per UE (Unterrichtseinheit, 1..12), per
+-- school (different schools can have different period-time grids). Used to
+-- auto-translate WebUntis imports (which only carry start_time/end_time)
+-- into the existing UE numbering. See lib/lesson_unit_times.php.
+CREATE TABLE IF NOT EXISTS lesson_unit_times (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  school_id INT NOT NULL,
+  unit TINYINT UNSIGNED NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uniq_lesson_unit_time (school_id, unit),
+  FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS participation_options (

@@ -1243,6 +1243,69 @@ function _ensure_schema(PDO $pdo): void {
     }
   }catch(Exception $e){ /* ignore */ }
 
+  try{
+    // Admin-configurable clock time per UE (Unterrichtseinheit, 1..12), per
+    // school (different schools can have different period-time grids), so
+    // WebUntis imports (which only carry start_time/end_time) can be
+    // auto-translated into a school's existing UE numbering. See
+    // lib/lesson_unit_times.php. Left empty (no rows) until an admin fills
+    // it in on admin/lesson_unit_times.php - lesson_unit stays untouched
+    // until then, exactly like before this feature existed.
+    $st=$pdo->query("SHOW TABLES LIKE 'lesson_unit_times'");
+    if(!$st->fetch()){
+      $pdo->exec("CREATE TABLE lesson_unit_times (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        school_id INT NOT NULL,
+        unit TINYINT UNSIGNED NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE KEY uniq_lesson_unit_time (school_id, unit),
+        FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    } else {
+      // Pre-release shape (this feature was never shipped, so no real
+      // deployment can have production data in it yet) - recreate with the
+      // school-scoped shape. Only ever holds a handful of admin-entered
+      // rows, trivially re-entered on admin/lesson_unit_times.php.
+      $colSt=$pdo->query("SHOW COLUMNS FROM lesson_unit_times LIKE 'school_id'");
+      if(!$colSt->fetch()){
+        $pdo->exec("DROP TABLE lesson_unit_times");
+        $pdo->exec("CREATE TABLE lesson_unit_times (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          school_id INT NOT NULL,
+          unit TINYINT UNSIGNED NOT NULL,
+          start_time TIME NOT NULL,
+          end_time TIME NOT NULL,
+          updated_at DATETIME NOT NULL,
+          UNIQUE KEY uniq_lesson_unit_time (school_id, unit),
+          FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+      }
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // Per-teacher default for teacher/lesson.php's sort dropdown. The best
+    // default changes over the school year (date_asc early on, something
+    // else later), so it's a saved preference rather than a fixed default.
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'pref_lesson_sort_default'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN pref_lesson_sort_default VARCHAR(16) NOT NULL DEFAULT 'date_asc' AFTER pref_participation_tile_order");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // How many days back a teacher can still pick up an existing lesson in
+    // the "Stundenkontext" of teacher/participation_new.php - entries are
+    // often made after the fact, so the dropdown must not silently drop
+    // lessons that are already a bit old. See teacher/participation_new.php.
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'pref_lesson_lookback_days'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN pref_lesson_lookback_days SMALLINT UNSIGNED NOT NULL DEFAULT 14 AFTER pref_lesson_sort_default");
+    }
+  }catch(Exception $e){ /* ignore */ }
+
 }
 
 function db(): PDO {

@@ -16,6 +16,23 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
+## [1.81.1] - 2026-09-08
+
+### Hinzugefügt
+
+- Neue Admin-Einstellung „UE-Zeiten“: Uhrzeiten der Unterrichtseinheiten (UE) je Schule festlegen (verschiedene Schulen können unterschiedliche Zeiten haben). Importierte WebUntis-Stunden werden damit automatisch der passenden UE der jeweiligen Schule zugeordnet (Doppelstunden als z.B. „1,2“), ohne dass Lehrkräfte die UE von Hand nachtragen müssen. Bereits vorhandene UE-Angaben werden dabei nie überschrieben.
+- In der Stundenerfassung lässt sich die bevorzugte Sortierung dauerhaft als persönlicher Standard speichern.
+- Neue Kontoeinstellung „Stundenkontext: rückwirkende Erfassung“ (Standard: 14 Tage): steuert, wie viele Tage in die Vergangenheit die Auswahl „Bestehende Stunde auswählen“ bei der Mitarbeit-Erfassung zurückreicht.
+- In der Stundenerfassung lassen sich bei „Bisherige Stunden“ mehrere Stunden markieren und gemeinsam löschen – praktisch zum Aufräumen alter, nicht mehr benötigter Stunden, die außerhalb des vom WebUntis-Import automatisch geprüften Zeitraums liegen. Stunden mit bereits vorhandenen Mitarbeit-Einträgen werden dabei übersprungen, genau wie beim einzelnen Löschen.
+
+### Geändert
+
+- „Klasse und Fach“ in der Stundenerfassung heißt jetzt „Bestehende Stunden anzeigen und bearbeiten“ – dort werden auch aus WebUntis importierte Stunden bearbeitet.
+- Bestehende, aus WebUntis importierte Stunden ohne UE müssen beim Bearbeiten keine UE mehr angeben; stattdessen wird die importierte Uhrzeit angezeigt. Rein manuell angelegte Stunden benötigen weiterhin eine UE.
+- Die Stundenauswahl im Stundenkontext der Mitarbeit-Erfassung zeigt jetzt zuverlässig auch länger zurückliegende Stunden (statt sie ggf. hinter vielen künftigen, z.B. aus WebUntis importierten Terminen zu verlieren), damit später nachgetragene Einträge ihre Stunde noch finden.
+- Der WebUntis-Import räumt jetzt auf: Ändert sich der Stundenplan, werden nicht mehr vorhandene, zuvor importierte Stunden entfernt (im vom aktuellen Feed abgedeckten Zeitraum). Stunden mit bereits vorhandenen Mitarbeit-Einträgen bleiben immer erhalten; Stunden mit vergebenem Thema bleiben ebenfalls erhalten und lassen sich nur manuell löschen.
+- In der Stundenerfassung (kompakte Ansicht) ist der Bereich „Stunde anlegen“ beim Öffnen jetzt eingeklappt statt aufgeklappt.
+
 ## [1.81] - 2026-09-06
 
 ### Hinzugefügt

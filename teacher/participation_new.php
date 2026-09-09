@@ -9,6 +9,8 @@ require_once __DIR__.'/../lib/participation_pedagogical_mode.php';
 require_once __DIR__.'/../lib/student_groups.php';
 require_once __DIR__.'/../lib/assessment_summaries.php';
 require_once __DIR__.'/../lib/school_years.php';
+require_once __DIR__.'/../lib/schools.php';
+require_once __DIR__.'/../lib/lesson_unit_times.php';
 
 $u=require_role('teacher');
 $pdo=db();
@@ -16,6 +18,11 @@ $bp=cfg()['base_path'];
 
 $class_id=(int)($_GET['class_id'] ?? $_POST['class_id'] ?? 0);
 $subject_id=(int)($_GET['subject_id'] ?? $_POST['subject_id'] ?? 0);
+// Prefer the actually-selected class's school (more precise); fall back to
+// the teacher's current school context before a class is chosen.
+$ue_school_id = $class_id ? class_school_id($pdo,$class_id) : 0;
+if(!$ue_school_id) $ue_school_id = teacher_school_context_id($pdo,(int)$u['id']);
+$ue_legend=lesson_unit_legend_label($pdo,$ue_school_id);
 
 // Lesson context can be passed from Stundenerfassung or chosen here
 $lesson_id=(int)($_GET['lesson_id'] ?? $_POST['fixed_lesson_id'] ?? 0);
@@ -55,15 +62,26 @@ if(!$class||!$subject){
 require_teacher_active_assignment($u,$class_id,$subject_id);
 require_class_writable($pdo,$class_id);
 
-// Recent lessons for this teacher+class+subject. Ordered by closeness to
-// today (not simply "newest first"): a WebUntis import can pre-create
-// lesson slots for the whole school year, which would otherwise bury
-// today's actual lesson under a wall of far-future dates.
+// Recent lessons for this teacher+class+subject, for the "Stundenkontext"
+// dropdown below. Explicitly windowed by date (rather than just "closest N
+// rows") so that entries made after the fact - sometimes a couple of weeks
+// later - can still find their lesson: how many days back is a per-teacher
+// setting (account.php), because a WebUntis import can pre-create lesson
+// slots for the whole school year, which would otherwise bury older-but-
+// still-relevant lessons under a wall of far-future dates if we only took
+// the closest N rows. The forward side stays a fixed, short window - this
+// list is for logging lessons that already happened (or are happening
+// today), not for browsing the whole future schedule.
+$lesson_lookback_days=(int)($u['pref_lesson_lookback_days'] ?? 14);
+if($lesson_lookback_days<1 || $lesson_lookback_days>60) $lesson_lookback_days=14;
+$lesson_lookahead_days=14;
 $st=$pdo->prepare("SELECT id, lesson_date, lesson_unit, start_time, end_time, room, source, webuntis_subgroup, topic FROM lesson_sessions
                    WHERE class_id=? AND subject_id=?
+                     AND lesson_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                     AND lesson_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
                    ORDER BY (lesson_date = CURDATE()) DESC, ABS(DATEDIFF(lesson_date, CURDATE())) ASC, lesson_date DESC, start_time IS NULL, start_time ASC, id DESC
-                   LIMIT 25");
-$st->execute([$class_id,$subject_id]);
+                   LIMIT 200");
+$st->execute([$class_id,$subject_id,$lesson_lookback_days,$lesson_lookahead_days]);
 $recent_lessons=$st->fetchAll();
 
 // Suggest today's matching WebUntis lesson (by current clock time) as the
@@ -774,6 +792,7 @@ render_header('Mitarbeit',$u);
             <div>
               <label class="muted">UE/Stunde</label>
               <input class="input" type="number" min="1" max="12" name="lesson_unit" id="lessonUnit" placeholder="z.B. 3" value="<?php echo h($_POST['lesson_unit'] ?? ''); ?>">
+              <?php if($ue_legend): ?><div class="small muted" style="margin-top:4px;max-width:280px"><?php echo h($ue_legend); ?></div><?php endif; ?>
             </div>
             <div style="flex:1">
               <label class="muted">Thema (optional)</label>

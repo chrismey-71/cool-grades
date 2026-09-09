@@ -11,11 +11,28 @@
 // does not expose one. Only subjects/classes the importing teacher is
 // actively assigned to are ever touched; anything that cannot be mapped
 // with confidence is skipped and reported back, never guessed.
+//
+// lesson_unit itself IS still filled in when possible: if an admin has
+// defined the school's UE grid (admin/lesson_unit_times.php), each
+// newly-seen time slot is translated into a UE number (or, for a
+// contiguous double period, "1,2") via lesson_unit_for_time() - see
+// webuntis_upsert_lesson_session() below. A UE that is already set, on
+// any lesson_sessions row, is never touched by this.
+//
+// A changed WebUntis timetable (moved/dropped slots) is also cleaned up:
+// after each import, previously-imported rows that fell out of the
+// schedule are deleted, within the date range this run's feed actually
+// covers - unless the row has participation entries (never auto-deleted,
+// same as the manual delete) or a manually-set topic (kept, removable only
+// by hand). See webuntis_prune_stale_lesson_sessions() below (2026-09
+// teacher feedback).
 
 require_once __DIR__.'/db.php';
 require_once __DIR__.'/helpers.php';
 require_once __DIR__.'/security.php';
 require_once __DIR__.'/logger.php';
+require_once __DIR__.'/lesson_unit_times.php';
+require_once __DIR__.'/schools.php';
 
 /**
  * Fetches the raw iCal text from a (private, token-bearing) URL.
@@ -198,35 +215,109 @@ function webuntis_map_class_token(string $token): string {
  * Inserts/updates/refreshes the lesson_sessions row for one resolved
  * (class_id, subject_id, date, time) slot. Shared by the main import loop
  * and by re-import after a subject-code mapping decision, so both paths
- * dedupe/refresh identically. Returns 'imported'|'updated'|'unchanged'.
+ * dedupe/refresh identically. Returns ['status'=>'imported'|'updated'|'unchanged','id'=>int]
+ * - the id lets the caller track which rows are still present in the
+ * current schedule, so it can prune ones that are not (see
+ * webuntis_prune_stale_lesson_sessions()).
  */
-function webuntis_upsert_lesson_session(PDO $pdo, int $teacherId, int $classId, int $subjectId, string $lessonDate, string $startTime, string $endTime, ?string $room, ?string $uid, ?string $subgroup): string {
-  $findStmt = $pdo->prepare("SELECT id, source FROM lesson_sessions WHERE class_id=? AND subject_id=? AND lesson_date=? AND start_time <=> ? LIMIT 1");
+function webuntis_upsert_lesson_session(PDO $pdo, int $teacherId, int $classId, int $subjectId, string $lessonDate, string $startTime, string $endTime, ?string $room, ?string $uid, ?string $subgroup): array {
+  $findStmt = $pdo->prepare("SELECT id, source, lesson_unit FROM lesson_sessions WHERE class_id=? AND subject_id=? AND lesson_date=? AND start_time <=> ? LIMIT 1");
   $findStmt->execute([$classId, $subjectId, $lessonDate, $startTime]);
   $existing = $findStmt->fetch();
 
+  // Only ever used to FILL a still-empty lesson_unit (e.g. after an admin
+  // configures/changes the UE grid later) - never to overwrite one a
+  // teacher already has, whether it was set manually or by a past import.
+  // The UE grid is per school, so it's resolved from the class itself
+  // (class_school_id()) rather than passed in - a class's school can't
+  // change mid-import, and this keeps the derivation self-contained.
+  $derivedUnit = null;
+  if (!$existing || $existing['lesson_unit'] === null || $existing['lesson_unit'] === '') {
+    $schoolId = class_school_id($pdo, $classId);
+    $derivedUnit = lesson_unit_for_time($pdo, $schoolId, $startTime, $endTime);
+  }
+
   if ($existing) {
+    $id = (int)$existing['id'];
     if ((string)$existing['source'] !== 'webuntis') {
-      $pdo->prepare("UPDATE lesson_sessions SET source='webuntis', external_uid=?, room=COALESCE(room,?), webuntis_subgroup=? WHERE id=?")
-          ->execute([$uid, $room, $subgroup, (int)$existing['id']]);
-      return 'updated';
+      $pdo->prepare("UPDATE lesson_sessions SET source='webuntis', external_uid=?, room=COALESCE(room,?), webuntis_subgroup=?, lesson_unit=COALESCE(lesson_unit,?) WHERE id=?")
+          ->execute([$uid, $room, $subgroup, $derivedUnit, $id]);
+      return ['status' => 'updated', 'id' => $id];
     }
-    $pdo->prepare("UPDATE lesson_sessions SET external_uid=?, room=COALESCE(room,?), webuntis_subgroup=? WHERE id=? AND source='webuntis'")
-        ->execute([$uid, $room, $subgroup, (int)$existing['id']]);
-    return 'unchanged';
+    $pdo->prepare("UPDATE lesson_sessions SET external_uid=?, room=COALESCE(room,?), webuntis_subgroup=?, lesson_unit=COALESCE(lesson_unit,?) WHERE id=? AND source='webuntis'")
+        ->execute([$uid, $room, $subgroup, $derivedUnit, $id]);
+    return ['status' => 'unchanged', 'id' => $id];
   }
 
   try {
     $pdo->prepare("INSERT INTO lesson_sessions
-                   (teacher_id,class_id,subject_id,lesson_date,start_time,end_time,room,source,external_uid,webuntis_subgroup,created_at)
-                   VALUES (?,?,?,?,?,?,?,'webuntis',?,?,?)")
-        ->execute([$teacherId, $classId, $subjectId, $lessonDate, $startTime, $endTime, $room, $uid, $subgroup, now_iso()]);
-    return 'imported';
+                   (teacher_id,class_id,subject_id,lesson_date,lesson_unit,start_time,end_time,room,source,external_uid,webuntis_subgroup,created_at)
+                   VALUES (?,?,?,?,?,?,?,?,'webuntis',?,?,?)")
+        ->execute([$teacherId, $classId, $subjectId, $lessonDate, $derivedUnit, $startTime, $endTime, $room, $uid, $subgroup, now_iso()]);
+    return ['status' => 'imported', 'id' => (int)$pdo->lastInsertId()];
   } catch (PDOException $e) {
     // Concurrent import/manual entry created the same slot in the meantime; treat as already present.
     app_log('info', 'webuntis import: duplicate slot on insert', ['class_id' => $classId, 'subject_id' => $subjectId, 'lesson_date' => $lessonDate]);
-    return 'unchanged';
+    $findStmt->execute([$classId, $subjectId, $lessonDate, $startTime]);
+    $again = $findStmt->fetch();
+    return ['status' => 'unchanged', 'id' => $again ? (int)$again['id'] : 0];
   }
+}
+
+/**
+ * Deletes stale WebUntis-imported lesson_sessions rows that no longer
+ * appear in the freshly-imported schedule (e.g. the teacher's timetable
+ * changed and a slot was moved or dropped) - otherwise every old, no-longer-
+ * current slot would pile up forever (2026-09 teacher feedback).
+ *
+ * Scope/safety rules:
+ *  - Only rows for (class_id, subject_id) combos the teacher is currently
+ *    actively assigned to are ever considered - same boundary the import
+ *    itself uses ($allowedCombo).
+ *  - Only rows within the date range the current feed actually covers
+ *    ($coverageMinDate..$coverageMaxDate, from every event with a parseable
+ *    date, regardless of whether it mapped to a lesson) are candidates -
+ *    older/further-out history the feed says nothing about this run is
+ *    never touched, even if it's still marked source='webuntis'.
+ *  - A row still matched by an event in this run ($touchedIds) is of
+ *    course kept.
+ *  - A row with linked participation_events is never auto-deleted, same as
+ *    the manual delete in teacher/lesson_delete.php.
+ *  - A row with a manually-set topic is never auto-deleted either - unlike
+ *    the participation-entries case, this one CAN still be removed, but
+ *    only manually via teacher/lesson_delete.php.
+ * Returns ['deleted'=>int,'kept_entries'=>int,'kept_topic'=>int].
+ */
+function webuntis_prune_stale_lesson_sessions(PDO $pdo, array $allowedCombo, ?string $coverageMinDate, ?string $coverageMaxDate, array $touchedIds): array {
+  $result = ['deleted' => 0, 'kept_entries' => 0, 'kept_topic' => 0];
+  if ($coverageMinDate === null || $coverageMaxDate === null || !$allowedCombo) return $result;
+
+  $touchedIds = array_flip(array_map('intval', $touchedIds));
+  $rowStmt = $pdo->prepare("SELECT id, topic FROM lesson_sessions
+                            WHERE class_id=? AND subject_id=? AND source='webuntis'
+                              AND lesson_date >= ? AND lesson_date <= ?");
+  $countStmt = $pdo->prepare("SELECT COUNT(*) FROM participation_events WHERE lesson_id=?");
+  $delStmt = $pdo->prepare("DELETE FROM lesson_sessions WHERE id=?");
+
+  foreach (array_keys($allowedCombo) as $comboKey) {
+    [$classId, $subjectId] = array_map('intval', explode(':', (string)$comboKey, 2));
+    if ($classId <= 0 || $subjectId <= 0) continue;
+
+    $rowStmt->execute([$classId, $subjectId, $coverageMinDate, $coverageMaxDate]);
+    foreach ($rowStmt->fetchAll() as $row) {
+      $id = (int)$row['id'];
+      if (isset($touchedIds[$id])) continue;
+
+      if (!empty($row['topic'])) { $result['kept_topic']++; continue; }
+
+      $countStmt->execute([$id]);
+      if ((int)$countStmt->fetchColumn() > 0) { $result['kept_entries']++; continue; }
+
+      $delStmt->execute([$id]);
+      $result['deleted']++;
+    }
+  }
+  return $result;
 }
 
 /**
@@ -286,6 +377,10 @@ function webuntis_clear_unmapped_event(PDO $pdo, int $teacherId, ?string $uid): 
  * and kept in webuntis_unmapped_events for that review page; nothing is
  * ever guessed.
  *
+ * After the import, webuntis_prune_stale_lesson_sessions() removes
+ * previously-imported rows that fell out of the schedule (see its own
+ * docblock for the exact scope/protection rules).
+ *
  * Returns a summary array: counts + short lists of unmapped subject/class
  * tokens, so the teacher can see what wasn't imported.
  */
@@ -299,6 +394,19 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
 
   $ics = webuntis_fetch_ical($url);
   $events = webuntis_parse_ical($ics);
+
+  // The date span this particular feed actually reports on, from every
+  // event with a parseable start date (regardless of status/mapping) -
+  // used below to bound stale-row pruning to what this import can actually
+  // speak to, so history outside the feed's window is never touched.
+  $coverageMinDate = null;
+  $coverageMaxDate = null;
+  foreach ($events as $event) {
+    if (!($event['dtstart'] instanceof DateTime)) continue;
+    $d = $event['dtstart']->format('Y-m-d');
+    if ($coverageMinDate === null || $d < $coverageMinDate) $coverageMinDate = $d;
+    if ($coverageMaxDate === null || $d > $coverageMaxDate) $coverageMaxDate = $d;
+  }
 
   // Teacher's own active class/subject combinations only.
   $st = $pdo->prepare("SELECT DISTINCT c.id AS class_id, c.name AS class_name, s.id AS subject_id, s.code AS subject_code
@@ -346,7 +454,16 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
     // a single a/b subgroup only – used to offer a "Gruppen a/b anlegen"
     // shortcut for combos that don't have matching teacher_student_groups yet.
     'subgroup_combos' => [],
+    'pruned_stale' => 0,
+    'pruned_kept_entries' => 0,
+    'pruned_kept_topic' => 0,
   ];
+
+  // ids of lesson_sessions rows still confirmed present by this import run
+  // (imported, updated, or unchanged) - anything source='webuntis' within
+  // the feed's date range that is NOT in here has fallen out of the
+  // schedule and is a pruning candidate below.
+  $touchedIds = [];
 
   foreach ($events as $event) {
     if ($event['status'] !== '' && $event['status'] !== 'CONFIRMED') {
@@ -432,10 +549,16 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
       }
 
       $result = webuntis_upsert_lesson_session($pdo, $teacherId, $classId, $subjectId, $lessonDate, $startTime, $endTime, $room, $uid, $subgroup);
-      if ($result === 'imported') $summary['imported']++;
-      elseif ($result === 'updated') $summary['updated']++;
+      if ($result['id'] > 0) $touchedIds[] = $result['id'];
+      if ($result['status'] === 'imported') $summary['imported']++;
+      elseif ($result['status'] === 'updated') $summary['updated']++;
     }
   }
+
+  $pruneResult = webuntis_prune_stale_lesson_sessions($pdo, $allowedCombo, $coverageMinDate, $coverageMaxDate, $touchedIds);
+  $summary['pruned_stale'] = $pruneResult['deleted'];
+  $summary['pruned_kept_entries'] = $pruneResult['kept_entries'];
+  $summary['pruned_kept_topic'] = $pruneResult['kept_topic'];
 
   $st = $pdo->prepare("UPDATE users SET webuntis_ical_last_import_at=?, webuntis_ical_last_import_summary=? WHERE id=?");
   $st->execute([now_iso(), json_encode($summary, JSON_UNESCAPED_UNICODE), $teacherId]);
