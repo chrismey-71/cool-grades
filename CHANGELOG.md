@@ -6,6 +6,10 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
+### Behoben
+
+- Automatischer Inaktivitäts-Logout: Ein GET-Aufruf von `logout.php` (z. B. wenn ein Browser einen lange inaktiven Tab neu lädt, dessen letzte Anfrage der Auto-Logout war) zeigte eine leere „Method Not Allowed"-Seite statt zur Login-Seite weiterzuleiten. Der eigentliche Logout bleibt weiterhin ausschließlich per POST mit CSRF-Schutz möglich.
+
 ### Geplant
 
 - formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
