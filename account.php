@@ -14,7 +14,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       if(!in_array($theme,['light','dark'],true)) $theme='light';
 
       $quick = (string)($_POST['pref_quick_entry_ui'] ?? '');
-      if(!in_array($quick,['dropdown','buttons'],true)) $quick=null;
+      if(!in_array($quick,['dropdown','buttons','timetable'],true)) $quick=null;
 
       $quickPickEnabled = (int)($u['pref_participation_quick_pick_enabled'] ?? 1);
       $quickPickLimit = (int)($u['pref_participation_quick_pick_limit'] ?? 10);
@@ -122,6 +122,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       webuntis_create_ab_groups(db(),(int)$u['id'],$groupClassId,$groupSubjectId);
       header('Location: '.cfg()['base_path'].'/teacher/student_groups.php?class_id='.$groupClassId.'&subject_id='.$groupSubjectId.'&msg='.rawurlencode('Gruppen „a" und „b" angelegt – bitte jetzt die Mitglieder zuweisen.'));
       exit;
+    } elseif($action==='webuntis_import_mode'){
+      if(($u['role'] ?? '')!=='teacher'){
+        throw new Exception('Nur für Lehrkräfte verfügbar.');
+      }
+      $importMode=(string)($_POST['webuntis_import_mode'] ?? 'manual');
+      if(!in_array($importMode,['manual','cron'],true)) $importMode='manual';
+      $st=db()->prepare("UPDATE users SET webuntis_auto_import_enabled=? WHERE id=?");
+      $st->execute([$importMode==='cron'?1:0,(int)$u['id']]);
+      $msg='Import-Zeitpunkt gespeichert.';
+      $u=current_user();
     } else {
       // default: password change
       change_password((int)$u['id'], (string)($_POST['new_password']??''));
@@ -196,8 +206,12 @@ render_header('Konto',$u);
             <input type="radio" name="pref_quick_entry_ui" value="buttons" style="width:auto" <?php echo (($u['pref_quick_entry_ui'] ?? '')==='buttons')?'checked':''; ?>>
             <span>Buttons</span>
           </label>
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_quick_entry_ui" value="timetable" style="width:auto" <?php echo (($u['pref_quick_entry_ui'] ?? '')==='timetable')?'checked':''; ?>>
+            <span>Stundenplan (aktuelle Woche)</span>
+          </label>
         </div>
-        <div class="small muted settings-panel-note">Steuert nur, ob Klasse/Fach im Dashboard als Buttons oder Dropdown angezeigt werden. Bewertungen und Auswertungen bleiben unverändert.</div>
+        <div class="small muted settings-panel-note">Steuert nur, ob Klasse/Fach im Dashboard als Buttons, Dropdown oder als Wochen-Stundenplan angezeigt werden. Die Stundenplan-Ansicht zeigt deine Stunden (z. B. aus WebUntis) für die aktuelle Woche mit Pfeilen zum Wechseln der Woche; ein Klick auf eine Stunde führt direkt zur Mitarbeit-Erfassung dafür. Bewertungen und Auswertungen bleiben unverändert.</div>
       </div>
     </div>
 
@@ -400,6 +414,23 @@ render_header('Konto',$u);
       <?php echo csrf_input(); ?>
       <input type="hidden" name="action" value="webuntis_import">
       <button class="btn">Jetzt importieren</button>
+    </form>
+
+    <form method="post" <?php echo dirty_form_attrs(); ?> style="margin-top:16px;padding-top:12px;border-top:1px solid #d8e6f5">
+      <?php echo csrf_input(); ?>
+      <input type="hidden" name="action" value="webuntis_import_mode">
+      <div class="muted" style="margin-bottom:6px">Import-Zeitpunkt</div>
+      <label style="display:flex;gap:8px;align-items:center">
+        <input type="radio" name="webuntis_import_mode" value="manual" style="width:auto" <?php echo empty($u['webuntis_auto_import_enabled'])?'checked':''; ?>>
+        <span>Manuell – nur wenn ich selbst auf „Jetzt importieren" klicke</span>
+      </label>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <input type="radio" name="webuntis_import_mode" value="cron" style="width:auto" <?php echo !empty($u['webuntis_auto_import_enabled'])?'checked':''; ?>>
+        <span>Automatisch – regelmäßig im Hintergrund</span>
+      </label>
+      <div class="small muted" style="margin-top:6px">Die automatische Variante wirkt nur, wenn der Betrieb der Installation dafür einen regelmäßigen Import per Crontab eingerichtet hat (<code>tools/webuntis_cron_import.php</code>). Ist das nicht eingerichtet, hat diese Auswahl keine Wirkung und du kannst weiterhin jederzeit manuell importieren.</div>
+      <div style="height:10px"></div>
+      <button class="btn secondary">Import-Zeitpunkt speichern</button>
     </form>
   <?php endif; ?>
 

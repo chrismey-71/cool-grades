@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
   webuntis_ical_saved_at DATETIME NULL,
   webuntis_ical_last_import_at DATETIME NULL,
   webuntis_ical_last_import_summary TEXT NULL,
+  webuntis_auto_import_enabled TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

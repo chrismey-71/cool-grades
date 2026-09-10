@@ -6,10 +6,6 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
-### Behoben
-
-- Automatischer Inaktivitäts-Logout: Ein GET-Aufruf von `logout.php` (z. B. wenn ein Browser einen lange inaktiven Tab neu lädt, dessen letzte Anfrage der Auto-Logout war) zeigte eine leere „Method Not Allowed"-Seite statt zur Login-Seite weiterzuleiten. Der eigentliche Logout bleibt weiterhin ausschließlich per POST mit CSRF-Schutz möglich.
-
 ### Geplant
 
 - formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
@@ -19,6 +15,18 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - optionale Selbst- und Peer-Feedback-Funktionen
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
+
+## [1.81.2] - 2026-09-10
+
+### Hinzugefügt
+
+- Neuer Auswahlmodus „Stundenplan (aktuelle Woche)" für die Schnellerfassung im Dashboard (Konto → Schnellerfassung: Auswahlmodus): zeigt die eigenen Stunden der gewählten Woche (u. a. aus WebUntis) Montag bis Freitag als Wochenübersicht, mit Pfeilen zum Wechseln der Woche; ein Klick auf eine Stunde führt direkt zur Mitarbeit-Erfassung dafür.
+- WebUntis-Import kann jetzt auch regelmäßig automatisiert laufen: neues Kommandozeilen-Skript `tools/webuntis_cron_import.php` für einen Cron-Job, sowie eine neue Kontoeinstellung „Import-Zeitpunkt" (manuell/automatisch), mit der jede Lehrkraft selbst entscheidet, ob sie einbezogen wird. Standard bleibt „Manuell", niemand wird ohne eigene Auswahl automatisch importiert.
+
+### Behoben
+
+- Automatischer Inaktivitäts-Logout: Ein GET-Aufruf von `logout.php` (z. B. wenn ein Browser einen lange inaktiven Tab neu lädt, dessen letzte Anfrage der Auto-Logout war) zeigte eine leere „Method Not Allowed"-Seite statt zur Login-Seite weiterzuleiten. Der eigentliche Logout bleibt weiterhin ausschließlich per POST mit CSRF-Schutz möglich.
+- Fehlschläge der automatischen Datenbank-Migrationen beim Start (`_ensure_schema()`) wurden bisher vollständig stillschweigend ignoriert und blieben unbemerkt, bis eine spätere Abfrage mit einer verwirrenden „Unknown column"-Fehlermeldung scheiterte (z. B. bei einem Datenbank-Nutzer ohne ALTER-Recht). Solche Fehler werden jetzt zusätzlich geloggt.
 
 ## [1.81.1] - 2026-09-08
 

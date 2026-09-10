@@ -318,6 +318,39 @@
 .quick-combos{display:flex;flex-wrap:wrap;gap:10px}
 .quick-combo{min-width:160px}
 
+/* Teacher dashboard quick-entry: weekly timetable mode */
+.timetable-nav{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex-wrap:wrap;margin-bottom:12px;
+}
+.timetable-range{font-weight:700;font-size:14px;color:var(--text)}
+.timetable-week{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:860px){
+  .timetable-week{grid-template-columns:1fr}
+}
+.timetable-day{
+  border:1px solid var(--border);border-radius:10px;background:var(--card);
+  padding:10px;min-height:64px;
+}
+.timetable-day.is-today{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue) inset}
+.timetable-day-head{
+  display:flex;justify-content:space-between;gap:6px;
+  font-weight:700;color:var(--text);margin-bottom:8px;
+}
+.timetable-day-date{font-weight:400;color:var(--muted)}
+.timetable-empty{padding:4px 0}
+.timetable-lesson{
+  display:flex;flex-direction:column;gap:2px;
+  padding:7px 9px;margin-bottom:6px;border-radius:8px;
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--text);text-decoration:none;font-size:13px;
+}
+.timetable-lesson:last-child{margin-bottom:0}
+.timetable-lesson:hover{border-color:var(--blue);text-decoration:none}
+.timetable-lesson-time{font-weight:700;color:var(--blue);font-size:12px}
+.timetable-lesson-label{font-weight:600}
+.timetable-lesson-room{color:var(--muted);font-size:12px}
+
 /* Teacher dashboard: focused entry page for the three daily input paths. */
 .dashboard-hero{
   display:flex;

@@ -1293,7 +1293,15 @@ function _ensure_schema(PDO $pdo): void {
     if(!$st->fetch()){
       $pdo->exec("ALTER TABLE users ADD COLUMN pref_lesson_sort_default VARCHAR(16) NOT NULL DEFAULT 'date_asc' AFTER pref_participation_tile_order");
     }
-  }catch(Exception $e){ /* ignore */ }
+  }catch(Exception $e){
+    // Not fatal (the app falls back to a sensible default), but a failed
+    // auto-migration here previously went completely unnoticed until a
+    // later query referencing the missing column failed with a confusing
+    // "Unknown column" error (2026-09 report on a demo install with a
+    // restricted DB user lacking ALTER rights) - log it so it's at least
+    // visible in app_log() from the moment it happens.
+    app_log('error','_ensure_schema: could not add pref_lesson_sort_default',['message'=>$e->getMessage()]);
+  }
 
   try{
     // How many days back a teacher can still pick up an existing lesson in
@@ -1304,7 +1312,23 @@ function _ensure_schema(PDO $pdo): void {
     if(!$st->fetch()){
       $pdo->exec("ALTER TABLE users ADD COLUMN pref_lesson_lookback_days SMALLINT UNSIGNED NOT NULL DEFAULT 14 AFTER pref_lesson_sort_default");
     }
-  }catch(Exception $e){ /* ignore */ }
+  }catch(Exception $e){
+    app_log('error','_ensure_schema: could not add pref_lesson_lookback_days',['message'=>$e->getMessage()]);
+  }
+
+  try{
+    // Per-teacher choice (account.php "WebUntis-Stundenplan"): whether the
+    // WebUntis import may also be triggered automatically in the background
+    // (see tools/webuntis_cron_import.php) instead of only via the "Jetzt
+    // importieren" button. Defaults to off so existing/new teachers are
+    // never auto-imported without having opted in.
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'webuntis_auto_import_enabled'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN webuntis_auto_import_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER webuntis_ical_last_import_summary");
+    }
+  }catch(Exception $e){
+    app_log('error','_ensure_schema: could not add webuntis_auto_import_enabled',['message'=>$e->getMessage()]);
+  }
 
 }
 

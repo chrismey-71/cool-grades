@@ -88,8 +88,44 @@ $comboCount=count($combos);
 $written_type_options = written_assessment_types();
 
 $prefMode=(string)($u['pref_quick_entry_ui'] ?? '');
-if($prefMode==='buttons' || $prefMode==='dropdown') $quickMode=$prefMode;
+if(in_array($prefMode,['buttons','dropdown','timetable'],true)) $quickMode=$prefMode;
 else $quickMode = ($comboCount<=12 ? 'buttons' : 'dropdown');
+
+// Weekly timetable quick-entry mode: Monday-Friday of the selected week,
+// built from the teacher's own lesson_sessions (manually created or
+// WebUntis-imported), restricted to combos still actively assigned (same
+// scope as $combos above). $qweek is a small signed offset in weeks from
+// the current week, carried via a GET param so the prev/next arrows just
+// reload this page.
+$qweek=(int)($_GET['qweek'] ?? 0);
+if($qweek < -26 || $qweek > 26) $qweek=0;
+$weekDays=[];
+$weekLessonsByDate=[];
+if($quickMode==='timetable'){
+  $todayDow=(int)(new DateTimeImmutable('today'))->format('N'); // 1=Mo..7=So
+  $monday=(new DateTimeImmutable('today'))->modify('-'.($todayDow-1).' days')->modify(($qweek*7).' days');
+  for($i=0;$i<5;$i++) $weekDays[]=$monday->modify("+$i days");
+  $weekStart=$weekDays[0]->format('Y-m-d');
+  $weekEnd=$weekDays[4]->format('Y-m-d');
+
+  $comboKeys=[];
+  foreach($combos as $cs) $comboKeys[$cs['class_id'].':'.$cs['subject_id']]=true;
+
+  if($comboKeys){
+    $st=$pdo->prepare("SELECT ls.id, ls.class_id, ls.subject_id, ls.lesson_date, ls.lesson_unit, ls.start_time, ls.room,
+                               c.name AS class_name, s.code AS subject_code
+                        FROM lesson_sessions ls
+                        JOIN classes c ON c.id=ls.class_id
+                        JOIN subjects s ON s.id=ls.subject_id
+                        WHERE ls.teacher_id=? AND ls.lesson_date BETWEEN ? AND ?
+                        ORDER BY ls.lesson_date, (ls.start_time IS NULL), ls.start_time, ls.lesson_unit");
+    $st->execute([$teacherId,$weekStart,$weekEnd]);
+    foreach($st->fetchAll() as $row){
+      if(!isset($comboKeys[$row['class_id'].':'.$row['subject_id']])) continue;
+      $weekLessonsByDate[$row['lesson_date']][]=$row;
+    }
+  }
+}
 
 render_header('Dashboard',$u);
 ?>
@@ -135,6 +171,46 @@ render_header('Dashboard',$u);
                     $title = trim($cs['subject_code'].' – '.$cs['subject_name']);
                   ?>
                     <a class="btn secondary quick-combo" title="<?php echo h($title); ?>" href="<?php echo h($bp); ?>/teacher/participation_new.php?class_id=<?php echo (int)$cs['class_id']; ?>&subject_id=<?php echo (int)$cs['subject_id']; ?>"><?php echo h($label); ?></a>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            <?php elseif($quickMode==='timetable'): ?>
+              <div class="small dashboard-entry-note">Klicke eine Stunde an, um direkt die Mitarbeit dafür zu erfassen. Einstellung: <a href="<?php echo h($bp); ?>/account.php#account-pref-quick-entry-ui">Konto → Schnellerfassung: Auswahlmodus</a>.</div>
+              <?php if(!$combos): ?>
+                <div class="flash error">Keine Zuordnungen gefunden. Bitte im Admin unter „Lehrerzuordnung“ Klasse/Fach zuweisen.</div>
+              <?php else:
+                $ttQs=[]; if($selectedSchoolId>0) $ttQs['school_id']=$selectedSchoolId;
+                $ttPrevQs=$ttQs; $ttPrevQs['qweek']=$qweek-1;
+                $ttNextQs=$ttQs; $ttNextQs['qweek']=$qweek+1;
+                $ttTodayQs=$ttQs; $ttTodayQs['qweek']=0;
+                $ttWeekdayLabels=['Mo','Di','Mi','Do','Fr'];
+                $ttToday=(new DateTimeImmutable('today'))->format('Y-m-d');
+              ?>
+                <div class="timetable-nav">
+                  <a class="btn secondary small" href="?<?php echo h(http_build_query($ttPrevQs)); ?>#dashboard-timetable">&larr; Vorherige Woche</a>
+                  <span class="timetable-range"><?php echo h($weekDays[0]->format('d.m.').' – '.$weekDays[4]->format('d.m.Y')); ?><?php if($qweek!==0): ?> · <a href="?<?php echo h(http_build_query($ttTodayQs)); ?>#dashboard-timetable">Diese Woche</a><?php endif; ?></span>
+                  <a class="btn secondary small" href="?<?php echo h(http_build_query($ttNextQs)); ?>#dashboard-timetable">Nächste Woche &rarr;</a>
+                </div>
+                <div class="timetable-week" id="dashboard-timetable">
+                  <?php foreach($weekDays as $wi => $day):
+                    $dateKey=$day->format('Y-m-d');
+                    $dayLessons=$weekLessonsByDate[$dateKey] ?? [];
+                  ?>
+                    <div class="timetable-day<?php echo ($dateKey===$ttToday)?' is-today':''; ?>">
+                      <div class="timetable-day-head"><span><?php echo h($ttWeekdayLabels[$wi]); ?></span><span class="timetable-day-date"><?php echo h($day->format('d.m.')); ?></span></div>
+                      <?php if(!$dayLessons): ?>
+                        <div class="timetable-empty small muted">keine Stunden</div>
+                      <?php else: foreach($dayLessons as $ls):
+                        $ttLabel=trim($ls['class_name'].' '.$ls['subject_code']);
+                        $ttTime=!empty($ls['start_time']) ? substr((string)$ls['start_time'],0,5) : (!empty($ls['lesson_unit']) ? 'UE '.$ls['lesson_unit'] : '');
+                      ?>
+                        <a class="timetable-lesson" href="<?php echo h($bp); ?>/teacher/participation_new.php?class_id=<?php echo (int)$ls['class_id']; ?>&subject_id=<?php echo (int)$ls['subject_id']; ?>&lesson_id=<?php echo (int)$ls['id']; ?>">
+                          <?php if($ttTime!==''): ?><span class="timetable-lesson-time"><?php echo h($ttTime); ?></span><?php endif; ?>
+                          <span class="timetable-lesson-label"><?php echo h($ttLabel); ?></span>
+                          <?php if(!empty($ls['room'])): ?><span class="timetable-lesson-room"><?php echo h((string)$ls['room']); ?></span><?php endif; ?>
+                        </a>
+                      <?php endforeach; endif; ?>
+                    </div>
                   <?php endforeach; ?>
                 </div>
               <?php endif; ?>
