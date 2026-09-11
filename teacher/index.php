@@ -125,6 +125,7 @@ if($quickMode==='timetable'){
       $weekLessonsByDate[$row['lesson_date']][]=$row;
     }
   }
+  $weekLessonCount=array_sum(array_map('count',$weekLessonsByDate));
 }
 
 render_header('Dashboard',$u);
@@ -188,7 +189,7 @@ render_header('Dashboard',$u);
               ?>
                 <div class="timetable-nav">
                   <a class="btn secondary small" href="?<?php echo h(http_build_query($ttPrevQs)); ?>#dashboard-timetable">&larr; Vorherige Woche</a>
-                  <span class="timetable-range"><?php echo h($weekDays[0]->format('d.m.').' – '.$weekDays[4]->format('d.m.Y')); ?><?php if($qweek!==0): ?> · <a href="?<?php echo h(http_build_query($ttTodayQs)); ?>#dashboard-timetable">Diese Woche</a><?php endif; ?></span>
+                  <span class="timetable-range"><?php echo h($weekDays[0]->format('d.m.').' – '.$weekDays[4]->format('d.m.Y')); ?><span class="timetable-range-count"><?php echo (int)$weekLessonCount; ?> Stunde<?php echo $weekLessonCount===1?'':'n'; ?></span><?php if($qweek!==0): ?> · <a href="?<?php echo h(http_build_query($ttTodayQs)); ?>#dashboard-timetable">Diese Woche</a><?php endif; ?></span>
                   <a class="btn secondary small" href="?<?php echo h(http_build_query($ttNextQs)); ?>#dashboard-timetable">Nächste Woche &rarr;</a>
                 </div>
                 <div class="timetable-week" id="dashboard-timetable">
@@ -197,7 +198,10 @@ render_header('Dashboard',$u);
                     $dayLessons=$weekLessonsByDate[$dateKey] ?? [];
                   ?>
                     <div class="timetable-day<?php echo ($dateKey===$ttToday)?' is-today':''; ?>">
-                      <div class="timetable-day-head"><span><?php echo h($ttWeekdayLabels[$wi]); ?></span><span class="timetable-day-date"><?php echo h($day->format('d.m.')); ?></span></div>
+                      <div class="timetable-day-head">
+                        <span><?php echo h($ttWeekdayLabels[$wi]); ?><?php if($dayLessons): ?><span class="timetable-day-count"><?php echo count($dayLessons); ?></span><?php endif; ?></span>
+                        <span class="timetable-day-date"><?php echo h($day->format('d.m.')); ?></span>
+                      </div>
                       <?php if(!$dayLessons): ?>
                         <div class="timetable-empty small muted">keine Stunden</div>
                       <?php else: foreach($dayLessons as $ls):

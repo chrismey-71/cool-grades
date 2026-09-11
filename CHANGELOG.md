@@ -13,6 +13,7 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 ### Geändert
 
 - Konto-Einstellungen: Die Bereiche „Schnelle Mitarbeitserfassung“, „Formulare und Darstellung“ und „Hinweise und Auswertung“ sind jetzt als zusammenklappbare Abschnitte (standardmäßig geschlossen) dargestellt, um bei der mittlerweile hohen Zahl an Einstellungen die Übersicht zu erhalten.
+- Dashboard → Auswahlmodus „Stundenplan (aktuelle Woche)“: Neben der Wochenspanne wird jetzt die Gesamtzahl der Stunden dieser Woche angezeigt, zusätzlich zeigt jeder Wochentag mit Stunden die jeweilige Tagesanzahl als kleine Markierung neben dem Wochentag.
 
 ### Behoben
 
