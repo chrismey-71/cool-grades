@@ -173,6 +173,15 @@ render_header('Einstellungen', $u);
             <a class="btn secondary" href="<?php echo h($bp); ?>/admin/events.php">Eventauswertungen öffnen</a>
           </div>
         </div>
+
+        <div class="col-12 col-md-6">
+          <div class="card" style="padding:14px">
+            <h2 style="margin:0 0 8px 0">Logs &amp; Fehleranalyse</h2>
+            <div class="muted" style="font-size:13px">app.log, error.log und webuntis_cron.log direkt einsehen, filtern und durchsuchen – für eine schnellere Fehleranalyse ohne FTP/SSH.</div>
+            <div style="height:10px"></div>
+            <a class="btn secondary" href="<?php echo h($bp); ?>/admin/logs.php">Logs öffnen</a>
+          </div>
+        </div>
       </div>
 
       <div style="height:12px"></div>

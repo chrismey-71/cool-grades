@@ -72,6 +72,7 @@ function _event_type_de(string $type): string {
     'admin_suggestions_imported' => 'Vorschlagskatalog importiert',
     'admin_database_backup_downloaded' => 'Datenbanksicherung heruntergeladen',
     'teacher_backup_downloaded' => 'Lehrkraft-Datensicherung heruntergeladen',
+    'admin_log_downloaded' => 'Logdatei heruntergeladen',
   ];
   return $map[$type] ?? $type;
 }

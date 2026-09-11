@@ -6,6 +6,10 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Admin → Einstellungen: Neuer Bereich „Logs & Fehleranalyse“ zeigt app.log, error.log und webuntis_cron.log direkt in der Anwendung an (mit Volltextsuche, Filter nach Stufe error/warn/info und Download der ganzen Datei), damit Fehler ohne FTP/SSH-Zugriff schneller analysiert werden können.
+
 ### Geändert
 
 - Konto-Einstellungen: Die Bereiche „Schnelle Mitarbeitserfassung“, „Formulare und Darstellung“ und „Hinweise und Auswertung“ sind jetzt als zusammenklappbare Abschnitte (standardmäßig geschlossen) dargestellt, um bei der mittlerweile hohen Zahl an Einstellungen die Übersicht zu erhalten.
@@ -14,6 +18,7 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 - Konto-Einstellungen: Beim Speichern eines leeren WebUntis-Stundenplan-Links (iCal) erscheint jetzt ein Warnhinweis, dass dadurch der gespeicherte Link entfernt wird; nur nach Bestätigung wird der Link tatsächlich gelöscht.
 - Berichte & Auswertungen sowie die Mitarbeitsliste (`teacher/participation_list.php`): Nach Wahl einer Klasse zeigte die Fach-Auswahl weiterhin die Fächer der zuvor gewählten Klasse, bis die Seite neu geladen wurde. Die Fach-Auswahl wird jetzt sofort beim Wechsel der Klasse auf die tatsächlich zugewiesenen Fächer eingeschränkt, ohne dass die Seite neu geladen werden muss.
+- Zeitstempel wie „zuletzt importiert am“ (WebUntis) konnten je nach Aufrufweg um Stunden abweichen: Lief `config.php` noch ohne eigenen `timezone`-Eintrag (z. B. bei Installationen von vor Version 1.79), übernahm PHP das Zeitzonen-Default aus php.ini – das kann sich zwischen der Web-SAPI (Apache/PHP-FPM) und der CLI-SAPI (z. B. für den WebUntis-Cron-Import per Crontab) unterscheiden. Ohne eigenen `timezone`-Eintrag wird jetzt in jedem Aufrufweg einheitlich auf Europe/Vienna zurückgefallen.
 
 ### Geplant
 

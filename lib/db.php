@@ -16,14 +16,20 @@ function cfg(): array {
   $loaded=require_once $file;
   if(is_array($loaded)){
     $cfg=$loaded;
+    // Fällt auf Europe/Vienna zurück, wenn config.php (z. B. bei älteren,
+    // vor Version 1.79 angelegten Installationen) keinen eigenen
+    // "timezone"-Eintrag hat. Ohne diesen Fallback übernimmt PHP das
+    // Zeitzonen-Default aus php.ini - das kann sich zwischen der Web-SAPI
+    // (Apache/PHP-FPM) und der CLI-SAPI (z. B. für den WebUntis-Cron-Import)
+    // unterscheiden und dadurch gespeicherte Zeitstempel wie "zuletzt
+    // importiert am" je nach Aufrufweg um Stunden verschoben anzeigen.
     $timezone = trim((string)($cfg['timezone'] ?? ''));
-    if($timezone !== ''){
-      try{
-        new DateTimeZone($timezone);
-        date_default_timezone_set($timezone);
-      }catch(Throwable $e){
-        // Keep PHP's server default if the configured timezone is invalid.
-      }
+    if($timezone === ''){ $timezone = 'Europe/Vienna'; }
+    try{
+      new DateTimeZone($timezone);
+      date_default_timezone_set($timezone);
+    }catch(Throwable $e){
+      // Ungültige Zeitzone in config.php: PHP-Server-Default beibehalten.
     }
     return $cfg;
   }
@@ -38,16 +44,13 @@ function cfg(): array {
       'base_path'=>'',
       'session_name'=>'coolgrades_sid',
     ];
-    if(defined('APP_TIMEZONE')){
-      $timezone = trim((string)APP_TIMEZONE);
-      if($timezone !== ''){
-        try{
-          new DateTimeZone($timezone);
-          date_default_timezone_set($timezone);
-        }catch(Throwable $e){
-          // Keep PHP's server default if the configured timezone is invalid.
-        }
-      }
+    $timezone = defined('APP_TIMEZONE') ? trim((string)APP_TIMEZONE) : '';
+    if($timezone === ''){ $timezone = 'Europe/Vienna'; }
+    try{
+      new DateTimeZone($timezone);
+      date_default_timezone_set($timezone);
+    }catch(Throwable $e){
+      // Ungültige Zeitzone: PHP-Server-Default beibehalten.
     }
     return $cfg;
   }
