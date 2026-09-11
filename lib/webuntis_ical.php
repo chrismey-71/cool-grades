@@ -35,6 +35,31 @@ require_once __DIR__.'/lesson_unit_times.php';
 require_once __DIR__.'/schools.php';
 
 /**
+ * Normalizes a WebUntis subject/event code (SUMMARY field, subjects.code,
+ * or a saved webuntis_subject_mappings.webuntis_code) for comparison.
+ *
+ * Why this exists: MySQL's default utf8mb4 collation compares/GROUPs
+ * strings case- and (for some collations) accent-insensitively, and
+ * effectively ignores a trailing/non-breaking space - so two events whose
+ * SUMMARY differs only in casing (e.g. "SPRE" vs "Spre") or a stray
+ * non-breaking space show up as ONE merged row on the review page
+ * (teacher/webuntis_review.php groups by webuntis_code). But the actual
+ * import matching in webuntis_import_for_teacher() compares codes as PHP
+ * array keys, which is always byte-exact - so only the exact casing the
+ * teacher mapped got recognized, and any differently-cased occurrence of
+ * "the same" code silently stayed unmapped/un-ignored forever, even
+ * though the review page made it look like a single, already-handled
+ * code. Normalizing every code the same way, wherever it is stored or
+ * compared, keeps both sides consistent.
+ */
+function webuntis_normalize_code(string $code): string {
+  $code = str_replace("\xC2\xA0", ' ', $code); // geschütztes Leerzeichen (NBSP) -> normales Leerzeichen
+  $code = preg_replace('/\s+/u', ' ', $code) ?? $code;
+  $code = trim($code);
+  return mb_strtoupper($code, 'UTF-8');
+}
+
+/**
  * Fetches the raw iCal text from a (private, token-bearing) URL.
  * Never logs the URL itself – only a masked form – so the token cannot
  * leak into logs on failure.
@@ -335,7 +360,7 @@ function webuntis_store_unmapped_event(PDO $pdo, int $teacherId, array $event, s
   $endTime = ($event['dtend'] instanceof DateTime) ? $event['dtend']->format('H:i:s') : null;
   $room = $event['location'] !== '' ? mb_substr($event['location'], 0, 64) : null;
   $desc = $event['description'] !== '' ? mb_substr($event['description'], 0, 255) : null;
-  $code = mb_substr(trim($event['summary']), 0, 32);
+  $code = mb_substr(webuntis_normalize_code($event['summary']), 0, 32);
   $now = now_iso();
 
   if ($uid !== null) {
@@ -422,7 +447,7 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
   $allowedCombo = [];
   foreach ($rows as $row) {
     $classIdByName[(string)$row['class_name']] = (int)$row['class_id'];
-    $subjectIdByCode[(string)$row['subject_code']] = (int)$row['subject_id'];
+    $subjectIdByCode[webuntis_normalize_code((string)$row['subject_code'])] = (int)$row['subject_id'];
     $allowedCombo[(int)$row['class_id'].':'.(int)$row['subject_id']] = true;
   }
 
@@ -432,7 +457,7 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
   $mst = $pdo->prepare("SELECT webuntis_code, action, subject_id FROM webuntis_subject_mappings WHERE teacher_id=?");
   $mst->execute([$teacherId]);
   foreach ($mst->fetchAll() as $mrow) {
-    $codeMappings[(string)$mrow['webuntis_code']] = [
+    $codeMappings[webuntis_normalize_code((string)$mrow['webuntis_code'])] = [
       'action' => (string)$mrow['action'],
       'subject_id' => $mrow['subject_id'] !== null ? (int)$mrow['subject_id'] : null,
     ];
@@ -475,7 +500,7 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
       continue;
     }
 
-    $summaryCode = trim($event['summary']);
+    $summaryCode = webuntis_normalize_code($event['summary']);
     $uidForCleanup = $event['uid'] !== '' ? mb_substr($event['uid'], 0, 128) : null;
     $subjectId = $subjectIdByCode[$summaryCode] ?? null;
     $mapping = $codeMappings[$summaryCode] ?? null;
@@ -658,7 +683,7 @@ function webuntis_subject_mappings_for_teacher(PDO $pdo, int $teacherId): array 
 
 /** Saves (or replaces) the teacher's mapping decision for one WebUntis code. */
 function webuntis_save_subject_mapping(PDO $pdo, int $teacherId, string $code, string $action, ?int $subjectId, ?string $note): void {
-  $code = trim($code);
+  $code = webuntis_normalize_code($code);
   if ($code === '') throw new InvalidArgumentException('Kein Fachkürzel angegeben.');
   if (!in_array($action, ['subject', 'ignore'], true)) throw new InvalidArgumentException('Ungültige Aktion.');
   if ($action === 'subject' && !$subjectId) throw new InvalidArgumentException('Bitte ein Fach auswählen.');
@@ -674,6 +699,7 @@ function webuntis_save_subject_mapping(PDO $pdo, int $teacherId, string $code, s
 
 /** Removes a mapping decision and reverts any already-ignored events for it back to "unmapped". */
 function webuntis_delete_subject_mapping(PDO $pdo, int $teacherId, string $code): void {
+  $code = webuntis_normalize_code($code);
   $pdo->prepare("DELETE FROM webuntis_subject_mappings WHERE teacher_id=? AND webuntis_code=?")->execute([$teacherId, $code]);
   $pdo->prepare("UPDATE webuntis_unmapped_events SET status='unmapped_subject' WHERE teacher_id=? AND webuntis_code=? AND status='ignored'")->execute([$teacherId, $code]);
 }
