@@ -684,8 +684,13 @@ function webuntis_subject_mappings_for_teacher(PDO $pdo, int $teacherId): array 
 /** Saves (or replaces) the teacher's mapping decision for one WebUntis code. */
 function webuntis_save_subject_mapping(PDO $pdo, int $teacherId, string $code, string $action, ?int $subjectId, ?string $note): void {
   $code = webuntis_normalize_code($code);
-  if ($code === '') throw new InvalidArgumentException('Kein Fachkürzel angegeben.');
   if (!in_array($action, ['subject', 'ignore'], true)) throw new InvalidArgumentException('Ungültige Aktion.');
+  // Ein leeres Kürzel (z. B. ein Termin ohne Titel im WebUntis-Feed) darf
+  // als "keine Unterrichtsstunde" markiert werden - dafür ist diese Funktion
+  // ja da. Einem leeren Kürzel dagegen ein Fach zuzuordnen ergibt keinen
+  // Sinn (es gäbe kein Unterscheidungsmerkmal zu jedem anderen titellosen
+  // Termin), das bleibt weiterhin gesperrt.
+  if ($code === '' && $action === 'subject') throw new InvalidArgumentException('Ein Termin ohne Titel/Kürzel im Feed kann nicht einem Fach zugeordnet werden - bitte stattdessen als „keine Unterrichtsstunde" markieren.');
   if ($action === 'subject' && !$subjectId) throw new InvalidArgumentException('Bitte ein Fach auswählen.');
   $note = $note !== null ? trim($note) : null;
   if ($note === '') $note = null;

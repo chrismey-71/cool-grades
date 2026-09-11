@@ -14,6 +14,11 @@ $bp=cfg()['base_path'];
 $msg=(string)($_GET['msg'] ?? '');
 $err=(string)($_GET['err'] ?? '');
 
+/** Anzeigetext für ein WebUntis-Kürzel - Termine ohne Titel im Feed haben ein leeres Kürzel. */
+function webuntis_review_code_label(string $code): string {
+  return $code !== '' ? $code : 'ohne Titel im Feed';
+}
+
 function webuntis_review_redirect(string $bp, string $msg='', string $err=''): void {
   $params=[];
   if($msg!=='') $params['msg']=$msg;
@@ -91,7 +96,7 @@ render_header('WebUntis: Fachkürzel prüfen',$u);
       $examples=webuntis_unmapped_event_examples($pdo,(int)$u['id'],$code);
     ?>
     <div class="settings-panel" style="margin-top:12px;border-color:#ffe3b0;background:#fffaf0">
-      <div class="settings-panel-title">„<?php echo h($code); ?>" <span class="setting-impact"><?php echo (int)$codeRow['cnt']; ?>× im Feed</span></div>
+      <div class="settings-panel-title">„<?php echo h(webuntis_review_code_label($code)); ?>" <span class="setting-impact"><?php echo (int)$codeRow['cnt']; ?>× im Feed</span></div>
       <div class="small muted" style="margin-top:4px">
         <?php echo h((string)$codeRow['date_min']); ?> bis <?php echo h((string)$codeRow['date_max']); ?>
         <?php if($examples): ?>
@@ -110,6 +115,7 @@ render_header('WebUntis: Fachkürzel prüfen',$u);
       </div>
 
       <div class="row" style="margin-top:10px;gap:20px;flex-wrap:wrap">
+        <?php if($code !== ''): ?>
         <form method="post" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
           <?php echo csrf_input(); ?>
           <input type="hidden" name="action" value="map_subject">
@@ -125,6 +131,9 @@ render_header('WebUntis: Fachkürzel prüfen',$u);
           </div>
           <button class="btn secondary">Zuordnen</button>
         </form>
+        <?php else: ?>
+        <div class="small muted" style="align-self:center">Termine ohne Titel im Feed können nur als „keine Unterrichtsstunde" markiert werden, nicht einem Fach zugeordnet.</div>
+        <?php endif; ?>
 
         <form method="post" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
           <?php echo csrf_input(); ?>
@@ -149,7 +158,7 @@ render_header('WebUntis: Fachkürzel prüfen',$u);
     <div class="settings-panel" style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
         <div>
-          <b>„<?php echo h($mappingRow['webuntis_code']); ?>"</b>
+          <b>„<?php echo h(webuntis_review_code_label((string)$mappingRow['webuntis_code'])); ?>"</b>
           <?php if($mappingRow['action']==='subject'): ?>
             → Fach <b><?php echo h($mappingRow['subject_code'] ?? ''); ?><?php echo $mappingRow['subject_name'] ? ' – '.h($mappingRow['subject_name']) : ''; ?></b>
           <?php else: ?>
