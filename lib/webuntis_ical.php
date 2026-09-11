@@ -351,9 +351,23 @@ function webuntis_prune_stale_lesson_sessions(PDO $pdo, array $allowedCombo, ?st
  * data behind the review/correction page. Upserts by (teacher_id,
  * external_uid) so repeated imports don't pile up duplicate rows and so a
  * status flips cleanly once the teacher makes a mapping decision.
+ *
+ * Some WebUntis feeds export certain entries (often exactly the untitled
+ * "blocked time" placeholders that have no SUMMARY either) without a UID
+ * line at all. Without a stable UID to upsert on, every import would
+ * otherwise INSERT a brand-new row for "the same" occurrence instead of
+ * updating the existing one - so a teacher's mapping decision would only
+ * ever resolve whichever single row the most recent import happened to
+ * touch, while older rows for the same code/date/time combination stayed
+ * "unmapped" forever. When no UID is present, this falls back to matching
+ * on (teacher_id, webuntis_code, lesson_date, start_time) instead.
+ *
+ * Returns the affected row's id (0 if the event has no DTSTART and
+ * nothing was stored), so callers can track which rows this import run
+ * actually touched - see webuntis_prune_stale_unmapped_events().
  */
-function webuntis_store_unmapped_event(PDO $pdo, int $teacherId, array $event, string $status): void {
-  if (!($event['dtstart'] instanceof DateTime)) return;
+function webuntis_store_unmapped_event(PDO $pdo, int $teacherId, array $event, string $status): int {
+  if (!($event['dtstart'] instanceof DateTime)) return 0;
   $uid = $event['uid'] !== '' ? mb_substr($event['uid'], 0, 128) : null;
   $lessonDate = $event['dtstart']->format('Y-m-d');
   $startTime = $event['dtstart']->format('H:i:s');
@@ -363,21 +377,57 @@ function webuntis_store_unmapped_event(PDO $pdo, int $teacherId, array $event, s
   $code = mb_substr(webuntis_normalize_code($event['summary']), 0, 32);
   $now = now_iso();
 
+  $existingId = null;
   if ($uid !== null) {
     $st = $pdo->prepare("SELECT id FROM webuntis_unmapped_events WHERE teacher_id=? AND external_uid=? LIMIT 1");
     $st->execute([$teacherId, $uid]);
-    $existingId = $st->fetchColumn();
-    if ($existingId) {
-      $pdo->prepare("UPDATE webuntis_unmapped_events SET webuntis_code=?, webuntis_description=?, lesson_date=?, start_time=?, end_time=?, room=?, status=?, updated_at=? WHERE id=?")
-          ->execute([$code, $desc, $lessonDate, $startTime, $endTime, $room, $status, $now, (int)$existingId]);
-      return;
-    }
+    $existingId = $st->fetchColumn() ?: null;
+  } else {
+    $st = $pdo->prepare("SELECT id FROM webuntis_unmapped_events WHERE teacher_id=? AND external_uid IS NULL AND webuntis_code=? AND lesson_date=? AND start_time=? LIMIT 1");
+    $st->execute([$teacherId, $code, $lessonDate, $startTime]);
+    $existingId = $st->fetchColumn() ?: null;
+  }
+
+  if ($existingId) {
+    $pdo->prepare("UPDATE webuntis_unmapped_events SET webuntis_code=?, webuntis_description=?, lesson_date=?, start_time=?, end_time=?, room=?, status=?, updated_at=? WHERE id=?")
+        ->execute([$code, $desc, $lessonDate, $startTime, $endTime, $room, $status, $now, (int)$existingId]);
+    return (int)$existingId;
   }
 
   $pdo->prepare("INSERT INTO webuntis_unmapped_events
                  (teacher_id,external_uid,webuntis_code,webuntis_description,lesson_date,start_time,end_time,room,status,created_at,updated_at)
                  VALUES (?,?,?,?,?,?,?,?,?,?,?)")
       ->execute([$teacherId, $uid, $code, $desc, $lessonDate, $startTime, $endTime, $room, $status, $now, $now]);
+  return (int)$pdo->lastInsertId();
+}
+
+/**
+ * Removes webuntis_unmapped_events rows that this import run did not
+ * touch (neither re-stored as still-unmapped/ignored, nor cleared as
+ * newly-resolved), but only within the date range this run's feed fetch
+ * actually covers (coverageMinDate/coverageMaxDate) - mirrors
+ * webuntis_prune_stale_lesson_sessions() for the same reason.
+ *
+ * Without this, a row can outlive whatever WebUntis occurrence it once
+ * represented (the occurrence got cancelled, moved, or simply stopped
+ * being exported) and sit forever on the review page looking like an
+ * unresolved code, even after every occurrence the feed currently
+ * reports for that code has actually been handled.
+ */
+function webuntis_prune_stale_unmapped_events(PDO $pdo, int $teacherId, ?string $coverageMinDate, ?string $coverageMaxDate, array $touchedIds): int {
+  if ($coverageMinDate === null || $coverageMaxDate === null) return 0;
+  $touchedIds = array_flip(array_filter(array_map('intval', $touchedIds)));
+  $st = $pdo->prepare("SELECT id FROM webuntis_unmapped_events WHERE teacher_id=? AND lesson_date >= ? AND lesson_date <= ?");
+  $st->execute([$teacherId, $coverageMinDate, $coverageMaxDate]);
+  $delStmt = $pdo->prepare("DELETE FROM webuntis_unmapped_events WHERE id=?");
+  $deleted = 0;
+  foreach ($st->fetchAll() as $row) {
+    $id = (int)$row['id'];
+    if (isset($touchedIds[$id])) continue;
+    $delStmt->execute([$id]);
+    $deleted++;
+  }
+  return $deleted;
 }
 
 /**
@@ -482,6 +532,7 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
     'pruned_stale' => 0,
     'pruned_kept_entries' => 0,
     'pruned_kept_topic' => 0,
+    'pruned_stale_unmapped' => 0,
   ];
 
   // ids of lesson_sessions rows still confirmed present by this import run
@@ -489,6 +540,9 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
   // the feed's date range that is NOT in here has fallen out of the
   // schedule and is a pruning candidate below.
   $touchedIds = [];
+  // ids of webuntis_unmapped_events rows this run re-confirmed (still
+  // unmapped or ignored) - see webuntis_prune_stale_unmapped_events().
+  $touchedUnmappedIds = [];
 
   foreach ($events as $event) {
     if ($event['status'] !== '' && $event['status'] !== 'CONFIRMED') {
@@ -511,13 +565,13 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
     if ($subjectId === null) {
       if ($mapping !== null && $mapping['action'] === 'ignore') {
         $summary['skipped_ignored_code']++;
-        webuntis_store_unmapped_event($pdo, $teacherId, $event, 'ignored');
+        $touchedUnmappedIds[] = webuntis_store_unmapped_event($pdo, $teacherId, $event, 'ignored');
       } else {
         $summary['skipped_unmapped_subject']++;
         if ($summaryCode !== '' && !in_array($summaryCode, $summary['unmapped_subjects'], true)) {
           $summary['unmapped_subjects'][] = $summaryCode;
         }
-        webuntis_store_unmapped_event($pdo, $teacherId, $event, 'unmapped_subject');
+        $touchedUnmappedIds[] = webuntis_store_unmapped_event($pdo, $teacherId, $event, 'unmapped_subject');
       }
       continue;
     }
@@ -584,6 +638,7 @@ function webuntis_import_for_teacher(PDO $pdo, array $teacher): array {
   $summary['pruned_stale'] = $pruneResult['deleted'];
   $summary['pruned_kept_entries'] = $pruneResult['kept_entries'];
   $summary['pruned_kept_topic'] = $pruneResult['kept_topic'];
+  $summary['pruned_stale_unmapped'] = webuntis_prune_stale_unmapped_events($pdo, $teacherId, $coverageMinDate, $coverageMaxDate, $touchedUnmappedIds);
 
   $st = $pdo->prepare("UPDATE users SET webuntis_ical_last_import_at=?, webuntis_ical_last_import_summary=? WHERE id=?");
   $st->execute([now_iso(), json_encode($summary, JSON_UNESCAPED_UNICODE), $teacherId]);
