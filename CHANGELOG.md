@@ -6,6 +6,15 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
+### Geändert
+
+- Konto-Einstellungen: Die Bereiche „Schnelle Mitarbeitserfassung“, „Formulare und Darstellung“ und „Hinweise und Auswertung“ sind jetzt als zusammenklappbare Abschnitte (standardmäßig geschlossen) dargestellt, um bei der mittlerweile hohen Zahl an Einstellungen die Übersicht zu erhalten.
+
+### Behoben
+
+- Konto-Einstellungen: Beim Speichern eines leeren WebUntis-Stundenplan-Links (iCal) erscheint jetzt ein Warnhinweis, dass dadurch der gespeicherte Link entfernt wird; nur nach Bestätigung wird der Link tatsächlich gelöscht.
+- Berichte & Auswertungen sowie die Mitarbeitsliste (`teacher/participation_list.php`): Nach Wahl einer Klasse zeigte die Fach-Auswahl weiterhin die Fächer der zuvor gewählten Klasse, bis die Seite neu geladen wurde. Die Fach-Auswahl wird jetzt sofort beim Wechsel der Klasse auf die tatsächlich zugewiesenen Fächer eingeschränkt, ohne dass die Seite neu geladen werden muss.
+
 ### Geplant
 
 - formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit

@@ -176,7 +176,9 @@ render_header('Konto',$u);
 
   <div class="settings-grid">
     <?php if(($u['role'] ?? '')==='teacher'): ?>
-    <div class="col-12"><div class="settings-section-heading">Schnelle Mitarbeitserfassung</div></div>
+    <div class="col-12">
+    <?php accordion_section_start(true, 'Schnelle Mitarbeitserfassung', false, 'margin-top:0'); ?>
+    <div class="settings-grid">
     <div class="col-12 col-6">
       <div class="settings-panel" id="account-pref-simple-participation">
         <div class="settings-panel-title">Vereinfachte Eingabe bei Mitarbeit <span class="setting-impact">Erfassung</span></div>
@@ -243,8 +245,13 @@ render_header('Konto',$u);
         <div class="small muted settings-panel-note">Bestimmt, wie viele Tage in die Vergangenheit die Auswahl „Bestehende Stunde auswählen“ bei der Mitarbeit-Erfassung zurückreicht, damit auch später nachgetragene Einträge ihre Stunde noch finden. Wirkt nur auf diese Auswahlliste, nicht auf das Datumsfeld selbst.</div>
       </div>
     </div>
+    </div>
+    <?php accordion_section_end(true); ?>
+    </div>
 
-    <div class="col-12"><div class="settings-section-heading">Formulare und Darstellung</div></div>
+    <div class="col-12">
+    <?php accordion_section_start(true, 'Formulare und Darstellung', false, 'margin-top:0'); ?>
+    <div class="settings-grid">
     <div class="col-12 col-6">
       <div class="settings-panel" id="account-pref-compact-forms">
         <div class="settings-panel-title">Anzeige in Eingabefenstern <span class="setting-impact">Erfassung / Ansicht</span></div>
@@ -316,6 +323,9 @@ render_header('Konto',$u);
         <div class="small muted settings-panel-note">Bestimmt, ob die Menüpunkte oben als Text, als Symbol oder als Symbol mit Text angezeigt werden. Wirkt nur auf die Darstellung, nicht auf verfügbare Funktionen.</div>
       </div>
     </div>
+    </div>
+    <?php accordion_section_end(true); ?>
+    </div>
     <?php else: ?>
     <div class="col-12"><div class="settings-section-heading">Ansicht</div></div>
 
@@ -358,7 +368,9 @@ render_header('Konto',$u);
     </div>
     <?php endif; ?>
 
-    <div class="col-12"><div class="settings-section-heading">Hinweise und Auswertung</div></div>
+    <div class="col-12">
+    <?php accordion_section_start(true, 'Hinweise und Auswertung', false, 'margin-top:0'); ?>
+    <div class="settings-grid">
     <div class="col-12 col-6">
       <div class="settings-panel" id="account-pref-legal-hints">
         <div class="settings-panel-title">Gesetzeshinweise <span class="setting-impact">Hinweise</span></div>
@@ -374,6 +386,9 @@ render_header('Konto',$u);
         </div>
         <div class="small muted settings-panel-note">Blendet die eingebauten Gesetzeshinweise in Erfassungs- und Auswertungsseiten ein oder aus. Die gespeicherten Leistungsdaten werden dadurch nicht verändert.</div>
       </div>
+    </div>
+    </div>
+    <?php accordion_section_end(true); ?>
     </div>
   </div>
 
@@ -400,11 +415,11 @@ render_header('Konto',$u);
     <?php endif; ?>
   </div>
 
-  <form method="post" <?php echo dirty_form_attrs(); ?> style="margin-top:12px">
+  <form method="post" <?php echo dirty_form_attrs(); ?> style="margin-top:12px" id="webuntisSaveForm" data-had-link="<?php echo !empty($u['webuntis_ical_url_enc'])?'1':'0'; ?>">
     <?php echo csrf_input(); ?>
     <input type="hidden" name="action" value="webuntis_save">
     <label class="muted">iCal-Link (leer lassen, um den gespeicherten Link zu entfernen)</label>
-    <input class="input" type="url" name="webuntis_ical_url" placeholder="https://webuntis.../ical?token=..." autocomplete="off">
+    <input class="input" type="url" name="webuntis_ical_url" id="webuntisIcalUrlInput" placeholder="https://webuntis.../ical?token=..." autocomplete="off">
     <div style="height:10px"></div>
     <button class="btn secondary">Link speichern</button>
   </form>
@@ -505,4 +520,18 @@ render_header('Konto',$u);
   </form>
 </div>
 </div></div></div>
+<script>
+(function(){
+  var form = document.getElementById('webuntisSaveForm');
+  var input = document.getElementById('webuntisIcalUrlInput');
+  if(!form || !input) return;
+  form.addEventListener('submit', function(e){
+    if(form.dataset.hadLink === '1' && input.value.trim() === ''){
+      if(!confirm('Das Feld ist leer. Dadurch wird der gespeicherte WebUntis-Link entfernt und ein weiterer Import ist erst nach erneutem Einfügen des Links wieder möglich. Fortfahren?')){
+        e.preventDefault();
+      }
+    }
+  });
+})();
+</script>
 <?php render_footer(); ?>

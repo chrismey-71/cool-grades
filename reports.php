@@ -28,21 +28,31 @@ if($periodSchoolYearId<=0) $periodSchoolYearId=school_year_current_id($pdo,$sele
 $reportAssessmentContext=report_eval_assessment_context_from_period($resolvedPeriod,$period);
 
 $classes=load_teacher_classes($pdo,(int)$u['id'],$periodSchoolYearId,true,true,true,$selectedSchoolId);
-if($class_id>0){
-  $subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
-} else {
-  $subjectSql="SELECT DISTINCT s.id,s.code,s.name
-               FROM teacher_assignments ta
-               JOIN classes c ON c.id=ta.class_id
-               JOIN school_forms sf ON sf.id=c.school_form_id
-               JOIN subjects s ON s.id=ta.subject_id
-               WHERE ta.teacher_id=? AND c.school_period_set_id=?";
-  $subjectParams=[(int)$u['id'],$periodSchoolYearId];
-  if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
-  $subjectSql.=" ORDER BY s.code";
-  $st=$pdo->prepare($subjectSql);
-  $st->execute($subjectParams);
-  $subjects=$st->fetchAll();
+// The subject dropdown lists every subject across all of the teacher's
+// classes above (not just the currently selected one) so that switching
+// the class client-side can instantly narrow it down (see the script near
+// the form below) without a stale list from before the class was changed -
+// $subjectClassIds maps each subject_id to the class_ids it belongs to.
+$subjectSql="SELECT DISTINCT c.id AS class_id, s.id AS subject_id, s.code, s.name
+             FROM teacher_assignments ta
+             JOIN classes c ON c.id=ta.class_id
+             JOIN school_forms sf ON sf.id=c.school_form_id
+             JOIN subjects s ON s.id=ta.subject_id
+             WHERE ta.teacher_id=? AND c.school_period_set_id=?";
+$subjectParams=[(int)$u['id'],$periodSchoolYearId];
+if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+$subjectSql.=" ORDER BY s.code";
+$st=$pdo->prepare($subjectSql);
+$st->execute($subjectParams);
+$subjects=[];
+$subjectClassIds=[];
+foreach($st->fetchAll() as $row){
+  $sid=(int)$row['subject_id'];
+  if(!isset($subjectClassIds[$sid])){
+    $subjectClassIds[$sid]=[];
+    $subjects[]=['id'=>$sid,'code'=>$row['code'],'name'=>$row['name']];
+  }
+  $subjectClassIds[$sid][]=(int)$row['class_id'];
 }
 
 // Print-friendly view (users can "Print to PDF" in the browser)
@@ -126,13 +136,13 @@ else render_header('Berichte & Auswertungen',$u);
 </div>
 <form method="get" class="row" style="align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
   <div><label class="muted">Klasse</label>
-    <select class="input" name="class_id"><option value="0">–</option>
+    <select class="input" name="class_id" id="reportsClassSelect"><option value="0">–</option>
       <?php foreach($classes as $c): ?><option value="<?php echo (int)$c['id']; ?>" <?php echo $class_id===(int)$c['id']?'selected':''; ?>><?php echo h($c['name'].(class_is_readonly($c)?' · Archiv':'')); ?></option><?php endforeach; ?>
     </select>
   </div>
   <div><label class="muted">Fach</label>
-    <select class="input" name="subject_id"><option value="0">–</option>
-      <?php foreach($subjects as $s): ?><option value="<?php echo (int)$s['id']; ?>" <?php echo $subject_id===(int)$s['id']?'selected':''; ?>><?php echo h($s['code']); ?></option><?php endforeach; ?>
+    <select class="input" name="subject_id" id="reportsSubjectSelect"><option value="0">–</option>
+      <?php foreach($subjects as $s): ?><option value="<?php echo (int)$s['id']; ?>" data-class-ids="<?php echo h(implode(',', $subjectClassIds[$s['id']] ?? [])); ?>" <?php echo $subject_id===(int)$s['id']?'selected':''; ?>><?php echo h($s['code']); ?></option><?php endforeach; ?>
     </select>
   </div>
   <div class="settings-panel" style="min-width:440px;flex:1 1 440px;padding:12px">
@@ -176,6 +186,34 @@ else render_header('Berichte & Auswertungen',$u);
     <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><a class="btn secondary" href="<?php echo h((cfg()['base_path'] ?? '').'/reports_pdf.php'._reports_qs_keep()); ?>">PDF-Datei herunterladen</a></div>
   <?php endif; ?>
 </form>
+<script>
+(() => {
+  const classSelect=document.getElementById('reportsClassSelect');
+  const subjectSelect=document.getElementById('reportsSubjectSelect');
+  if(!classSelect || !subjectSelect) return;
+  const updateSubjects=()=>{
+    const classId=classSelect.value;
+    let selectedIsAllowed=false;
+    [...subjectSelect.options].forEach(option=>{
+      if(option.value==='0'){ option.hidden=false; option.disabled=false; if(option.selected) selectedIsAllowed=true; return; }
+      const classIds=String(option.dataset.classIds || '').split(',');
+      const allowed=classId==='0' || classIds.includes(classId);
+      option.hidden=!allowed;
+      option.disabled=!allowed;
+      if(allowed && option.selected) selectedIsAllowed=true;
+    });
+    if(!selectedIsAllowed){
+      // The previously selected subject no longer belongs to the new class:
+      // clear the selection back to "–" rather than silently guessing a
+      // different subject for the user.
+      const placeholder=[...subjectSelect.options].find(option=>option.value==='0');
+      if(placeholder) placeholder.selected=true;
+    }
+  };
+  classSelect.addEventListener('change',updateSubjects);
+  updateSubjects();
+})();
+</script>
 
 <?php if($class_id && $subject_id): ?>
 <?php

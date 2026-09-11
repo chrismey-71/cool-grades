@@ -25,21 +25,31 @@ $err=(string)($_GET['err'] ?? '');
 
 $schoolYears=load_school_years($pdo,true,$selectedSchoolId,true);
 $classes=load_teacher_classes($pdo,(int)$u['id'],$school_period_set_id,true,true,true,$selectedSchoolId);
-if($class_id>0){
-  $subjects=load_teacher_subjects($pdo,(int)$u['id'],$class_id);
-} else {
-  $subjectSql="SELECT DISTINCT s.id,s.code,s.name
-               FROM teacher_assignments ta
-               JOIN classes c ON c.id=ta.class_id
-               JOIN school_forms sf ON sf.id=c.school_form_id
-               JOIN subjects s ON s.id=ta.subject_id
-               WHERE ta.teacher_id=? AND c.school_period_set_id=?";
-  $subjectParams=[(int)$u['id'],$school_period_set_id];
-  if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
-  $subjectSql.=" ORDER BY s.code";
-  $st=$pdo->prepare($subjectSql);
-  $st->execute($subjectParams);
-  $subjects=$st->fetchAll();
+// The subject dropdown lists every subject across all of the teacher's
+// classes above (not just the currently selected one) so that switching
+// the class client-side can instantly narrow it down (see the script near
+// the form below) without a stale list from before the class was changed -
+// $subjectClassIds maps each subject_id to the class_ids it belongs to.
+$subjectSql="SELECT DISTINCT c.id AS class_id, s.id AS subject_id, s.code, s.name
+             FROM teacher_assignments ta
+             JOIN classes c ON c.id=ta.class_id
+             JOIN school_forms sf ON sf.id=c.school_form_id
+             JOIN subjects s ON s.id=ta.subject_id
+             WHERE ta.teacher_id=? AND c.school_period_set_id=?";
+$subjectParams=[(int)$u['id'],$school_period_set_id];
+if($selectedSchoolId>0){ $subjectSql.=" AND sf.school_id=?"; $subjectParams[]=$selectedSchoolId; }
+$subjectSql.=" ORDER BY s.code";
+$st=$pdo->prepare($subjectSql);
+$st->execute($subjectParams);
+$subjects=[];
+$subjectClassIds=[];
+foreach($st->fetchAll() as $row){
+  $sid=(int)$row['subject_id'];
+  if(!isset($subjectClassIds[$sid])){
+    $subjectClassIds[$sid]=[];
+    $subjects[]=['id'=>$sid,'code'=>$row['code'],'name'=>$row['name']];
+  }
+  $subjectClassIds[$sid][]=(int)$row['class_id'];
 }
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
@@ -249,16 +259,16 @@ render_header('Mitarbeit bearbeiten',$u);
   </div>
   <div>
     <label class="muted">Klasse</label>
-    <select class="input" name="class_id">
+    <select class="input" name="class_id" id="participationClassSelect">
       <option value="0">–</option>
       <?php foreach($classes as $c): ?><option value="<?php echo (int)$c['id']; ?>" <?php echo $class_id===(int)$c['id']?'selected':''; ?>><?php echo h($c['name'].(class_is_readonly($c)?' · Archiv':'')); ?></option><?php endforeach; ?>
     </select>
   </div>
   <div>
     <label class="muted">Fach</label>
-    <select class="input" name="subject_id">
+    <select class="input" name="subject_id" id="participationSubjectSelect">
       <option value="0">–</option>
-      <?php foreach($subjects as $s): ?><option value="<?php echo (int)$s['id']; ?>" <?php echo $subject_id===(int)$s['id']?'selected':''; ?>><?php echo h($s['code']); ?></option><?php endforeach; ?>
+      <?php foreach($subjects as $s): ?><option value="<?php echo (int)$s['id']; ?>" data-class-ids="<?php echo h(implode(',', $subjectClassIds[$s['id']] ?? [])); ?>" <?php echo $subject_id===(int)$s['id']?'selected':''; ?>><?php echo h($s['code']); ?></option><?php endforeach; ?>
     </select>
   </div>
   <div>
@@ -298,6 +308,34 @@ render_header('Mitarbeit bearbeiten',$u);
   </div>
   <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><button class="btn secondary">Anzeigen</button></div>
 </form>
+<script>
+(() => {
+  const classSelect=document.getElementById('participationClassSelect');
+  const subjectSelect=document.getElementById('participationSubjectSelect');
+  if(!classSelect || !subjectSelect) return;
+  const updateSubjects=()=>{
+    const classId=classSelect.value;
+    let selectedIsAllowed=false;
+    [...subjectSelect.options].forEach(option=>{
+      if(option.value==='0'){ option.hidden=false; option.disabled=false; if(option.selected) selectedIsAllowed=true; return; }
+      const classIds=String(option.dataset.classIds || '').split(',');
+      const allowed=classId==='0' || classIds.includes(classId);
+      option.hidden=!allowed;
+      option.disabled=!allowed;
+      if(allowed && option.selected) selectedIsAllowed=true;
+    });
+    if(!selectedIsAllowed){
+      // The previously selected subject no longer belongs to the new class:
+      // clear the selection back to "–" rather than silently guessing a
+      // different subject for the user.
+      const placeholder=[...subjectSelect.options].find(option=>option.value==='0');
+      if(placeholder) placeholder.selected=true;
+    }
+  };
+  classSelect.addEventListener('change',updateSubjects);
+  updateSubjects();
+})();
+</script>
 
 <?php if($class_id && $subject_id): ?>
   <form method="post" style="margin-top:12px" onsubmit="return confirm('Alle LBV-Tags für diese Klasse und dieses Fach neu berechnen? Manuelle Tags werden entfernt.');">
