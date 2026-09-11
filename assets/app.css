@@ -324,7 +324,6 @@
   flex-wrap:wrap;margin-bottom:12px;
 }
 .timetable-range{font-weight:700;font-size:14px;color:var(--text)}
-.timetable-range-count{font-weight:400;color:var(--muted);margin-left:8px;font-size:13px}
 .timetable-week{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 @media (max-width:860px){
   .timetable-week{grid-template-columns:1fr}
@@ -338,11 +337,6 @@
   display:flex;justify-content:space-between;gap:6px;
   font-weight:700;color:var(--text);margin-bottom:8px;
 }
-.timetable-day-count{
-  display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
-  background:var(--bg);border:1px solid var(--border);
-  font-weight:700;font-size:11px;color:var(--muted);
-}
 .timetable-day-date{font-weight:400;color:var(--muted)}
 .timetable-empty{padding:4px 0}
 .timetable-lesson{
@@ -354,6 +348,7 @@
 .timetable-lesson:last-child{margin-bottom:0}
 .timetable-lesson:hover{border-color:var(--blue);text-decoration:none}
 .timetable-lesson-time{font-weight:700;color:var(--blue);font-size:12px}
+.timetable-lesson-ue{font-weight:400;color:var(--muted);font-size:11px;margin-left:5px}
 .timetable-lesson-label{font-weight:600}
 .timetable-lesson-room{color:var(--muted);font-size:12px}
 

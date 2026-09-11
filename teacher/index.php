@@ -125,7 +125,18 @@ if($quickMode==='timetable'){
       $weekLessonsByDate[$row['lesson_date']][]=$row;
     }
   }
-  $weekLessonCount=array_sum(array_map('count',$weekLessonsByDate));
+}
+
+/**
+ * Anzahl der UE, die ein lesson_sessions.lesson_unit-Wert abdeckt - z. B.
+ * "3" -> 1, "3,4" -> 2 (Doppelstunde, siehe lib/lesson_unit_times.php).
+ * Nur ein sauberes, rein numerisches Komma-Format wird gezählt; alles
+ * andere (leer, Freitext) liefert null, damit nichts Falsches angezeigt wird.
+ */
+function teacher_timetable_ue_count(?string $lessonUnit): ?int {
+  $v=trim((string)$lessonUnit);
+  if($v==='' || !preg_match('/^\d+(,\d+)*$/',$v)) return null;
+  return count(explode(',',$v));
 }
 
 render_header('Dashboard',$u);
@@ -189,7 +200,7 @@ render_header('Dashboard',$u);
               ?>
                 <div class="timetable-nav">
                   <a class="btn secondary small" href="?<?php echo h(http_build_query($ttPrevQs)); ?>#dashboard-timetable">&larr; Vorherige Woche</a>
-                  <span class="timetable-range"><?php echo h($weekDays[0]->format('d.m.').' – '.$weekDays[4]->format('d.m.Y')); ?><span class="timetable-range-count"><?php echo (int)$weekLessonCount; ?> Stunde<?php echo $weekLessonCount===1?'':'n'; ?></span><?php if($qweek!==0): ?> · <a href="?<?php echo h(http_build_query($ttTodayQs)); ?>#dashboard-timetable">Diese Woche</a><?php endif; ?></span>
+                  <span class="timetable-range"><?php echo h($weekDays[0]->format('d.m.').' – '.$weekDays[4]->format('d.m.Y')); ?><?php if($qweek!==0): ?> · <a href="?<?php echo h(http_build_query($ttTodayQs)); ?>#dashboard-timetable">Diese Woche</a><?php endif; ?></span>
                   <a class="btn secondary small" href="?<?php echo h(http_build_query($ttNextQs)); ?>#dashboard-timetable">Nächste Woche &rarr;</a>
                 </div>
                 <div class="timetable-week" id="dashboard-timetable">
@@ -198,18 +209,16 @@ render_header('Dashboard',$u);
                     $dayLessons=$weekLessonsByDate[$dateKey] ?? [];
                   ?>
                     <div class="timetable-day<?php echo ($dateKey===$ttToday)?' is-today':''; ?>">
-                      <div class="timetable-day-head">
-                        <span><?php echo h($ttWeekdayLabels[$wi]); ?><?php if($dayLessons): ?><span class="timetable-day-count"><?php echo count($dayLessons); ?></span><?php endif; ?></span>
-                        <span class="timetable-day-date"><?php echo h($day->format('d.m.')); ?></span>
-                      </div>
+                      <div class="timetable-day-head"><span><?php echo h($ttWeekdayLabels[$wi]); ?></span><span class="timetable-day-date"><?php echo h($day->format('d.m.')); ?></span></div>
                       <?php if(!$dayLessons): ?>
                         <div class="timetable-empty small muted">keine Stunden</div>
                       <?php else: foreach($dayLessons as $ls):
                         $ttLabel=trim($ls['class_name'].' '.$ls['subject_code']);
                         $ttTime=!empty($ls['start_time']) ? substr((string)$ls['start_time'],0,5) : (!empty($ls['lesson_unit']) ? 'UE '.$ls['lesson_unit'] : '');
+                        $ttUeCount=teacher_timetable_ue_count($ls['lesson_unit'] ?? null);
                       ?>
                         <a class="timetable-lesson" href="<?php echo h($bp); ?>/teacher/participation_new.php?class_id=<?php echo (int)$ls['class_id']; ?>&subject_id=<?php echo (int)$ls['subject_id']; ?>&lesson_id=<?php echo (int)$ls['id']; ?>">
-                          <?php if($ttTime!==''): ?><span class="timetable-lesson-time"><?php echo h($ttTime); ?></span><?php endif; ?>
+                          <?php if($ttTime!==''): ?><span class="timetable-lesson-time"><?php echo h($ttTime); ?><?php if($ttUeCount!==null): ?><span class="timetable-lesson-ue"><?php echo (int)$ttUeCount; ?> UE</span><?php endif; ?></span><?php endif; ?>
                           <span class="timetable-lesson-label"><?php echo h($ttLabel); ?></span>
                           <?php if(!empty($ls['room'])): ?><span class="timetable-lesson-room"><?php echo h((string)$ls['room']); ?></span><?php endif; ?>
                         </a>
