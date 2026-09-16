@@ -9,6 +9,11 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 ### Behoben
 
 - Berichte & Auswertungen (`reports.php`): Wechselte man nur den Zeitraum auf ein vergangenes Schuljahr (ohne die Klasse neu auszuwählen), blieb die zuvor gewählte Klasse als ID im Formular bestehen – für ein vergangenes Schuljahr ist das aber die ID einer anderen (der jetzt aktuellen) Klasse, da jede Klasse beim Schuljahreswechsel als neue Datenbankzeile angelegt wird. Dadurch wurden zwar noch die (identischen) Schüler:innen angezeigt, aber „0 Einträge“, obwohl echte Mitarbeitsdaten vorhanden waren. Eine nicht mehr zum gewählten Zeitraum passende Klassenauswahl wird jetzt erkannt und zurückgesetzt, mit einem Hinweis, die passende (archivierte) Klasse für diesen Zeitraum neu auszuwählen.
+- Stundenerfassung (`teacher/lesson.php`), Bereich „Bestehende Stunden anzeigen und bearbeiten“: Die dortige Zeitraumauswahl für vergangene Schuljahre war praktisch nicht nutzbar, da Klasse und Fach im selben Formular als Pflichtfelder markiert waren – nach einem Zeitraumwechsel zeigte die Klassenliste aber noch die Klassen des vorherigen Zeitraums, und ohne gültige Auswahl ließ sich das Formular gar nicht absenden, um die Liste zu aktualisieren. Dadurch waren Stundenthemen vergangener Schuljahre faktisch nicht einsehbar. Die Pflichtfelder wurden entfernt und die Zeitraumauswahl lädt jetzt automatisch neu, sobald sie geändert wird.
+
+### Geändert
+
+- Berichte & Auswertungen (`reports.php`) und Stundenerfassung (`teacher/lesson.php`, Bereich „Bestehende Stunden“): Die Zeitraumauswahl steht jetzt an erster Stelle und lädt bei Änderung automatisch neu, bevor Klasse und Fach ausgewählt werden – so passt sich die Klassenliste sofort an den gewählten Zeitraum an und es können keine zueinander unpassenden Klasse/Zeitraum-Kombinationen mehr abgeschickt werden.
 
 ### Geplant
 

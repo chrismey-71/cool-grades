@@ -55,6 +55,36 @@ $st=$pdo->prepare($subjectSql);
 $st->execute($subjectParams);
 $subjects=$st->fetchAll();
 
+// "Bestehende Stunden anzeigen und bearbeiten" can additionally look at a
+// previous (now archived) school year - e.g. to look up last year's
+// Stundenthemen for a class that has since been promoted to a new
+// database row/id (see admin/school_year_transition.php). $classes above
+// stays limited to the current year (and excludes archived classes) since
+// that's the "Stunde anlegen" form's list, and you can't create new
+// lessons for a past year; $browseClasses is scoped to the selected
+// "Zeitraum" and includes archived/departed classes.
+$schoolYears=load_school_years($pdo,true,$selectedSchoolId,true);
+$period=(string)($_GET['period'] ?? 'current');
+$browseSchoolYearId=$currentSchoolYearId;
+if($period!=='current' && ctype_digit($period)){
+  $candidateYearId=(int)$period;
+  foreach($schoolYears as $sy){ if((int)$sy['id']===$candidateYearId){ $browseSchoolYearId=$candidateYearId; break; } }
+}
+$browseClasses=load_teacher_classes($pdo,(int)$u['id'],$browseSchoolYearId,true,true,true,$selectedSchoolId);
+
+$browseSubjectSql="SELECT DISTINCT s.id,s.code,s.name
+             FROM teacher_assignments ta
+             JOIN classes c ON c.id=ta.class_id
+             JOIN school_forms sf ON sf.id=c.school_form_id
+             JOIN subjects s ON s.id=ta.subject_id
+             WHERE ta.teacher_id=? AND c.school_period_set_id=?";
+$browseSubjectParams=[(int)$u['id'],$browseSchoolYearId];
+if($selectedSchoolId>0){ $browseSubjectSql.=" AND sf.school_id=?"; $browseSubjectParams[]=$selectedSchoolId; }
+$browseSubjectSql.=" ORDER BY s.code";
+$st=$pdo->prepare($browseSubjectSql);
+$st->execute($browseSubjectParams);
+$browseSubjects=$st->fetchAll();
+
 // Parse slot map for quick navigation (format: "UE:ID,UE:ID")
 $slot_map_str=(string)($_GET['slot_map'] ?? '');
 $slot_links=[];
@@ -276,6 +306,21 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   }
 }
 
+// A class_id left over from a different "Zeitraum" (the teacher only
+// changed the period selector without re-picking "Klasse", so the browser
+// still submits the previously selected school year's class id) can
+// silently point at a class that isn't part of the newly selected school
+// year - see the matching guard in reports.php for the full explanation.
+$classPeriodMismatch=false;
+if($class_id>0 && !$lesson_id){
+  $classStillValidForPeriod=false;
+  foreach($browseClasses as $c){ if((int)$c['id']===$class_id){ $classStillValidForPeriod=true; break; } }
+  if(!$classStillValidForPeriod){
+    $classPeriodMismatch=true;
+    $class_id=0;
+  }
+}
+
 // Optional selected slot from direct navigation (e.g. from participation page)
 $ls=null;
 if($lesson_id){
@@ -306,6 +351,9 @@ $ue_legend=lesson_unit_legend_label($pdo,$ue_school_id);
 
 $class_name='';
 foreach($classes as $c){ if((int)$c['id']===$class_id){ $class_name=(string)$c['name']; break; } }
+if($class_name===''){
+  foreach($browseClasses as $c){ if((int)$c['id']===$class_id){ $class_name=(string)$c['name']; break; } }
+}
 $subject_code=''; $subject_name='';
 foreach($subjects as $s){
   if((int)$s['id']===$subject_id){
@@ -313,6 +361,26 @@ foreach($subjects as $s){
     $subject_name=(string)$s['name'];
     break;
   }
+}
+if($subject_code===''){
+  foreach($browseSubjects as $s){
+    if((int)$s['id']===$subject_id){
+      $subject_code=(string)$s['code'];
+      $subject_name=(string)$s['name'];
+      break;
+    }
+  }
+}
+
+// Editing/deleting existing lessons for an archived or departed class is
+// blocked server-side (require_class_writable / require_teacher_active_
+// assignment) - resolve that once here so the "Bisherige Stunden" table can
+// show a notice and grey out those actions instead of letting the teacher
+// hit a hard error after filling in a change.
+$selectedClassReadonly=false;
+if($class_id>0){
+  $selectedClassCtx=class_context($pdo,$class_id);
+  if($selectedClassCtx) $selectedClassReadonly=class_is_readonly($selectedClassCtx);
 }
 if($ls){
   $class_name=(string)($ls['class_name'] ?? $class_name);
@@ -409,23 +477,37 @@ render_header('Stundenerfassung',$u);
 
   <?php if(!$compact_forms): ?><div style="height:14px"></div><h2>Bestehende Stunden anzeigen und bearbeiten</h2><?php endif; ?>
   <?php accordion_section_start($compact_forms, 'Bestehende Stunden anzeigen und bearbeiten', false, 'margin-top:12px', '', 'contrast-panel section-selection'); ?>
-  <?php if($compact_forms): ?><div class="muted">Wähle Klasse und Fach. Darunter kannst du bestehende – auch aus WebUntis importierte – Stunden sortiert bearbeiten und filtern.</div><div style="height:12px"></div><?php endif; ?>
+  <?php if($compact_forms): ?><div class="muted">Wähle Zeitraum, Klasse und Fach. Darunter kannst du bestehende – auch aus WebUntis importierte – Stunden sortiert bearbeiten und filtern.</div><div style="height:12px"></div><?php endif; ?>
+  <?php if($classPeriodMismatch): ?>
+    <div class="flash info">Die zuvor gewählte Klasse gehört nicht zum gewählten Zeitraum (z. B. weil daraus inzwischen eine Nachfolgeklasse im neuen Schuljahr wurde). Bitte unten die passende Klasse für diesen Zeitraum neu auswählen.</div>
+  <?php endif; ?>
   <form method="get" class="row contrast-form section-selection" style="align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
     <div>
+      <label class="muted">Zeitraum</label>
+      <select class="input" name="period" id="lessonPeriodSelect">
+        <option value="current" <?php echo $period==='current'?'selected':''; ?>>Aktuelles Schuljahr</option>
+        <?php foreach($schoolYears as $sy): ?>
+          <option value="<?php echo (int)$sy['id']; ?>" <?php echo ($period===(string)(int)$sy['id'])?'selected':''; ?>><?php echo h((string)$sy['label']).((int)($sy['archived'] ?? 0)===1?' · Archiv':''); ?></option>
+        <?php endforeach; ?>
+      </select>
+      <div class="muted" style="margin-top:4px;font-size:12px">Bitte zuerst den Zeitraum wählen – die Klassenliste passt sich danach automatisch an.</div>
+    </div>
+
+    <div>
       <label class="muted">Klasse</label>
-      <select class="input" name="class_id" required>
+      <select class="input" name="class_id">
         <option value="">Bitte wählen…</option>
-        <?php foreach($classes as $c): ?>
-          <option value="<?php echo (int)$c['id']; ?>" <?php echo ($class_id===(int)$c['id'])?'selected':''; ?>><?php echo h($c['name']); ?></option>
+        <?php foreach($browseClasses as $c): ?>
+          <option value="<?php echo (int)$c['id']; ?>" <?php echo ($class_id===(int)$c['id'])?'selected':''; ?>><?php echo h($c['name'].(class_is_readonly($c)?' · Archiv':'')); ?></option>
         <?php endforeach; ?>
       </select>
     </div>
 
     <div>
       <label class="muted">Fach</label>
-      <select class="input" name="subject_id" required>
+      <select class="input" name="subject_id">
         <option value="">Bitte wählen…</option>
-        <?php foreach($subjects as $s): ?>
+        <?php foreach($browseSubjects as $s): ?>
           <option value="<?php echo (int)$s['id']; ?>" <?php echo ($subject_id===(int)$s['id'])?'selected':''; ?>><?php echo h($s['code']); ?></option>
         <?php endforeach; ?>
       </select>
@@ -451,6 +533,10 @@ render_header('Stundenerfassung',$u);
   </form>
   <?php accordion_section_end($compact_forms); ?>
 
+  <?php if(!($class_id && $subject_id)): ?>
+    <div style="height:10px" class="muted">Bitte Klasse und Fach wählen.</div>
+  <?php endif; ?>
+
   <?php if($class_id && $subject_id): ?>
     <?php if(!$compact_forms): ?><div style="height:14px"></div><h2>Bisherige Stunden</h2><?php endif; ?>
     <?php accordion_section_start($compact_forms, 'Bisherige Stunden', true, 'margin-top:12px', '', 'contrast-panel section-overview'); ?>
@@ -460,7 +546,11 @@ render_header('Stundenerfassung',$u);
       · Fach <b><?php echo h($subject_code ?: ('#'.$subject_id)); ?></b>
       <?php if($subject_name): ?> (<?php echo h($subject_name); ?>)<?php endif; ?>
     </div>
-    <div class="small muted" style="margin-top:6px">Löschen ist nur möglich, wenn noch keine Mitarbeitseinträge mit dieser Stunde verknüpft sind.</div>
+    <?php if($selectedClassReadonly): ?>
+      <div class="flash info" style="margin-top:6px">Diese Klasse gehört zu einem archivierten oder ausgeschiedenen Schuljahr und ist nur lesbar. Die Stundenthemen können hier eingesehen, aber nicht mehr geändert werden.</div>
+    <?php else: ?>
+      <div class="small muted" style="margin-top:6px">Löschen ist nur möglich, wenn noch keine Mitarbeitseinträge mit dieser Stunde verknüpft sind.</div>
+    <?php endif; ?>
     <?php if($ue_legend): ?><div class="small muted" style="margin-top:4px">UE-Zeiten: <?php echo h($ue_legend); ?></div><?php endif; ?>
 
     <div style="height:10px"></div>
@@ -515,14 +605,14 @@ render_header('Stundenerfassung',$u);
             ?>
             <tr<?php echo $row_selected?' style="background:var(--brand-primary-soft-alt)"':''; ?>>
               <td data-label="Markieren">
-                <?php if($row_usage===0): ?>
+                <?php if($row_usage===0 && !$selectedClassReadonly): ?>
                   <input type="checkbox" class="lesson-bulk-checkbox" name="lesson_ids[]" value="<?php echo (int)$row_lesson_id; ?>" form="lessonsBulkDeleteForm">
                 <?php else: ?>
-                  <input type="checkbox" disabled title="Löschen gesperrt: Es gibt bereits Einträge zu dieser Stunde.">
+                  <input type="checkbox" disabled title="<?php echo $selectedClassReadonly?'Archiv: nur lesbar.':'Löschen gesperrt: Es gibt bereits Einträge zu dieser Stunde.'; ?>">
                 <?php endif; ?>
               </td>
               <td data-label="Datum">
-                <input form="<?php echo h($row_form_id); ?>" class="input" type="date" name="lesson_date" value="<?php echo h((string)$row['lesson_date']); ?>" required>
+                <input form="<?php echo h($row_form_id); ?>" class="input" type="date" name="lesson_date" value="<?php echo h((string)$row['lesson_date']); ?>" required <?php echo $selectedClassReadonly?'disabled':''; ?>>
               </td>
               <td data-label="Zeit" style="white-space:nowrap">
                 <?php if($row_time_label): ?>
@@ -533,10 +623,10 @@ render_header('Stundenerfassung',$u);
                 <?php endif; ?>
               </td>
               <td data-label="UE" style="min-width:110px">
-                <input form="<?php echo h($row_form_id); ?>" class="input" type="text" name="lesson_unit" value="<?php echo h((string)$row['lesson_unit']); ?>" inputmode="numeric" placeholder="<?php echo $row_has_time?'optional':''; ?>" <?php echo $row_has_time?'':'required'; ?>>
+                <input form="<?php echo h($row_form_id); ?>" class="input" type="text" name="lesson_unit" value="<?php echo h((string)$row['lesson_unit']); ?>" inputmode="numeric" placeholder="<?php echo $row_has_time?'optional':''; ?>" <?php echo $row_has_time?'':'required'; ?> <?php echo $selectedClassReadonly?'disabled':''; ?>>
               </td>
               <td data-label="Thema">
-                <input form="<?php echo h($row_form_id); ?>" class="input" type="text" name="topic" value="<?php echo h((string)($row['topic'] ?? '')); ?>" placeholder="Thema">
+                <input form="<?php echo h($row_form_id); ?>" class="input" type="text" name="topic" value="<?php echo h((string)($row['topic'] ?? '')); ?>" placeholder="Thema" <?php echo $selectedClassReadonly?'disabled':''; ?>>
               </td>
               <td data-label="Einträge">
                 <?php if($row_usage>0): ?>
@@ -552,9 +642,13 @@ render_header('Stundenerfassung',$u);
                   <input type="hidden" name="lesson_id" value="<?php echo (int)$row_lesson_id; ?>">
                   <input type="hidden" name="sort" value="<?php echo h($sort); ?>">
                 </form>
-                <button form="<?php echo h($row_form_id); ?>" class="btn small secondary">Speichern</button>
-                <a class="btn small secondary" href="<?php echo h($bp); ?>/teacher/participation_new.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'lesson_id'=>$row_lesson_id])); ?>">Zur Mitarbeit</a>
-                <?php if($row_usage===0): ?>
+                <?php if($selectedClassReadonly): ?>
+                  <button class="btn small secondary" disabled title="Archiv: nur lesbar.">Speichern</button>
+                <?php else: ?>
+                  <button form="<?php echo h($row_form_id); ?>" class="btn small secondary">Speichern</button>
+                  <a class="btn small secondary" href="<?php echo h($bp); ?>/teacher/participation_new.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'lesson_id'=>$row_lesson_id])); ?>">Zur Mitarbeit</a>
+                <?php endif; ?>
+                <?php if($row_usage===0 && !$selectedClassReadonly): ?>
                   <form method="post" action="<?php echo h($bp); ?>/teacher/lesson_delete.php" class="inline-form" onsubmit="return confirm('Diese Stunde wirklich löschen?');">
                     <?php echo csrf_input(); ?>
                     <input type="hidden" name="lesson_id" value="<?php echo (int)$row_lesson_id; ?>">
@@ -562,7 +656,7 @@ render_header('Stundenerfassung',$u);
                     <button class="btn small danger">Löschen</button>
                   </form>
                 <?php else: ?>
-                  <span class="small muted">Löschen gesperrt</span>
+                  <span class="small muted"><?php echo $selectedClassReadonly?'Archiv':'Löschen gesperrt'; ?></span>
                 <?php endif; ?>
               </td>
             </tr>
@@ -581,6 +675,19 @@ render_header('Stundenerfassung',$u);
 </div></div></div>
 
 <script>
+  (function(){
+    // Reload as soon as "Zeitraum" changes, instead of waiting for "Anzeigen":
+    // a class gets a new database row each school year (see the class/period-
+    // mismatch guard above), so Klasse/Fach only make sense for the
+    // just-chosen Zeitraum. Without this, the Klasse dropdown would still
+    // list the *previous* Zeitraum's classes while trying to pick from it.
+    const lessonPeriodSelect=document.getElementById('lessonPeriodSelect');
+    if(lessonPeriodSelect){
+      lessonPeriodSelect.addEventListener('change', function(){
+        if(lessonPeriodSelect.form) lessonPeriodSelect.form.submit();
+      });
+    }
+  })();
   function lessonBulkCheckboxes(){
     return Array.prototype.slice.call(document.querySelectorAll('.lesson-bulk-checkbox'));
   }

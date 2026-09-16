@@ -161,18 +161,9 @@ else render_header('Berichte & Auswertungen',$u);
   <div class="flash info">Die zuvor gewählte Klasse gehört nicht zum gewählten Zeitraum (z. B. weil daraus inzwischen eine Nachfolgeklasse im neuen Schuljahr wurde). Bitte unten die passende Klasse für diesen Zeitraum neu auswählen.</div>
 <?php endif; ?>
 <form method="get" class="row" style="align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
-  <div><label class="muted">Klasse</label>
-    <select class="input" name="class_id" id="reportsClassSelect"><option value="0">–</option>
-      <?php foreach($classes as $c): ?><option value="<?php echo (int)$c['id']; ?>" <?php echo $class_id===(int)$c['id']?'selected':''; ?>><?php echo h($c['name'].(class_is_readonly($c)?' · Archiv':'')); ?></option><?php endforeach; ?>
-    </select>
-  </div>
-  <div><label class="muted">Fach</label>
-    <select class="input" name="subject_id" id="reportsSubjectSelect"><option value="0">–</option>
-      <?php foreach($subjects as $s): ?><option value="<?php echo (int)$s['id']; ?>" data-class-ids="<?php echo h(implode(',', $subjectClassIds[$s['id']] ?? [])); ?>" <?php echo $subject_id===(int)$s['id']?'selected':''; ?>><?php echo h($s['code']); ?></option><?php endforeach; ?>
-    </select>
-  </div>
   <div class="settings-panel" style="min-width:440px;flex:1 1 440px;padding:12px">
     <div class="settings-panel-title">Zeitraum / von / bis</div>
+    <div class="muted" style="margin-top:2px;margin-bottom:8px;font-size:12px">Bitte zuerst den Zeitraum wählen – Klasse und Fach passen sich danach automatisch an.</div>
     <div style="display:grid;grid-template-columns:minmax(180px,1.25fr) minmax(130px,1fr) minmax(130px,1fr);gap:12px;align-items:end">
       <div>
         <label class="muted">Zeitraum</label>
@@ -198,6 +189,16 @@ else render_header('Berichte & Auswertungen',$u);
         <input class="input" type="date" name="to" value="<?php echo h($date_to); ?>">
       </div>
     </div>
+  </div>
+  <div><label class="muted">Klasse</label>
+    <select class="input" name="class_id" id="reportsClassSelect"><option value="0">–</option>
+      <?php foreach($classes as $c): ?><option value="<?php echo (int)$c['id']; ?>" <?php echo $class_id===(int)$c['id']?'selected':''; ?>><?php echo h($c['name'].(class_is_readonly($c)?' · Archiv':'')); ?></option><?php endforeach; ?>
+    </select>
+  </div>
+  <div><label class="muted">Fach</label>
+    <select class="input" name="subject_id" id="reportsSubjectSelect"><option value="0">–</option>
+      <?php foreach($subjects as $s): ?><option value="<?php echo (int)$s['id']; ?>" data-class-ids="<?php echo h(implode(',', $subjectClassIds[$s['id']] ?? [])); ?>" <?php echo $subject_id===(int)$s['id']?'selected':''; ?>><?php echo h($s['code']); ?></option><?php endforeach; ?>
+    </select>
   </div>
   <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><button class="btn secondary">Anzeigen</button></div>
   <?php if($class_id && $subject_id): ?>
@@ -1076,7 +1077,19 @@ else{
         toField.style.opacity=custom ? '1' : '.75';
       }
     }
-    periodSelect.addEventListener('change', syncPeriodInputs);
+    periodSelect.addEventListener('change', function(){
+      syncPeriodInputs();
+      // Klasse/Fach only make sense for the just-chosen Zeitraum (a class gets
+      // a new database row each school year - see the class/period-mismatch
+      // guard above), so reload right away instead of waiting for "Anzeigen":
+      // otherwise the Klasse dropdown would still list the *previous*
+      // Zeitraum's classes while the teacher tries to pick from it.
+      // "Benutzerdefiniert" is the one exception - there's nothing to reload
+      // yet until a custom from/bis date has actually been entered.
+      if(periodSelect.value !== 'custom' && periodSelect.form){
+        periodSelect.form.submit();
+      }
+    });
     syncPeriodInputs();
   })();
   </script>
