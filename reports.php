@@ -312,7 +312,86 @@ else render_header('Berichte & Auswertungen',$u);
     }
   }
   $lbvLegalNote = report_eval_legal_note($hasSpecialAssessments);
+
+  // Diagnostic panel: if the roster resolved but every category (Mitarbeit,
+  // besondere mündliche/schriftliche Leistungen) is at 0, that's suspicious
+  // enough to be worth checking rather than trusting silently - it's exactly
+  // the symptom of a stale/mismatched class_id or subject_id (see the
+  // class/period-mismatch guard above) or of a Zeitraum that doesn't
+  // actually cover where the data was recorded. Rather than asking the
+  // teacher to go spelunking in the database, show the raw counts behind
+  // the report right here so a mismatch is obvious immediately.
+  $reportDiagShow = !$is_print && (bool)$studentSummaries;
+  if($reportDiagShow){
+    foreach($studentSummaries as $sRow){
+      if(((int)$sRow['participation_count'])>0 || ((int)$sRow['oral_count'])>0 || ((int)$sRow['written_count'])>0){
+        $reportDiagShow = false;
+        break;
+      }
+    }
+  }
+  $reportDiag = null;
+  if($reportDiagShow){
+    $diagPe=$pdo->prepare("SELECT COUNT(*) AS cnt, MIN(event_date) AS min_d, MAX(event_date) AS max_d FROM participation_events WHERE class_id=? AND subject_id=?");
+    $diagPe->execute([$class_id,$subject_id]);
+    $diagPeRow=$diagPe->fetch() ?: [];
+
+    $diagPeInRange=$pdo->prepare("SELECT COUNT(*) FROM participation_events WHERE class_id=? AND subject_id=? AND event_date>=? AND event_date<=?");
+    $diagPeInRange->execute([$class_id,$subject_id,$date_from!==''?$date_from:'0001-01-01',$date_to!==''?$date_to:'9999-12-31']);
+
+    $diagPeSubjectAnyClass=$pdo->prepare("SELECT COUNT(*) FROM participation_events WHERE subject_id=?");
+    $diagPeSubjectAnyClass->execute([$subject_id]);
+
+    $diagPeClassAnySubject=$pdo->prepare("SELECT COUNT(*) FROM participation_events WHERE class_id=?");
+    $diagPeClassAnySubject->execute([$class_id]);
+
+    $diagExams=$pdo->prepare("SELECT COUNT(*) FROM exams WHERE class_id=? AND subject_id=?");
+    $diagExams->execute([$class_id,$subject_id]);
+
+    $diagOral=$pdo->prepare("SELECT COUNT(*) FROM oral_assessments WHERE class_id=? AND subject_id=?");
+    $diagOral->execute([$class_id,$subject_id]);
+
+    $reportDiag=[
+      'class_subject_total'=>(int)($diagPeRow['cnt'] ?? 0),
+      'class_subject_min_date'=>(string)($diagPeRow['min_d'] ?? ''),
+      'class_subject_max_date'=>(string)($diagPeRow['max_d'] ?? ''),
+      'class_subject_in_range'=>(int)$diagPeInRange->fetchColumn(),
+      'subject_any_class_total'=>(int)$diagPeSubjectAnyClass->fetchColumn(),
+      'class_any_subject_total'=>(int)$diagPeClassAnySubject->fetchColumn(),
+      'exams_total'=>(int)$diagExams->fetchColumn(),
+      'oral_total'=>(int)$diagOral->fetchColumn(),
+    ];
+  }
 ?>
+
+<?php if($reportDiag): ?>
+  <div class="report-focus-block" style="margin-top:12px;border-color:#c75b5b">
+    <div>
+      <strong>Hinweis: Alle Werte stehen auf 0</strong>
+      <div class="muted" style="margin-top:6px">
+        Für Klasse-ID <b><?php echo (int)$class_id; ?></b> (<?php echo h($className ?: '–'); ?>) und Fach-ID <b><?php echo (int)$subject_id; ?></b> (<?php echo h($subjCode ?: '–'); ?>) unabhängig vom Zeitraum:
+        <b><?php echo (int)$reportDiag['class_subject_total']; ?></b> Mitarbeit-Einträge insgesamt in der Datenbank
+        <?php if($reportDiag['class_subject_total']>0): ?>
+          (Datumsspanne <?php echo h($reportDiag['class_subject_min_date']); ?> bis <?php echo h($reportDiag['class_subject_max_date']); ?>),
+          davon <b><?php echo (int)$reportDiag['class_subject_in_range']; ?></b> im aktuell gewählten Zeitraum (<?php echo h($date_from ?: '–'); ?> bis <?php echo h($date_to ?: '–'); ?>).
+        <?php else: ?>
+          . Es liegen also unter dieser genauen Kombination aus Klasse-ID und Fach-ID gar keine Mitarbeit-Einträge vor.
+        <?php endif; ?>
+        <br>Zum Vergleich: <b><?php echo (int)$reportDiag['subject_any_class_total']; ?></b> Einträge insgesamt zu diesem Fach (über alle Klassen), <b><?php echo (int)$reportDiag['class_any_subject_total']; ?></b> Einträge insgesamt zu dieser Klasse (über alle Fächer).
+        <br>Besondere Leistungsfeststellungen zu genau dieser Klasse/Fach-Kombination: <b><?php echo (int)$reportDiag['exams_total']; ?></b> schriftlich, <b><?php echo (int)$reportDiag['oral_total']; ?></b> mündlich.
+      </div>
+      <div class="muted" style="margin-top:8px">
+        <?php if($reportDiag['class_subject_total']>0 && $reportDiag['class_subject_in_range']===0): ?>
+          Es gibt Einträge zu dieser Klasse/Fach-Kombination, aber keine im gewählten Zeitraum – bitte den Zeitraum prüfen (z. B. falsches Semester statt ganzes Schuljahr).
+        <?php elseif($reportDiag['class_subject_total']===0 && ($reportDiag['subject_any_class_total']>0 || $reportDiag['class_any_subject_total']>0)): ?>
+          Es gibt keine Einträge unter genau dieser Klasse-ID/Fach-ID-Kombination, aber unter dieser Klasse bzw. diesem Fach jeweils einzeln schon – das deutet auf eine andere/doppelte Klasse oder ein anderes/doppeltes Fach hin (z. B. durch einen WebUntis-Import) als die, unter der die Einträge ursprünglich gespeichert wurden.
+        <?php elseif($reportDiag['class_subject_total']===0): ?>
+          Für diese genaue Klasse-ID/Fach-ID-Kombination sind in der Datenbank überhaupt keine Mitarbeit-Einträge hinterlegt.
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
 
 <div class="report-focus-block" style="margin-top:12px">
   <div>

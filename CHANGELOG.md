@@ -15,6 +15,10 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 - Berichte & Auswertungen (`reports.php`) und Stundenerfassung (`teacher/lesson.php`, Bereich „Bestehende Stunden“): Die Zeitraumauswahl steht jetzt an erster Stelle und lädt bei Änderung automatisch neu, bevor Klasse und Fach ausgewählt werden – so passt sich die Klassenliste sofort an den gewählten Zeitraum an und es können keine zueinander unpassenden Klasse/Zeitraum-Kombinationen mehr abgeschickt werden.
 
+### Hinzugefügt
+
+- Berichte & Auswertungen (`reports.php`): Wenn für eine gewählte Klasse/Fach-Kombination trotz vorhandener Schüler:innen bei Mitarbeit, besonderen mündlichen und besonderen schriftlichen Leistungen überall 0 angezeigt wird, erscheint jetzt automatisch ein Diagnose-Hinweis mit den rohen Datenbankzahlen dahinter (Einträge insgesamt zu dieser Klasse-ID/Fach-ID-Kombination unabhängig vom Zeitraum, Datumsspanne, Einträge im gewählten Zeitraum, sowie Vergleichszahlen für Klasse bzw. Fach allein). So lässt sich direkt erkennen, ob die Ursache ein falscher Zeitraum oder eine nicht mehr passende Klassen-/Fach-Zuordnung ist, ohne Zugriff auf die Datenbank selbst zu benötigen.
+
 ### Geplant
 
 - formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
