@@ -16,7 +16,15 @@ $date_from=$_GET['from'] ?? '';
 $date_to=$_GET['to'] ?? '';
 $student_id=(int)($_GET['student_id']??0);
 $period=(string)($_GET['period'] ?? 'current');
-$resolvedPeriod=app_school_period_resolve($period,$date_from,$date_to,$selectedSchoolId,$selectedSchoolId<=0);
+// $periodOptions (the dropdown) and $resolvedPeriod (what a chosen "period="
+// value actually resolves to) must be built from the exact same candidate
+// set of school_period_sets - otherwise a value the dropdown legitimately
+// offers (e.g. "period_8_schoolyear" for a school year that still only
+// exists as a global/schoolless row from before "Zuweisungen und
+// Mehrschulführung" added per-school school years) can come back as
+// "not found" here, silently falling back to today's current period
+// instead. Both calls include global (schoolless) school-period-sets.
+$resolvedPeriod=app_school_period_resolve($period,$date_from,$date_to,$selectedSchoolId,true);
 $periodOptions=app_school_period_options($selectedSchoolId,true);
 if($period !== 'custom'){
   $date_from=(string)$resolvedPeriod['from'];
