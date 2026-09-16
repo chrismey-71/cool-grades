@@ -6,6 +6,10 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
+### Behoben
+
+- Berichte & Auswertungen (`reports.php`): Wechselte man nur den Zeitraum auf ein vergangenes Schuljahr (ohne die Klasse neu auszuwählen), blieb die zuvor gewählte Klasse als ID im Formular bestehen – für ein vergangenes Schuljahr ist das aber die ID einer anderen (der jetzt aktuellen) Klasse, da jede Klasse beim Schuljahreswechsel als neue Datenbankzeile angelegt wird. Dadurch wurden zwar noch die (identischen) Schüler:innen angezeigt, aber „0 Einträge“, obwohl echte Mitarbeitsdaten vorhanden waren. Eine nicht mehr zum gewählten Zeitraum passende Klassenauswahl wird jetzt erkannt und zurückgesetzt, mit einem Hinweis, die passende (archivierte) Klasse für diesen Zeitraum neu auszuwählen.
+
 ### Geplant
 
 - formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit

@@ -28,6 +28,29 @@ if($periodSchoolYearId<=0) $periodSchoolYearId=school_year_current_id($pdo,$sele
 $reportAssessmentContext=report_eval_assessment_context_from_period($resolvedPeriod,$period);
 
 $classes=load_teacher_classes($pdo,(int)$u['id'],$periodSchoolYearId,true,true,true,$selectedSchoolId);
+
+// A class_id carried over from a different period (e.g. the teacher only
+// changed "Zeitraum" without re-picking "Klasse", so the browser still
+// submits the current year's class id) can silently point at a class that
+// doesn't exist in the newly selected school year - classes get a *new*
+// row (and a new id) each year via the Schuljahreswechsel-Assistent, the
+// old row just stays archived under its own id (see admin/school_year_
+// transition.php). Querying entries with such a mismatched class_id never
+// errors, it just finds nothing, because every entry table keys off the
+// class_id that was actually active when it was recorded - so silently
+// keeping a stale id would show a student list (still resolvable) with a
+// misleading "0 Einträge" instead of the real historical data. Guard
+// against that by dropping an id that isn't actually part of this period.
+$classPeriodMismatch=false;
+if($class_id>0){
+  $classStillValidForPeriod=false;
+  foreach($classes as $c){ if((int)$c['id']===$class_id){ $classStillValidForPeriod=true; break; } }
+  if(!$classStillValidForPeriod){
+    $classPeriodMismatch=true;
+    $class_id=0;
+  }
+}
+
 // The subject dropdown lists every subject across all of the teacher's
 // classes above (not just the currently selected one) so that switching
 // the class client-side can instantly narrow it down (see the script near
@@ -134,6 +157,9 @@ else render_header('Berichte & Auswertungen',$u);
     Gespeicherte Abschlussbeurteilungen werden ergänzend angezeigt, aber hier nicht festgelegt.
   </div>
 </div>
+<?php if($classPeriodMismatch): ?>
+  <div class="flash info">Die zuvor gewählte Klasse gehört nicht zum gewählten Zeitraum (z. B. weil daraus inzwischen eine Nachfolgeklasse im neuen Schuljahr wurde). Bitte unten die passende Klasse für diesen Zeitraum neu auswählen.</div>
+<?php endif; ?>
 <form method="get" class="row" style="align-items:end" <?php echo teacher_assignment_guard_attrs($u); ?>>
   <div><label class="muted">Klasse</label>
     <select class="input" name="class_id" id="reportsClassSelect"><option value="0">–</option>
