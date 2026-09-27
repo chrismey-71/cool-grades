@@ -6,20 +6,6 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
-### Behoben
-
-- Berichte & Auswertungen (`reports.php`): Wechselte man nur den Zeitraum auf ein vergangenes Schuljahr (ohne die Klasse neu auszuwählen), blieb die zuvor gewählte Klasse als ID im Formular bestehen – für ein vergangenes Schuljahr ist das aber die ID einer anderen (der jetzt aktuellen) Klasse, da jede Klasse beim Schuljahreswechsel als neue Datenbankzeile angelegt wird. Dadurch wurden zwar noch die (identischen) Schüler:innen angezeigt, aber „0 Einträge“, obwohl echte Mitarbeitsdaten vorhanden waren. Eine nicht mehr zum gewählten Zeitraum passende Klassenauswahl wird jetzt erkannt und zurückgesetzt, mit einem Hinweis, die passende (archivierte) Klasse für diesen Zeitraum neu auszuwählen.
-- Stundenerfassung (`teacher/lesson.php`), Bereich „Bestehende Stunden anzeigen und bearbeiten“: Die dortige Zeitraumauswahl für vergangene Schuljahre war praktisch nicht nutzbar, da Klasse und Fach im selben Formular als Pflichtfelder markiert waren – nach einem Zeitraumwechsel zeigte die Klassenliste aber noch die Klassen des vorherigen Zeitraums, und ohne gültige Auswahl ließ sich das Formular gar nicht absenden, um die Liste zu aktualisieren. Dadurch waren Stundenthemen vergangener Schuljahre faktisch nicht einsehbar. Die Pflichtfelder wurden entfernt und die Zeitraumauswahl lädt jetzt automatisch neu, sobald sie geändert wird.
-- Berichte & Auswertungen (`reports.php`): Für Schulen mit einem noch aus der Zeit vor „Zuweisungen und Mehrschulführung“ stammenden, schulunabhängigen (globalen) Schuljahr in der Datenbank wurde beim Wählen genau dieses Schuljahres im Zeitraum-Menü stillschweigend der aktuelle Zeitraum verwendet statt des gewählten – die Klasse wurde zwar richtig aufgelöst, aber Mitarbeit, besondere mündliche und besondere schriftliche Leistungen zeigten trotz vorhandener Daten überall 0, weil der tatsächlich verwendete Datumsbereich nicht zum gewählten Schuljahr passte. Ursache war, dass die Zeitraum-Auswahlliste und die Zeitraum-Auflösung mit unterschiedlichen Einstellungen liefen, ob globale (schulunabhängige) Schuljahre berücksichtigt werden – jetzt konsistent.
-
-### Geändert
-
-- Berichte & Auswertungen (`reports.php`) und Stundenerfassung (`teacher/lesson.php`, Bereich „Bestehende Stunden“): Die Zeitraumauswahl steht jetzt an erster Stelle und lädt bei Änderung automatisch neu, bevor Klasse und Fach ausgewählt werden – so passt sich die Klassenliste sofort an den gewählten Zeitraum an und es können keine zueinander unpassenden Klasse/Zeitraum-Kombinationen mehr abgeschickt werden.
-
-### Hinzugefügt
-
-- Berichte & Auswertungen (`reports.php`): Wenn für eine gewählte Klasse/Fach-Kombination trotz vorhandener Schüler:innen bei Mitarbeit, besonderen mündlichen und besonderen schriftlichen Leistungen überall 0 angezeigt wird, erscheint jetzt automatisch ein Diagnose-Hinweis mit den rohen Datenbankzahlen dahinter (Einträge insgesamt zu dieser Klasse-ID/Fach-ID-Kombination unabhängig vom Zeitraum, Datumsspanne, Einträge im gewählten Zeitraum, sowie Vergleichszahlen für Klasse bzw. Fach allein). So lässt sich direkt erkennen, ob die Ursache ein falscher Zeitraum oder eine nicht mehr passende Klassen-/Fach-Zuordnung ist, ohne Zugriff auf die Datenbank selbst zu benötigen.
-
 ### Geplant
 
 - formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
@@ -28,7 +14,25 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 - separate Darstellung formativer Lernrückmeldungen in Webauswertung und PDF-Berichten
 - optionale Selbst- und Peer-Feedback-Funktionen
 - stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
+- Sitzplan: weitere Tischanordnungen (z. B. Gruppentische/Inseln) neben der klassischen Reihen-/Spalten-Anordnung
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
+
+## [1.81.4] - 2026-09-27
+
+### Hinzugefügt
+
+- Mitarbeitserfassung (`teacher/participation_new.php`): Neue Sitzplan-Ansicht als Alternative zur Schüler:innen-Liste. Ein eigener Bereich „Sitzplan“ (`teacher/seating_plan.php`, von der Mitarbeitserfassung aus verlinkt) erlaubt es, pro Klasse/Fach eine klassische Tischanordnung nach Spalten und Reihen anzulegen und Schüler:innen den einzelnen Plätzen zuzuweisen. In der Mitarbeitserfassung kann dann per Umschalter zwischen „Liste“ und „Sitzplan“ gewechselt werden; ein Klick auf einen Platz wählt die betreffende Person für den Mitarbeit-Eintrag aus bzw. ab, genau wie das entsprechende Kästchen in der Liste. Noch nicht im Sitzplan platzierte Schüler:innen bleiben zusätzlich als anklickbare Liste darunter sichtbar, damit niemand unauswählbar wird. Der Sitzplan gilt pro Lehrkraft (wie die bestehenden Gruppen), sodass unterschiedliche Lehrkräfte für dieselbe Klasse unterschiedliche Sitzpläne führen können, z. B. bei Unterricht in verschiedenen Räumen. Weitere Tischanordnungen (Gruppentische/Inseln) sind als nächster Schritt vorgesehen; die Datenstruktur ist dafür bereits vorbereitet.
+- Berichte & Auswertungen (`reports.php`): Wenn für eine gewählte Klasse/Fach-Kombination trotz vorhandener Schüler:innen bei Mitarbeit, besonderen mündlichen und besonderen schriftlichen Leistungen überall 0 angezeigt wird, erscheint jetzt automatisch ein Diagnose-Hinweis mit den rohen Datenbankzahlen dahinter (Einträge insgesamt zu dieser Klasse-ID/Fach-ID-Kombination unabhängig vom Zeitraum, Datumsspanne, Einträge im gewählten Zeitraum, sowie Vergleichszahlen für Klasse bzw. Fach allein). So lässt sich direkt erkennen, ob die Ursache ein falscher Zeitraum oder eine nicht mehr passende Klassen-/Fach-Zuordnung ist, ohne Zugriff auf die Datenbank selbst zu benötigen.
+
+### Geändert
+
+- Berichte & Auswertungen (`reports.php`) und Stundenerfassung (`teacher/lesson.php`, Bereich „Bestehende Stunden“): Die Zeitraumauswahl steht jetzt an erster Stelle und lädt bei Änderung automatisch neu, bevor Klasse und Fach ausgewählt werden – so passt sich die Klassenliste sofort an den gewählten Zeitraum an und es können keine zueinander unpassenden Klasse/Zeitraum-Kombinationen mehr abgeschickt werden.
+
+### Behoben
+
+- Berichte & Auswertungen (`reports.php`): Wechselte man nur den Zeitraum auf ein vergangenes Schuljahr (ohne die Klasse neu auszuwählen), blieb die zuvor gewählte Klasse als ID im Formular bestehen – für ein vergangenes Schuljahr ist das aber die ID einer anderen (der jetzt aktuellen) Klasse, da jede Klasse beim Schuljahreswechsel als neue Datenbankzeile angelegt wird. Dadurch wurden zwar noch die (identischen) Schüler:innen angezeigt, aber „0 Einträge“, obwohl echte Mitarbeitsdaten vorhanden waren. Eine nicht mehr zum gewählten Zeitraum passende Klassenauswahl wird jetzt erkannt und zurückgesetzt, mit einem Hinweis, die passende (archivierte) Klasse für diesen Zeitraum neu auszuwählen.
+- Stundenerfassung (`teacher/lesson.php`), Bereich „Bestehende Stunden anzeigen und bearbeiten“: Die dortige Zeitraumauswahl für vergangene Schuljahre war praktisch nicht nutzbar, da Klasse und Fach im selben Formular als Pflichtfelder markiert waren – nach einem Zeitraumwechsel zeigte die Klassenliste aber noch die Klassen des vorherigen Zeitraums, und ohne gültige Auswahl ließ sich das Formular gar nicht absenden, um die Liste zu aktualisieren. Dadurch waren Stundenthemen vergangener Schuljahre faktisch nicht einsehbar. Die Pflichtfelder wurden entfernt und die Zeitraumauswahl lädt jetzt automatisch neu, sobald sie geändert wird.
+- Berichte & Auswertungen (`reports.php`): Für Schulen mit einem noch aus der Zeit vor „Zuweisungen und Mehrschulführung“ stammenden, schulunabhängigen (globalen) Schuljahr in der Datenbank wurde beim Wählen genau dieses Schuljahres im Zeitraum-Menü stillschweigend der aktuelle Zeitraum verwendet statt des gewählten – die Klasse wurde zwar richtig aufgelöst, aber Mitarbeit, besondere mündliche und besondere schriftliche Leistungen zeigten trotz vorhandener Daten überall 0, weil der tatsächlich verwendete Datumsbereich nicht zum gewählten Schuljahr passte. Ursache war, dass die Zeitraum-Auswahlliste und die Zeitraum-Auflösung mit unterschiedlichen Einstellungen liefen, ob globale (schulunabhängige) Schuljahre berücksichtigt werden – jetzt konsistent.
 
 ## [1.81.3] - 2026-09-11
 

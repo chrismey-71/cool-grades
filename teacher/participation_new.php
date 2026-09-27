@@ -11,6 +11,7 @@ require_once __DIR__.'/../lib/assessment_summaries.php';
 require_once __DIR__.'/../lib/school_years.php';
 require_once __DIR__.'/../lib/schools.php';
 require_once __DIR__.'/../lib/lesson_unit_times.php';
+require_once __DIR__.'/../lib/seating_plans.php';
 
 $u=require_role('teacher');
 $pdo=db();
@@ -145,6 +146,13 @@ if($lesson_id){
 // Students
 $students=load_class_students($pdo,$class_id,false);
 $studentGroups=load_teacher_student_groups($pdo,(int)$u['id'],$class_id,$subject_id);
+$seatingPlan=load_teacher_seating_plan($pdo,(int)$u['id'],$class_id,$subject_id);
+$unplacedStudentsInPlan=[];
+if($seatingPlan){
+  foreach($students as $studentRow){
+    if(!isset($seatingPlan['seats_by_student'][(int)$studentRow['id']])) $unplacedStudentsInPlan[]=$studentRow;
+  }
+}
 
 // Maps WebUntis subgroup letters ('a'/'b') onto this teacher's own
 // same-named groups (if any), so a lesson imported for a single subgroup
@@ -1053,6 +1061,15 @@ render_header('Mitarbeit',$u);
         Blass dargestellte Schüler:innen wurden in dieser Stunde bereits bewertet. Die Zahl in Klammern zeigt die Anzahl der vorhandenen Einträge.
       </div>
 
+      <div style="height:10px"></div>
+      <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="muted"><b>Ansicht:</b></span>
+        <button type="button" class="btn small" id="studentViewListBtn" onclick="setStudentView('list')">Liste</button>
+        <button type="button" class="btn small secondary" id="studentViewSeatBtn" onclick="setStudentView('seat')" <?php echo $seatingPlan?'':'disabled title="Noch kein Sitzplan angelegt"'; ?>>Sitzplan</button>
+        <a class="btn small utility-manage" href="<?php echo h($bp); ?>/teacher/seating_plan.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id])); ?>"><?php echo $seatingPlan?'Sitzplan bearbeiten':'Sitzplan anlegen'; ?></a>
+      </div>
+
+      <div id="studentListView">
       <?php if($quick): ?>
         <div style="height:10px"></div>
         <div class="muted">
@@ -1104,6 +1121,42 @@ render_header('Mitarbeit',$u);
             </span>
           </label>
         <?php endforeach; ?>
+      </div>
+      </div>
+
+      <div id="studentSeatView" style="display:none">
+        <?php if($seatingPlan): ?>
+          <div class="muted" style="margin-top:10px">Klicke auf einen Platz, um die Auswahl umzuschalten.</div>
+          <div style="height:10px"></div>
+          <div class="seating-grid" style="display:grid;grid-template-columns:repeat(<?php echo (int)$seatingPlan['columns']; ?>, minmax(90px,1fr));gap:8px;max-width:100%;overflow-x:auto">
+            <?php for($seatR=1;$seatR<=(int)$seatingPlan['rows'];$seatR++): ?>
+              <?php for($seatC=1;$seatC<=(int)$seatingPlan['columns'];$seatC++): ?>
+                <?php $seat=$seatingPlan['seats_by_position'][$seatC.'_'.$seatR] ?? null; ?>
+                <?php if($seat): ?>
+                  <div class="seatBox" data-student-id="<?php echo (int)$seat['student_id']; ?>" onclick="toggleSeatStudent(<?php echo (int)$seat['student_id']; ?>)" style="cursor:pointer;border:1px solid #cbd5e1;border-radius:6px;padding:8px;min-height:56px;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center">
+                    <?php echo h($seat['last_name'].', '.$seat['first_name']); ?>
+                  </div>
+                <?php else: ?>
+                  <div style="border:1px dashed #e2e8f0;border-radius:6px;min-height:56px"></div>
+                <?php endif; ?>
+              <?php endfor; ?>
+            <?php endfor; ?>
+          </div>
+          <?php if($unplacedStudentsInPlan): ?>
+            <div style="height:10px"></div>
+            <div class="muted small">Noch nicht im Sitzplan platziert (trotzdem hier wählbar):</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+              <?php foreach($unplacedStudentsInPlan as $s): ?>
+                <?php $sid=(int)$s['id']; ?>
+                <div class="seatBox" data-student-id="<?php echo $sid; ?>" onclick="toggleSeatStudent(<?php echo $sid; ?>)" style="cursor:pointer;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:12px">
+                  <?php echo h($s['last_name'].', '.$s['first_name']); ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+        <?php else: ?>
+          <div class="muted" style="margin-top:10px">Für diese Klasse/dieses Fach ist noch kein Sitzplan angelegt.</div>
+        <?php endif; ?>
       </div>
     </fieldset>
     <?php accordion_section_end($compact_forms); ?>
@@ -1189,6 +1242,37 @@ render_header('Mitarbeit',$u);
     });
     const hint=document.getElementById('studentAlreadyRatedHint');
     if(hint) hint.style.display = hasCounts ? '' : 'none';
+    syncSeatHighlights();
+  }
+
+  function setStudentView(view){
+    const listView=document.getElementById('studentListView');
+    const seatView=document.getElementById('studentSeatView');
+    const listBtn=document.getElementById('studentViewListBtn');
+    const seatBtn=document.getElementById('studentViewSeatBtn');
+    if(!listView || !seatView) return;
+    const showSeat = (view === 'seat');
+    listView.style.display = showSeat ? 'none' : '';
+    seatView.style.display = showSeat ? '' : 'none';
+    if(listBtn) listBtn.className = 'btn small' + (showSeat ? ' secondary' : '');
+    if(seatBtn) seatBtn.className = 'btn small' + (showSeat ? '' : ' secondary');
+    if(showSeat) syncSeatHighlights();
+  }
+
+  function toggleSeatStudent(id){
+    toggleStudent(id);
+  }
+
+  function syncSeatHighlights(){
+    document.querySelectorAll('.seatBox').forEach(el=>{
+      const sid=el.getAttribute('data-student-id') || '';
+      const cb=document.getElementById('stu_'+sid);
+      const selected = !!(cb && cb.checked);
+      const alreadyRated = !!(cb && cb.closest('.studentItem') && cb.closest('.studentItem').classList.contains('student-already-rated'));
+      el.style.borderColor = selected ? '#2f855a' : (alreadyRated ? '#f6ad55' : '#cbd5e1');
+      el.style.borderWidth = selected ? '2px' : '1px';
+      el.style.background = selected ? '#e6fffa' : (alreadyRated ? '#fffaf0' : '');
+    });
   }
 
   function filterStudents(){
@@ -1201,15 +1285,18 @@ render_header('Mitarbeit',$u);
   function toggleStudent(id){
     const cb=document.getElementById('stu_'+id);
     if(cb){ cb.checked=!cb.checked; }
+    syncSeatHighlights();
   }
   function applyStudentGroup(ids){
     const selected=new Set((ids||[]).map(v=>parseInt(v,10)).filter(v=>Number.isInteger(v) && v>0));
     document.querySelectorAll('.studentCb').forEach(cb=>{
       cb.checked=selected.has(parseInt(cb.value,10));
     });
+    syncSeatHighlights();
   }
   function clearStudentSelection(){
     document.querySelectorAll('.studentCb').forEach(cb=>{ cb.checked=false; });
+    syncSeatHighlights();
   }
   function autoApplyPreset(){
     const form=document.getElementById('participationForm');
