@@ -184,28 +184,30 @@ render_header('Sitzplan',$u);
   <?php endif; ?>
 
   <div style="height:16px"></div>
-  <form method="post" id="seatingPlanForm" class="row" style="align-items:end;flex-wrap:wrap">
-    <?php echo csrf_input(); ?>
-    <input type="hidden" name="action" value="save_plan">
-    <input type="hidden" name="class_id" value="<?php echo (int)$class_id; ?>">
-    <input type="hidden" name="subject_id" value="<?php echo (int)$subject_id; ?>">
-    <input type="hidden" name="plan_id" value="<?php echo $plan ? (int)$plan['id'] : 0; ?>">
-    <div>
-      <label class="muted">Name</label>
-      <input class="input" name="name" maxlength="120" value="<?php echo h($name_value); ?>" placeholder="z.B. Standard, EDV-Saal, Gruppe A" style="width:220px">
-    </div>
-    <div>
-      <label class="muted">Spalten</label>
-      <input class="input" type="number" min="<?php echo SEATING_PLAN_MIN_SIZE; ?>" max="<?php echo SEATING_PLAN_MAX_SIZE; ?>" name="columns" value="<?php echo (int)$columns_value; ?>" style="width:90px">
-    </div>
-    <div>
-      <label class="muted">Reihen</label>
-      <input class="input" type="number" min="<?php echo SEATING_PLAN_MIN_SIZE; ?>" max="<?php echo SEATING_PLAN_MAX_SIZE; ?>" name="rows" value="<?php echo (int)$rows_value; ?>" style="width:90px">
-    </div>
-    <div style="flex:0 0 auto">
-      <label class="muted">&nbsp;</label>
-      <button class="btn"><?php echo $isNewPlan ? 'Sitzplan anlegen' : 'Speichern'; ?></button>
-    </div>
+  <div class="row" style="align-items:end;flex-wrap:wrap">
+    <form method="post" id="seatingPlanForm" style="display:contents">
+      <?php echo csrf_input(); ?>
+      <input type="hidden" name="action" value="save_plan">
+      <input type="hidden" name="class_id" value="<?php echo (int)$class_id; ?>">
+      <input type="hidden" name="subject_id" value="<?php echo (int)$subject_id; ?>">
+      <input type="hidden" name="plan_id" value="<?php echo $plan ? (int)$plan['id'] : 0; ?>">
+      <div>
+        <label class="muted">Name</label>
+        <input class="input" name="name" maxlength="120" value="<?php echo h($name_value); ?>" placeholder="z.B. Standard, EDV-Saal, Gruppe A" style="width:220px">
+      </div>
+      <div>
+        <label class="muted">Spalten</label>
+        <input class="input" type="number" min="<?php echo SEATING_PLAN_MIN_SIZE; ?>" max="<?php echo SEATING_PLAN_MAX_SIZE; ?>" name="columns" value="<?php echo (int)$columns_value; ?>" style="width:90px">
+      </div>
+      <div>
+        <label class="muted">Reihen</label>
+        <input class="input" type="number" min="<?php echo SEATING_PLAN_MIN_SIZE; ?>" max="<?php echo SEATING_PLAN_MAX_SIZE; ?>" name="rows" value="<?php echo (int)$rows_value; ?>" style="width:90px">
+      </div>
+      <div style="flex:0 0 auto">
+        <label class="muted">&nbsp;</label>
+        <button class="btn"><?php echo $isNewPlan ? 'Sitzplan anlegen' : 'Speichern'; ?></button>
+      </div>
+    </form>
     <?php if(!$isNewPlan): ?>
       <div style="flex:0 0 auto">
         <label class="muted">&nbsp;</label>
@@ -223,7 +225,7 @@ render_header('Sitzplan',$u);
         </form>
       </div>
     <?php endif; ?>
-  </form>
+  </div>
 
   <?php if(!$isNewPlan): ?>
     <style>

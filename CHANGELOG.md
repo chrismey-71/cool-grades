@@ -6,6 +6,10 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
+### Behoben
+
+- Sitzplan-Verwaltung (`teacher/seating_plan.php`): Das Formular zum Bearbeiten eines bestehenden Sitzplans (Name/Spalten/Reihen, „Speichern“) enthielt ungültig verschachteltes HTML – ein zweites `<form>` für den „Diesen Sitzplan löschen“-Button lag innerhalb des ersten. Browser ignorieren das innere `<form>`-Tag dabei, sodass dessen versteckte Felder (u. a. `action=delete_plan`) dem äußeren Formular zugerechnet wurden. Ein Klick auf „Speichern“ löste dadurch je nach Feldreihenfolge tatsächlich die Löschen-Aktion aus, statt die Änderungen zu speichern. Die beiden Formulare sind jetzt technisch getrennt (bei gleichem Aussehen), sodass „Speichern“ zuverlässig speichert.
+
 ### Geplant
 
 - formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
