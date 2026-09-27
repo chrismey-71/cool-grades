@@ -30,7 +30,12 @@ function seating_plan_clamp_size(int $value, int $default): int {
  * zurück, wenn noch kein Sitzplan angelegt wurde.
  */
 function load_teacher_seating_plan(PDO $pdo, int $teacherId, int $classId, int $subjectId): ?array {
-  $st = $pdo->prepare("SELECT * FROM teacher_seating_plans WHERE teacher_id=? AND class_id=? AND subject_id=? LIMIT 1");
+  // Note: the DB column is "grid_rows", not "rows" - ROWS became a reserved
+  // word in MySQL 8.0.2, so an unquoted "rows" column name fails at CREATE
+  // TABLE time on any current MySQL/MariaDB server. Aliased back to "rows"
+  // here so the rest of the codebase can keep using that key.
+  $st = $pdo->prepare("SELECT id,teacher_id,class_id,subject_id,layout_type,columns,grid_rows AS rows,created_at,updated_at
+                       FROM teacher_seating_plans WHERE teacher_id=? AND class_id=? AND subject_id=? LIMIT 1");
   $st->execute([$teacherId, $classId, $subjectId]);
   $plan = $st->fetch();
   if(!$plan) return null;
@@ -89,10 +94,10 @@ function save_seating_plan_dimensions(PDO $pdo, int $teacherId, int $classId, in
 
     $pdo->prepare("DELETE FROM teacher_seating_plan_seats WHERE plan_id=? AND (seat_col>? OR seat_row>?)")
         ->execute([$planId, $columns, $rows]);
-    $pdo->prepare("UPDATE teacher_seating_plans SET columns=?, rows=?, updated_at=? WHERE id=?")
+    $pdo->prepare("UPDATE teacher_seating_plans SET columns=?, grid_rows=?, updated_at=? WHERE id=?")
         ->execute([$columns, $rows, now_iso(), $planId]);
   } else {
-    $pdo->prepare("INSERT INTO teacher_seating_plans (teacher_id,class_id,subject_id,layout_type,columns,rows,created_at,updated_at) VALUES (?,?,?, 'grid', ?,?,?,?)")
+    $pdo->prepare("INSERT INTO teacher_seating_plans (teacher_id,class_id,subject_id,layout_type,columns,grid_rows,created_at,updated_at) VALUES (?,?,?, 'grid', ?,?,?,?)")
         ->execute([$teacherId, $classId, $subjectId, $columns, $rows, now_iso(), now_iso()]);
     $planId = (int)$pdo->lastInsertId();
   }

@@ -486,7 +486,7 @@ CREATE TABLE IF NOT EXISTS teacher_seating_plans (
   subject_id INT NOT NULL,
   layout_type VARCHAR(16) NOT NULL DEFAULT 'grid',
   columns INT NOT NULL DEFAULT 4,
-  rows INT NOT NULL DEFAULT 4,
+  grid_rows INT NOT NULL DEFAULT 4,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   UNIQUE KEY uniq_teacher_seating_plan (teacher_id,class_id,subject_id),

@@ -830,7 +830,7 @@ function _ensure_schema(PDO $pdo): void {
         subject_id INT NOT NULL,
         layout_type VARCHAR(16) NOT NULL DEFAULT 'grid',
         columns INT NOT NULL DEFAULT 4,
-        rows INT NOT NULL DEFAULT 4,
+        grid_rows INT NOT NULL DEFAULT 4,
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL,
         UNIQUE KEY uniq_teacher_seating_plan (teacher_id,class_id,subject_id),
@@ -839,7 +839,9 @@ function _ensure_schema(PDO $pdo): void {
         FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
     }
-  }catch(Exception $e){ /* ignore */ }
+  }catch(Exception $e){
+    if(function_exists('app_log')) app_log('error','_ensure_schema: could not create teacher_seating_plans',['message'=>$e->getMessage()]);
+  }
 
   try{
     $st=$pdo->query("SHOW TABLES LIKE 'teacher_seating_plan_seats'");
@@ -857,7 +859,9 @@ function _ensure_schema(PDO $pdo): void {
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
     }
-  }catch(Exception $e){ /* ignore */ }
+  }catch(Exception $e){
+    if(function_exists('app_log')) app_log('error','_ensure_schema: could not create teacher_seating_plan_seats',['message'=>$e->getMessage()]);
+  }
 
   try{
     $pdo->exec("CREATE TABLE IF NOT EXISTS assessment_weight_settings (
