@@ -828,19 +828,36 @@ function _ensure_schema(PDO $pdo): void {
         teacher_id INT NOT NULL,
         class_id INT NOT NULL,
         subject_id INT NOT NULL,
+        name VARCHAR(120) NOT NULL DEFAULT 'Standard',
         layout_type VARCHAR(16) NOT NULL DEFAULT 'grid',
         columns INT NOT NULL DEFAULT 4,
         grid_rows INT NOT NULL DEFAULT 4,
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL,
-        UNIQUE KEY uniq_teacher_seating_plan (teacher_id,class_id,subject_id),
+        UNIQUE KEY uniq_teacher_seating_plan_name (teacher_id,class_id,subject_id,name),
         FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
         FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    } else {
+      // Nachrüsten für Installationen, die schon mit dem allerersten Stand
+      // (genau ein Sitzplan pro Klasse/Fach, ohne Name) gestartet haben:
+      // mehrere benannte Sitzpläne pro Klasse/Fach erlauben.
+      $st=$pdo->query("SHOW COLUMNS FROM teacher_seating_plans LIKE 'name'");
+      if(!$st->fetch()){
+        $pdo->exec("ALTER TABLE teacher_seating_plans ADD COLUMN name VARCHAR(120) NOT NULL DEFAULT 'Standard' AFTER subject_id");
+      }
+      $st=$pdo->query("SHOW INDEX FROM teacher_seating_plans WHERE Key_name='uniq_teacher_seating_plan'");
+      if($st->fetch()){
+        try{ $pdo->exec("ALTER TABLE teacher_seating_plans DROP INDEX uniq_teacher_seating_plan"); }catch(Exception $ignored){}
+      }
+      $st=$pdo->query("SHOW INDEX FROM teacher_seating_plans WHERE Key_name='uniq_teacher_seating_plan_name'");
+      if(!$st->fetch()){
+        try{ $pdo->exec("ALTER TABLE teacher_seating_plans ADD UNIQUE KEY uniq_teacher_seating_plan_name (teacher_id,class_id,subject_id,name)"); }catch(Exception $ignored){}
+      }
     }
   }catch(Exception $e){
-    if(function_exists('app_log')) app_log('error','_ensure_schema: could not create teacher_seating_plans',['message'=>$e->getMessage()]);
+    if(function_exists('app_log')) app_log('error','_ensure_schema: could not create/upgrade teacher_seating_plans',['message'=>$e->getMessage()]);
   }
 
   try{
