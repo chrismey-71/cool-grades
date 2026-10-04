@@ -6,6 +6,19 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
+### Geplant
+
+- formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
+- Trennung zwischen reinen Lernhinweisen und Einträgen, die in Notenvorschläge einfließen
+- Lernziele, Erfolgskriterien, beobachteter Lernstand und nächste Lernschritte pro Rückmeldung
+- separate Darstellung formativer Lernrückmeldungen in Webauswertung und PDF-Berichten
+- optionale Selbst- und Peer-Feedback-Funktionen
+- stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
+- Sitzplan: weitere Tischanordnungen (z. B. Gruppentische/Inseln) neben der klassischen Reihen-/Spalten-Anordnung
+- weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
+
+## [1.81.5] - 2026-10-04
+
 ### Hinzugefügt
 
 - Kompetenz-Beobachtung (`teacher/competence_quick.php`, `teacher/competence_profile.php`, `admin/competence_tags.php`): Neues, von der täglichen Mitarbeitserfassung bewusst getrenntes Schnellnotiz-Werkzeug für Methoden-, Sozial- und Selbst-/Personalkompetenz. Pro Klasse/Fach lassen sich für einzelne Schüler:innen feste, global gepflegte Tags aus den drei Kategorien vergeben; erneutes Speichern am selben Tag ersetzt die bisherige Auswahl, statt eine wachsende Liste von Einzelnotizen anzulegen. Die Tag-Liste wird über eine neue Admin-Seite (`admin/competence_tags.php`) gepflegt (inkl. Reihenfolge per Drag&Drop, Archivieren statt Löschen für bereits verwendete Tags). Eine aggregierte Auswertung je Schüler:in steht über „Kompetenzprofil“ (von den Berichten aus verlinkt) zur Verfügung. Löst konzeptionell die bisherige „Achse 2“ des Beobachtungsbereichs ab, ohne deren historische Daten anzutasten.
@@ -21,17 +34,6 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 ### Behoben
 
 - Sitzplan-Verwaltung (`teacher/seating_plan.php`): Das Formular zum Bearbeiten eines bestehenden Sitzplans (Name/Spalten/Reihen, „Speichern“) enthielt ungültig verschachteltes HTML – ein zweites `<form>` für den „Diesen Sitzplan löschen“-Button lag innerhalb des ersten. Browser ignorieren das innere `<form>`-Tag dabei, sodass dessen versteckte Felder (u. a. `action=delete_plan`) dem äußeren Formular zugerechnet wurden. Ein Klick auf „Speichern“ löste dadurch je nach Feldreihenfolge tatsächlich die Löschen-Aktion aus, statt die Änderungen zu speichern. Die beiden Formulare sind jetzt technisch getrennt (bei gleichem Aussehen), sodass „Speichern“ zuverlässig speichert.
-
-### Geplant
-
-- formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
-- Trennung zwischen reinen Lernhinweisen und Einträgen, die in Notenvorschläge einfließen
-- Lernziele, Erfolgskriterien, beobachteter Lernstand und nächste Lernschritte pro Rückmeldung
-- separate Darstellung formativer Lernrückmeldungen in Webauswertung und PDF-Berichten
-- optionale Selbst- und Peer-Feedback-Funktionen
-- stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
-- Sitzplan: weitere Tischanordnungen (z. B. Gruppentische/Inseln) neben der klassischen Reihen-/Spalten-Anordnung
-- weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
 
 ## [1.81.4] - 2026-09-27
 
