@@ -217,6 +217,8 @@ else render_header('Berichte & Auswertungen',$u);
     <?php if($currentAssessmentSetId > 0): ?>
       <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><a class="btn secondary" href="<?php echo h((cfg()['base_path'] ?? '').'/teacher/final_assessments.php?'.http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'school_period_set_id'=>$currentAssessmentSetId,'scope'=>$currentAssessmentScope])); ?>">Zur Abschlussbeurteilung</a></div>
     <?php endif; ?>
+    <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><a class="btn secondary" href="<?php echo h((cfg()['base_path'] ?? '').'/teacher/competence_profile.php?'.http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'from'=>$date_from,'to'=>$date_to])); ?>">Kompetenzprofil</a></div>
+    <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><a class="btn secondary" href="<?php echo h((cfg()['base_path'] ?? '').'/teacher/criteria_profile.php?'.http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'from'=>$date_from,'to'=>$date_to])); ?>">Kriterien-Profil</a></div>
     <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><a class="btn" href="<?php echo h(_reports_qs_keep(['view'=>'print'])); ?>" target="_blank" rel="noopener">Druckansicht öffnen</a></div>
     <div style="flex:0 0 auto"><label class="muted">&nbsp;</label><a class="btn secondary" href="<?php echo h((cfg()['base_path'] ?? '').'/reports_pdf.php'._reports_qs_keep()); ?>">PDF-Datei herunterladen</a></div>
   <?php endif; ?>
