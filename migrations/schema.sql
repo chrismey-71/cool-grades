@@ -169,6 +169,7 @@ CREATE TABLE IF NOT EXISTS participation_options (
   label VARCHAR(80) NOT NULL,
   pedagogical_hint_mode VARCHAR(16) NULL,
   impact_kind VARCHAR(16) NULL,
+  observation_axis TINYINT NULL,
   active TINYINT(1) NOT NULL DEFAULT 1,
   sort INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL,
@@ -456,8 +457,19 @@ INSERT IGNORE INTO participation_options (opt_type,scope,subject_id,teacher_id,l
 ('observation_group','global',NULL,NULL,'Verstehen / Erfassen',1,10,NOW()),
 ('observation_group','global',NULL,NULL,'Anwenden / Transfer',1,20,NOW()),
 ('observation_group','global',NULL,NULL,'Argumentieren / Erklären',1,30,NOW()),
+('observation_group','global',NULL,NULL,'Gestalten / Eigene Lösung',1,35,NOW()),
 ('observation_group','global',NULL,NULL,'Arbeitsweise / Genauigkeit',1,40,NOW()),
 ('observation_group','global',NULL,NULL,'Kooperation / Selbstständigkeit',1,50,NOW());
+
+-- Zwei-Achsen-Modell des Beobachtungsbereichs (Achse 1 = kognitiver Fokus,
+-- Achse 2 = Arbeits-/Sozialform). Siehe migrations/2026-09-29_observation_group_axes.sql.
+UPDATE participation_options
+SET observation_axis=1
+WHERE opt_type='observation_group' AND label IN ('Verstehen / Erfassen','Anwenden / Transfer','Argumentieren / Erklären','Gestalten / Eigene Lösung');
+UPDATE participation_options
+SET observation_axis=2
+WHERE opt_type='observation_group' AND label IN ('Arbeitsweise / Genauigkeit','Kooperation / Selbstständigkeit');
+
 CREATE TABLE IF NOT EXISTS criteria_suggestions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   school_type ENUM('FSB','HLS','BOTH') NOT NULL DEFAULT 'BOTH',

@@ -25,9 +25,71 @@ function participation_observation_group_semantic_key(string $label): string {
   if (preg_match('/versteh|erfass|begriff|nachvollzieh|analyse|analysier|zusammenhang/', $t)) return 'understanding';
   if (preg_match('/anwend|transfer|einord|modell|praxis|fall|loesung|aufgabe/', $t)) return 'application';
   if (preg_match('/argument|erklaer|erklaer|begruend|kommunik|praesent|fachbegrif|darstell/', $t)) return 'argumentation';
+  if (preg_match('/gestalt|kreativ|erfind|entwickl|konzipier|entwerf|eigene loesung/', $t)) return 'creation';
   if (preg_match('/arbeits|genau|sorg|methode|strategie|operier|rechen|vollstaendig|termingerecht|dokument/', $t)) return 'work';
   if (preg_match('/kooper|gruppe|partner|team|selbststaendig|eigenstaendig|beitrag|respekt/', $t)) return 'cooperation';
   return 'other';
+}
+
+// Beobachtungsbereich: Achse 1 = kognitiver Fokus (Bloom-nah: Verstehen,
+// Anwenden/Transfer, Argumentieren/Erklären, Gestalten/Eigene Lösung) -
+// Pflichtfeld, genau einer.
+// Achse 2 (Arbeits-/Sozialform: Arbeitsweise/Genauigkeit, Kooperation/
+// Selbstständigkeit) wurde zum 2026-10-01 wieder entfernt (siehe
+// migrations/2026-10-01_retire_observation_axis2.sql) - konzeptionell
+// abgelöst durch die eigenständige "Kompetenz-Beobachtung"
+// (lib/competence_observations.php). Die Achse-2-Funktionen/Konstanten
+// bleiben hier bestehen, weil bereits erfasste Einträge mit einer
+// Achse-2-Zuordnung weiterhin über den Legacy-Modus in
+// teacher/participation_edit.php korrekt erkannt und unverändert
+// angezeigt werden müssen - es werden nur keine neuen Achse-2-Optionen
+// mehr angeboten (sie sind in der Datenbank archiviert).
+// Die Achse wird primär aus der Datenbankspalte observation_axis gelesen
+// (siehe migrations/2026-09-29_observation_group_axes.sql). Der Fallback über
+// den semantischen Schlüssel greift nur, falls dieses Feld für eine Option
+// ausnahmsweise nicht gesetzt ist.
+const PARTICIPATION_OBSERVATION_GROUP_AXIS2_KEYS = ['work', 'cooperation'];
+
+function participation_observation_group_axis(array $group): int {
+  $axis = (int)($group['observation_axis'] ?? 0);
+  if ($axis === 1 || $axis === 2) return $axis;
+  $key = participation_observation_group_semantic_key((string)($group['label'] ?? ''));
+  return in_array($key, PARTICIPATION_OBSERVATION_GROUP_AXIS2_KEYS, true) ? 2 : 1;
+}
+
+function participation_observation_group_split_by_axis(array $groups): array {
+  $out = [1 => [], 2 => []];
+  foreach ($groups as $group) {
+    $axis = participation_observation_group_axis($group);
+    $out[$axis][] = $group;
+  }
+  return $out;
+}
+
+function participation_observation_group_axis_counts(array $groups, array $selected_ids): array {
+  $byId = [];
+  foreach ($groups as $g) { $byId[(int)($g['id'] ?? 0)] = $g; }
+  $counts = [1 => 0, 2 => 0];
+  foreach ($selected_ids as $sid) {
+    $sid = (int)$sid;
+    if ($sid <= 0 || !isset($byId[$sid])) continue;
+    $counts[participation_observation_group_axis($byId[$sid])]++;
+  }
+  return $counts;
+}
+
+// Entspricht die Auswahl dem aktuellen Modell: genau ein Eintrag aus Achse 1
+// (kognitiver Fokus), kein zusätzlicher aus der entfernten Achse 2. Eine
+// leere Auswahl gilt hier NICHT als konform (das Pflichtfeld Achse 1 fehlt
+// dann) - die "mindestens einen wählen"-Prüfung bleibt ein eigener,
+// vorgelagerter Schritt. Ein Eintrag mit einer historischen Achse-2-
+// Zuordnung (count[2]>0) gilt bewusst als nicht konform, damit er über den
+// bestehenden Legacy-Modus in teacher/participation_edit.php unverändert
+// angezeigt wird, statt die Achse-2-Zuordnung beim nächsten Speichern
+// stillschweigend zu verlieren.
+function participation_observation_group_selection_conforms(array $groups, array $selected_ids): bool {
+  $counts = participation_observation_group_axis_counts($groups, $selected_ids);
+  return $counts[1] === 1 && $counts[2] === 0;
 }
 
 function participation_observation_group_reason_scores(string $reason_label): array {
@@ -82,6 +144,7 @@ function participation_observation_group_ids_from_scores(array $groups, array $s
     if ($score <= 0) continue;
     $ranked[] = [
       'id' => $id,
+      'axis' => participation_observation_group_axis($group),
       'score' => $score,
       'sort' => (int)($group['sort'] ?? 0),
       'label' => (string)($group['label'] ?? ''),
@@ -94,7 +157,18 @@ function participation_observation_group_ids_from_scores(array $groups, array $s
     return strnatcasecmp($a['label'], $b['label']);
   });
 
-  return array_slice(array_values(array_unique(array_map(static fn(array $r): int => (int)$r['id'], $ranked))), 0, max(1, $limit));
+  // Höchstens ein Vorschlag pro Achse (Achse 1 = kognitiver Fokus zuerst,
+  // Achse 2 = Arbeits-/Sozialform optional), damit der Vorschlag immer zum
+  // Zwei-Achsen-Modell passt statt blind die zwei besten Treffer insgesamt zu nehmen.
+  $bestByAxis = [1 => null, 2 => null];
+  foreach ($ranked as $r) {
+    if ($bestByAxis[$r['axis']] === null) $bestByAxis[$r['axis']] = $r['id'];
+  }
+
+  $result = [];
+  if ($bestByAxis[1] !== null) $result[] = $bestByAxis[1];
+  if ($limit > 1 && $bestByAxis[2] !== null) $result[] = $bestByAxis[2];
+  return array_slice($result, 0, max(1, $limit));
 }
 
 function participation_observation_group_ids_from_reason_and_criteria(array $groups, string $reason_label, array $criteria_rows, array $selected_criteria_ids, int $limit = 2): array {

@@ -185,11 +185,39 @@ if($selected_student_group_id>0){
 
 $criteria=load_participation_criteria($pdo,(int)$u['id'],$subject_id);
 
+// Kriterien-Chips (siehe teacher/participation_new.php "Kriterien"-Tile
+// weiter unten): nach bisheriger Gesamt-Nutzung (dieses Fach/diese
+// Lehrkraft) absteigend sortiert, damit die meistgenutzten direkt als Chips
+// sichtbar sind und seltene hinter "+ weitere Kriterien" verschwinden -
+// Feedback vom 2026-10-02: die alte, nach Kategorie verschachtelte
+// Checkbox-Liste fuehlte sich wie ein Pflichtschritt an, obwohl Kriterien
+// rein optional/ergaenzend sind.
+$criteriaUsageCounts=participation_criteria_usage_counts($pdo,(int)$u['id'],$subject_id);
+$criteriaSorted=$criteria;
+usort($criteriaSorted, function($a,$b) use ($criteriaUsageCounts){
+  $ca=$criteriaUsageCounts[(int)$a['id']] ?? 0;
+  $cb=$criteriaUsageCounts[(int)$b['id']] ?? 0;
+  if($ca===$cb) return strcasecmp((string)$a['label'],(string)$b['label']);
+  return $cb<=>$ca;
+});
+$criteriaQuick=array_slice($criteriaSorted,0,6);
+$criteriaMore=array_slice($criteriaSorted,6);
+
+// Je Kriterium, wie oft es bei genau der/dem aktuell ausgewaehlten
+// Schueler:in bereits verwendet wurde (nicht die Gesamtzahl ueber alle
+// Schueler:innen - das wirkte irrefuehrend). Fuer die ganze Klasse
+// vorberechnet, damit die Chip-Anzahl beim Umschalten der Auswahl rein
+// clientseitig (ohne Nachladen) aktualisiert werden kann.
+$criteriaCountsByStudent=participation_criteria_counts_by_student($pdo,(int)$u['id'],$class_id,$subject_id,array_column($students,'id'));
+
 // Editable picklists
 $reasons=load_participation_options($pdo,(int)$u['id'],$subject_id,'reason');
 $impacts=load_participation_options($pdo,(int)$u['id'],$subject_id,'impact');
 $perfs=load_participation_options($pdo,(int)$u['id'],$subject_id,'performance');
 $groups=load_participation_options($pdo,(int)$u['id'],$subject_id,'observation_group');
+$groupsByAxis=participation_observation_group_split_by_axis($groups);
+$groupsAxis1=$groupsByAxis[1];
+$groupsAxis2=$groupsByAxis[2];
 $socials=load_participation_options($pdo,(int)$u['id'],$subject_id,'social_form');
 $phases=load_participation_options($pdo,(int)$u['id'],$subject_id,'phase');
 $homeworks=load_participation_options($pdo,(int)$u['id'],$subject_id,'homework');
@@ -381,7 +409,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $sel_student_ids=$_POST['student_ids'] ?? [];
   $sel_criteria_ids=$_POST['criteria_ids'] ?? [];
   $sel_perf_ids=$_POST['performance_option_ids'] ?? [];
-  $sel_group_ids=$_POST['group_option_ids'] ?? [];
+  // Kognitiver Fokus (Achse 1) ist eine Pflicht-Einfachauswahl. Die frühere
+  // optionale Achse 2 (Arbeits-/Sozialform) wurde entfernt (siehe
+  // migrations/2026-10-01_retire_observation_axis2.sql) - sie ist durch die
+  // eigenständige "Kompetenz-Beobachtung" abgelöst. Intern wird aus der
+  // Einfachauswahl weiterhin die aus group_option_ids[] bekannte Liste
+  // zusammengesetzt, damit Presets, Auto-Vorschlag und Speicherung
+  // unverändert bleiben - siehe lib/participation_observation_groups.php.
+  $sel_axis1_id=(int)($_POST['group_axis1_id'] ?? 0);
+  $sel_group_ids=array_values(array_filter([$sel_axis1_id], fn($v)=>$v>0));
+  $_POST['group_option_ids']=$sel_group_ids;
   $selected_preset_id=(int)($_POST['preset_id'] ?? 0);
   $preset_name_input=trim((string)($_POST['preset_name'] ?? ''));
 
@@ -474,8 +511,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!$sel_student_ids) $err='Bitte mindestens eine/n Schüler:in auswählen.';
     elseif(!$reason_id) $err='Bitte Grund wählen.';
     elseif(!$impact_id) $err='Bitte Eindruck/Relevanz wählen.';
-    elseif(!$sel_group_ids) $err='Bitte mindestens einen Beobachtungsbereich wählen.';
-    elseif(count($sel_group_ids)>2) $err='Bitte höchstens zwei Beobachtungsbereiche wählen.';
+    elseif(!$sel_group_ids) $err='Bitte einen Beobachtungsbereich (kognitiver Fokus) wählen.';
+    elseif(!participation_observation_group_selection_conforms($groups,$sel_group_ids)) $err='Bitte genau einen Beobachtungsbereich wählen.';
     elseif($simple_entry_mode && $reason_text==='') $err='Bitte eine kurze Beobachtung eingeben.';
   }
 
@@ -981,76 +1018,78 @@ render_header('Mitarbeit',$u);
     <?php accordion_section_start($compact_forms, 'Beobachtungsbereich', $group_section_open, 'margin-top:12px', '', 'contrast-panel section-context', participation_tile_drag_handle()); ?>
     <fieldset class="multi-field contrast-panel section-context" style="<?php echo $compact_forms?'margin-top:0':''; ?>">
       <?php if(!$compact_forms): ?><legend><?php echo participation_tile_drag_handle(); ?>Beobachtungsbereich</legend><?php endif; ?>
-      <div class="multi-grid">
-        <?php foreach($groups as $o): ?>
-          <label class="multi-item">
-            <input class="groupCb" type="checkbox" name="group_option_ids[]" value="<?php echo (int)$o['id']; ?>" <?php echo in_array((int)$o['id'],$checked_groups,true)?'checked':''; ?>>
-            <span><?php echo h($o['label']); ?></span>
-          </label>
-        <?php endforeach; ?>
+      <div class="axis-block axis-block-1">
+        <div class="small muted" style="margin-bottom:8px">Kognitiver Fokus – bitte genau einen wählen:</div>
+        <div class="axis-btn-row axis-btn-row-stepped">
+          <?php foreach($groupsAxis1 as $o): $oid=(int)$o['id']; $inputId='obs_axis1_'.$oid; ?>
+            <div class="axis-btn-item">
+              <input class="groupAxisRadio axis-btn-input" type="radio" id="<?php echo h($inputId); ?>" name="group_axis1_id" value="<?php echo $oid; ?>" required <?php echo in_array($oid,$checked_groups,true)?'checked':''; ?>>
+              <label class="axis-btn" for="<?php echo h($inputId); ?>"><?php echo h($o['label']); ?></label>
+            </div>
+          <?php endforeach; ?>
+        </div>
       </div>
-      <div class="small muted" style="margin-top:6px">
+      <div class="small muted" style="margin-top:10px">
         <?php if($simple_entry_mode): ?>
-          Wähle einen Hauptbereich, bei Bedarf zusätzlich einen zweiten. Der Beobachtungsbereich hilft später bei der zusammenfassenden Auswertung.
+          Beschreibt den kognitiven Schwerpunkt der Beobachtung (z.B. Verstehen oder Anwenden). Methoden-, Sozial- und Selbstkompetenz-Beobachtungen erfasst du separat über „Kompetenz-Beobachtung“ im Dashboard.
         <?php else: ?>
-          Wähle einen Hauptbereich, bei Bedarf zusätzlich einen zweiten. Die feineren fachlichen Kriterien bleiben unten verfügbar und sind nur bei Bedarf nötig.
+          Beschreibt den kognitiven Schwerpunkt der Beobachtung (z.B. Verstehen oder Anwenden). Die feineren fachlichen Kriterien bleiben unten verfügbar und sind nur bei Bedarf nötig. Methoden-, Sozial- und Selbstkompetenz-Beobachtungen erfasst du separat über „Kompetenz-Beobachtung“ im Dashboard.
         <?php endif; ?>
       </div>
+      <details class="accordion bloom-hint" style="margin-top:10px">
+        <summary><span class="acc-title">ℹ️ Bezug zur Lernzieltaxonomie nach Bloom</span></summary>
+        <div class="acc-body muted">
+          <p style="margin:0 0 8px 0">Die vier Bereiche fassen die sechs Stufen der (revidierten) Bloom’schen Taxonomie zu beobachtbaren Kategorien zusammen:</p>
+          <ul style="margin:0;padding-left:18px">
+            <li><strong>Verstehen / Erfassen</strong> – Erinnern &amp; Verstehen</li>
+            <li><strong>Anwenden / Transfer</strong> – Anwenden &amp; Analysieren</li>
+            <li><strong>Argumentieren / Erklären</strong> – Bewerten</li>
+            <li><strong>Gestalten / Eigene Lösung</strong> – Erschaffen</li>
+          </ul>
+        </div>
+      </details>
     </fieldset>
     <?php accordion_section_end($compact_forms); ?>
     <?php $tile_groups = ob_get_clean(); ob_start(); ?>
 
     <?php if(!$simple_entry_mode): ?>
     <div style="height:14px"></div>
-    <?php $criteria_total=count($criteria); $criteria_selected_total=count($checked_criteria); ?>
+    <?php $criteria_selected_total=count($checked_criteria); ?>
     <details class="accordion contrast-panel section-criteria" <?php echo $details_section_open?'open':''; ?>>
       <summary>
-        <span class="acc-title-group"><?php echo participation_tile_drag_handle(); ?><span class="acc-title">Kriterien (fachspezifisch / LBV-orientiert)</span></span>
-        <span class="acc-meta"><?php if($criteria_total>0): ?><span class="badge"><?php echo (int)$criteria_selected_total; ?>/<?php echo (int)$criteria_total; ?></span><?php endif; ?></span>
+        <span class="acc-title-group"><?php echo participation_tile_drag_handle(); ?><span class="acc-title">Kriterien</span> <span class="badge">optional</span></span>
+        <span class="acc-meta"><?php if($criteria_selected_total>0): ?><span class="badge"><?php echo (int)$criteria_selected_total; ?> ausgewählt</span><?php endif; ?></span>
       </summary>
       <div class="acc-body">
         <fieldset class="multi-field contrast-panel section-criteria" style="margin-top:0">
-          <legend>Kriterien (fachspezifisch / LBV-orientiert)</legend>
-          <div class="muted">Die Detailkriterien bleiben erhalten, sind aber nicht mehr die Haupteingabe. Sie dienen der fachlichen Präzisierung und erscheinen später zusammengefasst in Auswertung und Abschlussbeurteilung. Eigene Kriterien-Sets kannst du unter <a href="<?php echo h($bp); ?>/teacher/criteria.php">Kriterien</a> anlegen.</div>
+          <legend>Kriterien <span class="badge">optional</span></legend>
+          <div class="muted">Nur falls dir bei der ausgewählten Person konkret etwas aufgefallen ist. Ohne Auswahl wird einfach nichts gespeichert – für Auswertung und Abschlussbeurteilung reichen Grund, Eindruck und Beobachtungsbereich oben völlig aus. Eigene Kriterien-Sets kannst du unter <a href="<?php echo h($bp); ?>/teacher/criteria.php">Kriterien</a> anlegen oder pflegen, auch welche deaktivieren/archivieren. Aggregierte Auswertung je Schüler:in: <a href="<?php echo h($bp); ?>/teacher/criteria_profile.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id])); ?>">Kriterien-Profil</a>.</div>
           <div style="height:10px"></div>
           <?php if(!$criteria): ?>
             <div class="muted">Noch keine Kriterien vorhanden. Lege ein Set an und füge Vorschläge ein.</div>
           <?php else: ?>
-            <?php
-              $criteria_by_cat=[];
-              foreach($criteria as $c){
-                $cat=trim((string)($c['category'] ?? ''));
-                if($cat==='') $cat='Allgemein';
-                if(!isset($criteria_by_cat[$cat])) $criteria_by_cat[$cat]=[];
-                $criteria_by_cat[$cat][]=$c;
-              }
-            ?>
-            <div class="criteria-accordion">
-              <?php foreach($criteria_by_cat as $cat=>$list): ?>
-                <?php
-                  $sel=0;
-                  foreach($list as $cc){ if(in_array((int)$cc['id'],$checked_criteria,true)) $sel++; }
-                ?>
-                <details class="accordion" <?php echo $sel>0?'open':''; ?>>
-                  <summary>
-                    <span class="acc-title"><?php echo h($cat); ?></span>
-                    <span class="acc-meta">
-                      <span class="badge"><?php echo (int)$sel; ?>/<?php echo (int)count($list); ?></span>
-                    </span>
-                  </summary>
-                  <div class="acc-body">
-                    <div class="multi-grid">
-                      <?php foreach($list as $c): ?>
-                        <label class="multi-item">
-                          <input type="checkbox" name="criteria_ids[]" value="<?php echo (int)$c['id']; ?>" <?php echo in_array((int)$c['id'],$checked_criteria,true)?'checked':''; ?>>
-                          <span><?php echo h($c['label']); ?></span>
-                        </label>
-                      <?php endforeach; ?>
-                    </div>
-                  </div>
-                </details>
+            <div class="criteria-chip-row" id="criteriaQuickChips">
+              <?php foreach($criteriaQuick as $c): ?>
+                <label class="criteria-chip">
+                  <input class="criteria-chip-input" type="checkbox" name="criteria_ids[]" value="<?php echo (int)$c['id']; ?>" data-criteria-id="<?php echo (int)$c['id']; ?>" <?php echo in_array((int)$c['id'],$checked_criteria,true)?'checked':''; ?>>
+                  <span class="criteria-chip-face"><?php echo h($c['label']); ?><span class="criteria-chip-count" data-criteria-count-for="<?php echo (int)$c['id']; ?>"></span></span>
+                </label>
               <?php endforeach; ?>
             </div>
+            <?php if($criteriaMore): ?>
+              <details class="more-criteria">
+                <summary>+ weitere Kriterien anzeigen (seltener gebraucht)</summary>
+                <div class="criteria-chip-row" id="criteriaMoreChips" style="margin-top:10px">
+                  <?php foreach($criteriaMore as $c): ?>
+                    <label class="criteria-chip">
+                      <input class="criteria-chip-input" type="checkbox" name="criteria_ids[]" value="<?php echo (int)$c['id']; ?>" data-criteria-id="<?php echo (int)$c['id']; ?>" <?php echo in_array((int)$c['id'],$checked_criteria,true)?'checked':''; ?>>
+                      <span class="criteria-chip-face"><?php echo h($c['label']); ?><span class="criteria-chip-count" data-criteria-count-for="<?php echo (int)$c['id']; ?>"></span></span>
+                    </label>
+                  <?php endforeach; ?>
+                </div>
+              </details>
+            <?php endif; ?>
+            <div class="muted" id="criteriaCountHint" style="margin-top:10px;font-size:12px"></div>
           <?php endif; ?>
         </fieldset>
       </div>
@@ -1216,6 +1255,39 @@ render_header('Mitarbeit',$u);
   const fixedLessonId = <?php echo (int)$lesson_id; ?>;
   const fixedLessonSubgroup = <?php echo json_encode($lesson ? strtolower((string)($lesson['webuntis_subgroup'] ?? '')) : '', JSON_UNESCAPED_UNICODE); ?>;
   const subgroupMemberIds = <?php echo json_encode($subgroup_member_ids, JSON_UNESCAPED_UNICODE); ?>;
+  // Je Schueler:in, wie oft jedes Kriterium bei genau dieser Person bereits
+  // verwendet wurde (siehe lib/participation_presets.php
+  // participation_criteria_counts_by_student()). Treibt die Chip-Anzahl in
+  // der "Kriterien"-Kachel: bei genau einer ausgewaehlten Person zeigt der
+  // Chip ihre bisherige Anzahl statt einer irrefuehrenden Gesamtzahl ueber
+  // alle Schueler:innen.
+  const criteriaCountsByStudent = <?php echo json_encode($criteriaCountsByStudent, JSON_UNESCAPED_UNICODE); ?>;
+
+  function updateCriteriaChipCounts(){
+    const chips = document.querySelectorAll('.criteria-chip-count');
+    if(!chips.length) return;
+    const checkedIds = Array.from(document.querySelectorAll('.studentCb:checked')).map(cb => cb.value);
+    const hint = document.getElementById('criteriaCountHint');
+
+    if(checkedIds.length === 1){
+      const counts = criteriaCountsByStudent[checkedIds[0]] || {};
+      chips.forEach(el=>{
+        const cid = el.getAttribute('data-criteria-count-for');
+        const c = parseInt(counts[cid] || 0, 10);
+        el.textContent = ' · ' + c + 'x bisher';
+        el.style.display = '';
+      });
+      const nameEl = document.querySelector('.studentItem[data-student-id="'+checkedIds[0]+'"] .student-name-text');
+      if(hint) hint.textContent = nameEl ? ('Anzahl = bisher bei ' + nameEl.textContent.trim() + ' erfasste Nennungen dieses Kriteriums.') : '';
+    } else {
+      chips.forEach(el=>{ el.textContent=''; el.style.display='none'; });
+      if(hint){
+        hint.textContent = checkedIds.length === 0
+          ? 'Wähle unten eine Person aus, um zu sehen, wie oft ein Kriterium bei ihr bereits erfasst wurde.'
+          : 'Bei mehreren ausgewählten Personen wird keine individuelle Anzahl angezeigt – die Auswahl oben gilt für alle markierten Personen gleichermaßen.';
+      }
+    }
+  }
 
   function applyLessonSubgroupGroup(){
     let subgroup = fixedLessonSubgroup;
@@ -1310,6 +1382,7 @@ render_header('Mitarbeit',$u);
     const cb=document.getElementById('stu_'+id);
     if(cb){ cb.checked=!cb.checked; }
     syncSeatHighlights();
+    updateCriteriaChipCounts();
   }
   function applyStudentGroup(ids){
     const selected=new Set((ids||[]).map(v=>parseInt(v,10)).filter(v=>Number.isInteger(v) && v>0));
@@ -1317,10 +1390,12 @@ render_header('Mitarbeit',$u);
       cb.checked=selected.has(parseInt(cb.value,10));
     });
     syncSeatHighlights();
+    updateCriteriaChipCounts();
   }
   function clearStudentSelection(){
     document.querySelectorAll('.studentCb').forEach(cb=>{ cb.checked=false; });
     syncSeatHighlights();
+    updateCriteriaChipCounts();
   }
   function autoApplyPreset(){
     const form=document.getElementById('participationForm');
@@ -1333,8 +1408,8 @@ render_header('Mitarbeit',$u);
     form.submit();
   }
 
-  function selectedGroupCheckboxes(){
-    return Array.from(document.querySelectorAll('.groupCb:checked'));
+  function selectedGroupRadios(){
+    return Array.from(document.querySelectorAll('.groupAxisRadio:checked')).filter(r=>parseInt(r.value,10)>0);
   }
 
   function suggestedPedagogicalMode(){
@@ -1389,32 +1464,24 @@ render_header('Mitarbeit',$u);
 
   function applyReasonSuggestion(force){
     const reason=document.getElementById('reasonSelect');
-    const boxes=Array.from(document.querySelectorAll('.groupCb'));
-    if(!reason || !boxes.length) return;
-    if(!force && selectedGroupCheckboxes().length>0) return;
+    const radios=Array.from(document.querySelectorAll('.groupAxisRadio'));
+    if(!reason || !radios.length) return;
+    if(!force && selectedGroupRadios().length>0) return;
     const opt=reason.options[reason.selectedIndex];
     const ids=((opt && opt.getAttribute('data-auto-suggest')) || '')
       .split(',')
       .map(v=>parseInt(v,10))
-      .filter(v=>Number.isInteger(v) && v>0)
-      .slice(0,2);
-    boxes.forEach(cb=>{ cb.checked = ids.includes(parseInt(cb.value,10)); });
+      .filter(v=>Number.isInteger(v) && v>0);
+    // Hoechstens ein Radio auf einmal markiert - der Server liefert im
+    // Auto-Vorschlag bereits maximal eine ID (siehe
+    // participation_observation_group_ids_from_scores), daher reicht es, das
+    // vorgeschlagene Radio direkt zu markieren.
+    radios.forEach(r=>{
+      if(ids.includes(parseInt(r.value,10))) r.checked=true;
+    });
   }
 
   (function(){
-    const form=document.getElementById('participationForm');
-    const boxes=Array.from(document.querySelectorAll('.groupCb'));
-    if(boxes.length){
-      boxes.forEach(cb=>{
-        cb.addEventListener('change', ()=>{
-          const checked=selectedGroupCheckboxes();
-          if(checked.length>2){
-            cb.checked=false;
-            alert('Bitte höchstens zwei Beobachtungsbereiche auswählen.');
-          }
-        });
-      });
-    }
     const reason=document.getElementById('reasonSelect');
     if(reason){
       reason.addEventListener('change', ()=>{
@@ -1430,21 +1497,10 @@ render_header('Mitarbeit',$u);
     const impact=document.getElementById('impactSelect');
     if(impact) impact.addEventListener('change', updatePedagogicalHint);
     updatePedagogicalHint();
-    if(form){
-      form.addEventListener('submit', (ev)=>{
-        const submitter=ev.submitter || document.activeElement;
-        const actionValue=(submitter && submitter.name==='action') ? submitter.value : ((document.getElementById('autoAction') || {}).value || '');
-        if(['apply_preset','save_preset','update_preset'].includes(actionValue)) return;
-        const checked=selectedGroupCheckboxes();
-        if(checked.length===0){
-          ev.preventDefault();
-          alert('Bitte mindestens einen Beobachtungsbereich auswählen.');
-        } else if(checked.length>2){
-          ev.preventDefault();
-          alert('Bitte höchstens zwei Beobachtungsbereiche auswählen.');
-        }
-      });
-    }
+    // Die Radiogruppe ist als "required" markiert (mindestens einer noetig) -
+    // eine zusaetzliche JS-Pruefung ist fuer die Auswahl selbst nicht noetig.
+    // Die Preset-Buttons tragen weiterhin formnovalidate und sind davon
+    // nicht betroffen.
   })();
 
   // Lesson helpers
@@ -1538,6 +1594,11 @@ render_header('Mitarbeit',$u);
     syncEventDateFromLessonContext();
     updateAlreadyRatedStudents();
     applyLessonSubgroupGroup();
+
+    document.querySelectorAll('.studentCb').forEach(cb=>{
+      cb.addEventListener('change', updateCriteriaChipCounts);
+    });
+    updateCriteriaChipCounts();
   })();
   </script>
 

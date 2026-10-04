@@ -131,6 +131,46 @@ html[data-theme="dark"] .multi-item{
   border-color:rgba(38,50,71,.9);
 }
 
+html[data-theme="dark"] .axis-block{
+  background:rgba(120,220,150,.05);
+  border-color:rgba(38,50,71,.9);
+}
+html[data-theme="dark"] .axis-block.axis-block-2{
+  background:rgba(255,255,255,.03);
+  border-color:rgba(38,50,71,.9);
+}
+html[data-theme="dark"] .axis-divider{
+  background:linear-gradient(90deg,transparent,rgba(38,50,71,.9) 12%,rgba(38,50,71,.9) 88%,transparent);
+}
+html[data-theme="dark"] .axis-btn{
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .axis-btn:hover{
+  background:rgba(255,255,255,.10);
+}
+html[data-theme="dark"] .axis-btn-input:checked + .axis-btn{
+  filter:brightness(1.15);
+}
+
+html[data-theme="dark"] .cq-seat-cell{
+  background:rgba(255,255,255,.03);
+  border-color:rgba(38,50,71,.9);
+}
+html[data-theme="dark"] .cq-roster-row{
+  background:rgba(255,255,255,.03);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .cq-popover{
+  background:var(--card);
+}
+html[data-theme="dark"] .cq-chip{
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  border-color:var(--border);
+}
+
 html[data-theme="dark"] .school-selection{
   background:linear-gradient(135deg,var(--school-soft),rgba(15,26,43,.96));
 }
@@ -324,6 +364,48 @@ html[data-theme="dark"] .final-legal-hints{
 }
 html[data-theme="dark"] .final-legal-hints summary{
   background:#262c3a;
+}
+html[data-theme="dark"] .bloom-hint{
+  background:#1e2330;
+  border-color:#4c556a;
+}
+html[data-theme="dark"] .bloom-hint summary{
+  background:#262c3a;
+}
+html[data-theme="dark"] .criteria-chip-face{
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .criteria-chip-face:hover{
+  background:rgba(255,255,255,.10);
+}
+html[data-theme="dark"] .criteria-chip-input:checked + .criteria-chip-face{
+  filter:brightness(1.15);
+}
+html[data-theme="dark"] details.more-criteria{
+  background:rgba(255,255,255,.03);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .cp-student-pick{
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .cp-student-pick:hover{
+  background:rgba(255,255,255,.10);
+}
+html[data-theme="dark"] .cp-student-pick.active{
+  filter:brightness(1.15);
+}
+html[data-theme="dark"] .cp-row-selectable:hover{
+  background:rgba(255,255,255,.04);
+}
+html[data-theme="dark"] .cp-row-active{
+  background:rgba(255,255,255,.06);
+}
+html[data-theme="dark"] .cp-bar-track{
+  background:rgba(255,255,255,.06);
 }
 html[data-theme="dark"] .final-student-context-card{
   background:linear-gradient(135deg,#122631,#171c23);

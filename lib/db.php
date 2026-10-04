@@ -1124,6 +1124,7 @@ function _ensure_schema(PDO $pdo): void {
       ['Verstehen / Erfassen', 10],
       ['Anwenden / Transfer', 20],
       ['Argumentieren / Erklären', 30],
+      ['Gestalten / Eigene Lösung', 35],
       ['Arbeitsweise / Genauigkeit', 40],
       ['Kooperation / Selbstständigkeit', 50],
     ];
@@ -1151,6 +1152,38 @@ function _ensure_schema(PDO $pdo): void {
         $insertDefaultOption->execute([$label, (int)$sort]);
       }
     }
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // Zwei-Achsen-Modell fuer den Beobachtungsbereich: Achse 1 = kognitiver
+    // Fokus (Pflicht, genau einer waehlbar), Achse 2 = Arbeits-/Sozialform
+    // (optional, hoechstens einer zusaetzlich). Rein additiv - bestehende
+    // Zuordnungen in participation_event_options bleiben unveraendert, es wird
+    // nur ein Metadatenfeld pro Option ergaenzt/nachgezogen.
+    $st=$pdo->query("SHOW COLUMNS FROM participation_options LIKE 'observation_axis'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE participation_options ADD COLUMN observation_axis TINYINT NULL AFTER impact_kind");
+    }
+    $pdo->exec("UPDATE participation_options
+                SET observation_axis=1
+                WHERE opt_type='observation_group' AND observation_axis IS NULL
+                  AND (label LIKE 'Verstehen%' OR label LIKE 'Anwenden%' OR label LIKE 'Argumentieren%' OR label LIKE 'Gestalten%')");
+    $pdo->exec("UPDATE participation_options
+                SET observation_axis=2
+                WHERE opt_type='observation_group' AND observation_axis IS NULL
+                  AND (label LIKE 'Arbeitsweise%' OR label LIKE 'Kooperation%')");
+  }catch(Exception $e){ /* ignore */ }
+
+  try{
+    // Achse 2 (Arbeits-/Sozialform) wieder entfernt - abgeloest durch die
+    // eigenstaendige "Kompetenz-Beobachtung" (siehe
+    // migrations/2026-10-01_retire_observation_axis2.sql). Nur archivieren,
+    // nicht loeschen: bestehende Zuordnungen in participation_event_options
+    // bleiben unveraendert und werden im Bearbeitungsformular weiterhin ueber
+    // den Legacy-Kompatibilitaetsmodus angezeigt.
+    $pdo->exec("UPDATE participation_options
+                SET archived=1
+                WHERE opt_type='observation_group' AND observation_axis=2 AND IFNULL(archived,0)=0");
   }catch(Exception $e){ /* ignore */ }
 
   try{

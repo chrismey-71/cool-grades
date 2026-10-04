@@ -528,23 +528,31 @@ Weniger geeignet:
 
 ### Beobachtungsbereich
 
-Der Beobachtungsbereich legt fest, **worauf** sich die Beobachtung hauptsächlich bezieht. Die App verlangt mindestens einen, höchstens zwei Bereiche.
+Der Beobachtungsbereich legt fest, **worauf** sich die Beobachtung hauptsächlich bezieht, und ist seit der Umstellung auf das Zwei-Achsen-Modell in zwei getrennte Achsen gegliedert:
+
+- **Achse 1 – Kognitiver Fokus** (Pflicht, genau einer): Verstehen/Erfassen, Anwenden/Transfer, Argumentieren/Erklären, Gestalten/Eigene Lösung.
+- **Achse 2 – Arbeits-/Sozialform** (optional, höchstens einer): Arbeitsweise/Genauigkeit, Kooperation/Selbstständigkeit.
+
+Die beiden Achsen sind bewusst getrennt, weil Achse 1 aufeinanderfolgende kognitive Schwerpunkte beschreibt (ein Beitrag ist im Kern meist entweder gerade „Verstehen“ oder „Transfer“ oder „Argumentation“), während Achse 2 eine davon unabhängige, ergänzende Beobachtung zur Arbeits- oder Sozialform ist. Das Formular bildet das über zwei getrennte Radiobutton-Gruppen ab: Achse 1 ist ein Pflichtfeld mit genau einer Auswahl, Achse 2 eine optionale Einfachauswahl (inklusive „– keine Angabe –“).
 
 Wirkung:
 
 - Er macht die Mitarbeit fachlich lesbarer.
 - Er ist in der Auswertung aussagekräftiger als eine bloße Fallzahl.
-- Er hilft, ob eher Verstehen, Transfer, Arbeitsweise oder ein anderer Bereich im Vordergrund stand.
+- Er hilft, ob eher Verstehen, Transfer, Argumentation, Gestalten oder eine bestimmte Arbeits-/Sozialform im Vordergrund stand.
 
 Praktischer Nutzen:
 
-- Mit einem Hauptbereich bleibt die Erfassung schnell.
-- Ein zweiter Bereich ist sinnvoll, wenn ein Beitrag wirklich zwei Schwerpunkte hatte.
+- Die kognitive Achse zwingt zu einem klaren Hauptfokus statt einer diffusen Mehrfachauswahl.
+- Die Arbeits-/Sozialform-Achse ist nur dann sinnvoll zu setzen, wenn ein Beitrag wirklich auch dazu etwas aussagt.
 
-Fehler vermeiden:
+Wichtig zur Abgrenzung von den LBV-Tags (a–e):
 
-- Nicht wahllos mehrere Bereiche ankreuzen.
-- Wenn ein Hauptbereich genügt, ist ein klarer Fokus besser als scheinbare Genauigkeit.
+- Der Beobachtungsbereich ist **keine** direkte Umbenennung von § 4 LBVO lit. a)–e). Die eigentliche, wortgetreue Zuordnung zu den LBVO-Buchstaben leistet das separate Feld „LBV-Tags (a–e)“ weiter unten. Der Beobachtungsbereich ist eine eigenständige, ergänzende didaktische Kategorisierung.
+
+Bestandsdaten (Alteinträge):
+
+- Einträge, die vor dieser Umstellung mit einer Kombination erfasst wurden, die dem neuen Zwei-Achsen-Modell nicht mehr entspricht (z. B. zwei Bereiche aus Achse 1), zeigen beim Bearbeiten weiterhin die bisherige freie Mehrfachauswahl unverändert an und werden beim Speichern nicht automatisch angepasst. Über einen Link im Bearbeitungsformular kann optional aktiv auf das neue Modell umgestellt werden.
 
 ### Kriterien (fachspezifisch / LBV-orientiert)
 

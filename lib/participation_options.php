@@ -57,7 +57,7 @@ function participation_option_teacher_context_exists(PDO $pdo, int $teacher_id, 
 }
 
 function participation_option_exact_rows(PDO $pdo, string $type, string $scope, ?int $teacher_id, ?int $subject_id): array {
-  $sql = "SELECT id,opt_type,scope,subject_id,teacher_id,label,pedagogical_hint_mode,impact_kind,active,sort,IFNULL(archived,0) AS archived
+  $sql = "SELECT id,opt_type,scope,subject_id,teacher_id,label,pedagogical_hint_mode,impact_kind,observation_axis,active,sort,IFNULL(archived,0) AS archived
           FROM participation_options
           WHERE opt_type=? AND scope=?";
   $params = [$type, $scope];
@@ -202,8 +202,8 @@ function materialize_teacher_participation_options(PDO $pdo, int $teacher_id, in
   }
 
   $insert = $pdo->prepare("INSERT INTO participation_options
-    (opt_type,scope,teacher_id,subject_id,label,pedagogical_hint_mode,impact_kind,sort,active,archived,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+    (opt_type,scope,teacher_id,subject_id,label,pedagogical_hint_mode,impact_kind,observation_axis,sort,active,archived,created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
   $now = now_iso();
   $created = 0;
 
@@ -215,6 +215,12 @@ function materialize_teacher_participation_options(PDO $pdo, int $teacher_id, in
       continue;
     }
 
+    // observation_axis wird mitkopiert, damit eine pro Lehrkraft/Fach
+    // materialisierte Kopie einer observation_group-Option (z. B. beim
+    // Umbenennen einer eigenen Liste) nicht dauerhaft auf die
+    // Label-basierte Achsen-Erkennung angewiesen bleibt. Für alle anderen
+    // Options-Typen ist der Wert ohnehin immer NULL.
+    $sourceAxis = $row['observation_axis'] ?? null;
     $insert->execute([
       $type,
       'teacher',
@@ -223,6 +229,7 @@ function materialize_teacher_participation_options(PDO $pdo, int $teacher_id, in
       (string)$row['label'],
       (string)($row['pedagogical_hint_mode'] ?? ''),
       (string)($row['impact_kind'] ?? ''),
+      $sourceAxis !== null ? (int)$sourceAxis : null,
       (int)($row['sort'] ?? 0),
       (int)($row['active'] ?? 1),
       (int)($row['archived'] ?? 0),
@@ -268,6 +275,7 @@ function load_participation_options(PDO $pdo, int $teacher_id, int $subject_id, 
       'label' => (string)$row['label'],
       'pedagogical_hint_mode' => (string)($row['pedagogical_hint_mode'] ?? ''),
       'impact_kind' => (string)($row['impact_kind'] ?? ''),
+      'observation_axis' => isset($row['observation_axis']) && $row['observation_axis'] !== null ? (int)$row['observation_axis'] : 0,
     ];
   }, $rows);
 }

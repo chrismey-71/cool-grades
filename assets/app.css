@@ -111,6 +111,191 @@
 }
 .multi-item input[type="checkbox"]{margin-top:2px;flex:0 0 auto;width:18px;height:18px}
 .multi-item span{line-height:1.25}
+
+/* Beobachtungsbereich (Achse 1/2): Button-Chips statt sichtbarer
+   Radiobuttons. Die Auswahl bleibt technisch weiterhin ein normales
+   Radio-Element (native "required"-Validierung, Tastaturbedienung,
+   Screenreader-Semantik) - es wird nur per CSS ausgeblendet und das
+   dazugehoerige <label for="..."> als Geschwister-Element sichtbar
+   gestylt, damit :checked + label rein deklarativ funktioniert. */
+.axis-block{
+  padding:12px;border-radius:12px;
+  background:rgba(71,142,79,.05);
+  border:1px solid rgba(71,142,79,.14);
+}
+.axis-block.axis-block-2{
+  background:rgba(102,112,133,.05);
+  border-color:rgba(102,112,133,.16);
+}
+.axis-divider{
+  height:1px;margin:14px 4px;
+  background:linear-gradient(90deg,transparent,var(--border) 12%,var(--border) 88%,transparent);
+}
+.axis-btn-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.axis-btn-item{display:flex}
+.axis-btn-input{
+  position:absolute;opacity:0;width:1px;height:1px;
+  margin:0;pointer-events:none;
+}
+.axis-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:9px 14px;border-radius:10px;border:1px solid var(--border);
+  background:#fff;color:var(--text);font-weight:700;font-size:13.5px;
+  line-height:1.25;cursor:pointer;user-select:none;text-align:center;
+  transition:background-color .12s ease,border-color .12s ease,color .12s ease,box-shadow .12s ease;
+}
+.axis-btn:hover{border-color:var(--blue)}
+.axis-btn-input:focus-visible + .axis-btn{outline:2px solid var(--blue);outline-offset:2px}
+.axis-btn-input:checked + .axis-btn{
+  background:var(--blue);color:#fff;border-color:var(--blue);
+  box-shadow:0 2px 6px rgba(47,111,58,.28);
+}
+.axis-btn.axis-btn-muted{color:var(--muted);font-weight:600}
+.axis-btn-input:checked + .axis-btn.axis-btn-muted{color:#fff}
+
+/* Kriterien-Chips (teacher/participation_new.php "Kriterien"-Kachel):
+   schnelles Antippen statt verschachtelter Kategorie-Akkordeons mit
+   Checkbox-Raster - siehe Feedback vom 2026-10-02. Gleiches
+   Hidden-Input+Label-Muster wie .axis-btn, aber als Pille (rund) statt
+   Rechteck, da hier mehrere gleichzeitig markierbar sind. */
+.criteria-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.criteria-chip-input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.criteria-chip-face{
+  display:inline-flex;align-items:center;
+  padding:7px 13px;border-radius:999px;border:1px solid var(--border);
+  background:#fff;color:var(--text);font-weight:600;font-size:13px;
+  line-height:1.2;cursor:pointer;user-select:none;
+  transition:background-color .12s ease,border-color .12s ease,color .12s ease;
+}
+.criteria-chip-face:hover{border-color:var(--brand-green)}
+.criteria-chip-input:focus-visible + .criteria-chip-face{outline:2px solid var(--blue);outline-offset:2px}
+.criteria-chip-input:checked + .criteria-chip-face{
+  background:var(--brand-green);border-color:var(--brand-green);color:#fff;
+}
+.criteria-chip-count{opacity:.75;font-weight:400;font-size:11.5px;margin-left:2px}
+details.more-criteria{margin-top:10px;border:1px dashed var(--border);border-radius:12px;padding:10px 12px;background:rgba(102,112,133,.04)}
+details.more-criteria summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--muted)}
+
+/* teacher/criteria_profile.php ("Kriterien-Profil"): Schueler:innen-Picker
+   + Balkendiagramm, analog zur Tabelle in teacher/competence_profile.php,
+   aber mit Drilldown je Person statt einer reinen Uebersichtstabelle. */
+.cp-student-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.cp-student-pick{
+  padding:7px 12px;border-radius:10px;border:1px solid var(--border);
+  background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:var(--text);
+}
+.cp-student-pick:hover{border-color:var(--brand-green)}
+.cp-student-pick.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.cp-row-selectable{cursor:pointer}
+.cp-row-selectable:hover{background:rgba(71,142,79,.04)}
+.cp-row-active{background:rgba(71,142,79,.08)}
+.cp-bar-row{display:grid;grid-template-columns:230px 1fr 48px;align-items:center;gap:10px;margin:7px 0}
+.cp-bar-label{font-size:13px;line-height:1.25}
+.cp-bar-label .cat{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:1px}
+.cp-bar-track{background:#eef1ef;border-radius:999px;height:14px;overflow:hidden}
+.cp-bar-fill{background:var(--brand-green);height:100%;border-radius:999px 0 0 999px}
+.cp-bar-count{font-size:12.5px;font-weight:800;color:var(--blue);text-align:right}
+.cp-bar-row.zero .cp-bar-label{color:var(--muted)}
+.cp-bar-row.zero .cp-bar-count{color:var(--muted);font-weight:600}
+@media (max-width:720px){
+  .cp-bar-row{grid-template-columns:1fr;gap:4px}
+  .cp-bar-count{text-align:left}
+}
+
+/* Stufenleiste: Achse 1 (kognitiver Fokus) wird in ihrer natuerlichen,
+   aufsteigenden Reihenfolge als zusammenhaengende Button-Reihe mit leicht
+   ansteigender Stufenhoehe dargestellt - ein dezenter Hinweis auf den
+   steigenden kognitiven Anspruch, ohne eine woertliche Achsen-/
+   Diagrammdarstellung aufzubauen. */
+.axis-btn-row-stepped{gap:0;align-items:flex-end}
+.axis-btn-row-stepped .axis-btn{
+  border-radius:0;border-right-width:0;padding-bottom:8px;
+}
+.axis-btn-row-stepped .axis-btn-item:nth-child(2) .axis-btn{padding-bottom:12px}
+.axis-btn-row-stepped .axis-btn-item:nth-child(3) .axis-btn{padding-bottom:16px}
+.axis-btn-row-stepped .axis-btn-item:nth-child(n+4) .axis-btn{padding-bottom:20px}
+.axis-btn-row-stepped .axis-btn-item:first-child .axis-btn{border-top-left-radius:10px;border-bottom-left-radius:10px}
+.axis-btn-row-stepped .axis-btn-item:last-child .axis-btn{border-top-right-radius:10px;border-bottom-right-radius:10px;border-right-width:1px}
+@media (max-width:640px){
+  .axis-btn-row-stepped{flex-wrap:wrap;align-items:stretch}
+  .axis-btn-row-stepped .axis-btn{
+    border-radius:10px !important;border-right-width:1px !important;padding-bottom:9px !important;
+  }
+  .axis-btn-row-stepped .axis-btn-item{flex:1 1 auto}
+}
+
+/* Kompetenz-Beobachtung: Dashboard-Einstieg (Variante 1 - auffälliger Button
+   mit NEU-Badge in der bestehenden Aktionsleiste der Mitarbeits-Karte) und
+   die Erfassen-Seite (Sitzplan-Ansicht/Schülerliste + Tag-Popover). */
+:root{
+  --cq-methoden:#2F6F8E;
+  --cq-sozial:#8E6F2F;
+  --cq-selbst:#6F2F8E;
+}
+
+.new-marker{position:relative}
+.new-marker::after{
+  content:'NEU';position:absolute;top:-9px;right:-8px;background:var(--brand-green);color:#fff;
+  font-size:9px;font-weight:900;padding:1px 6px;border-radius:999px;z-index:2;line-height:1.4;
+}
+.btn.competence{
+  background:rgba(71,142,79,.09);color:var(--brand-green-dark);border:1px dashed rgba(71,142,79,.55);
+}
+.btn.competence:hover{background:rgba(71,142,79,.16)}
+
+.cq-mode-banner{
+  background:rgba(71,142,79,.08);border:1px solid rgba(71,142,79,.25);color:var(--brand-green-dark);
+  border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;margin:14px 0 18px;
+}
+.cq-hint-line{font-size:13px;margin-bottom:16px;line-height:1.5}
+
+.cq-seat-grid{display:grid;gap:10px}
+.cq-seat-cell{
+  border:1px solid rgba(228,231,236,.9);border-radius:12px;background:#fbfbfd;
+  padding:16px 12px;text-align:center;cursor:pointer;position:relative;min-height:62px;
+  display:flex;align-items:center;justify-content:center;
+}
+.cq-seat-cell.cq-seat-empty{cursor:default}
+.cq-seat-cell .cq-sname{font-weight:700;font-size:13.5px}
+.cq-seat-cell.cq-seat-empty .cq-sname{color:var(--muted);font-weight:400}
+.cq-seat-cell:not(.cq-seat-empty):hover{border-color:var(--blue)}
+.cq-seat-cell.cq-has-note{border-color:rgba(71,142,79,.5);background:rgba(71,142,79,.07)}
+.cq-seat-cell.cq-has-note::after{content:'';position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--brand-green)}
+.cq-seat-cell .cq-tagcount{display:block;font-size:10.5px;color:var(--brand-green-dark);font-weight:700;margin-top:3px}
+
+.cq-roster{display:flex;flex-direction:column;gap:6px}
+.cq-roster-row{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);border-radius:10px;background:#fbfbfd;padding:10px 12px}
+.cq-roster-row.cq-has-note{border-color:rgba(71,142,79,.4);background:rgba(71,142,79,.06)}
+.cq-roster-row .cq-rname{font-weight:700;font-size:14px}
+.cq-roster-row .cq-rmeta{font-size:12px;min-height:16px}
+
+.cq-popover-backdrop{display:none;position:fixed;inset:0;background:rgba(16,24,40,.32);align-items:center;justify-content:center;z-index:50}
+.cq-popover-backdrop.open{display:flex}
+.cq-popover{background:#fff;width:100%;max-width:460px;border-radius:16px;padding:16px 18px 18px;box-shadow:0 -4px 24px rgba(16,24,40,.18);max-height:82vh;overflow-y:auto;margin:16px}
+.cq-popover-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.cq-popover-head strong{font-size:15px}
+.cq-popover-close{border:0;background:none;color:var(--muted);font-size:19px;cursor:pointer;line-height:1}
+.cq-tag-group{margin-bottom:12px}
+.cq-tag-group-label{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin-bottom:7px}
+.cq-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block}
+.cq-dot.cq-cat-methoden{background:var(--cq-methoden)}
+.cq-dot.cq-cat-sozial{background:var(--cq-sozial)}
+.cq-dot.cq-cat-selbst{background:var(--cq-selbst)}
+.cq-tag-group-label.cq-cat-methoden{color:var(--cq-methoden)}
+.cq-tag-group-label.cq-cat-sozial{color:var(--cq-sozial)}
+.cq-tag-group-label.cq-cat-selbst{color:var(--cq-selbst)}
+.cq-chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.cq-chip{padding:6px 11px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer}
+.cq-chip.cq-cat-methoden.selected{background:var(--cq-methoden);border-color:var(--cq-methoden);color:#fff}
+.cq-chip.cq-cat-sozial.selected{background:var(--cq-sozial);border-color:var(--cq-sozial);color:#fff}
+.cq-chip.cq-cat-selbst.selected{background:var(--cq-selbst);border-color:var(--cq-selbst);color:#fff}
+.cq-popover-actions{display:flex;gap:10px;margin-top:14px}
+.cq-popover-actions .btn.main{flex:1}
+
+@media (max-width:640px){
+  .cq-seat-grid{grid-template-columns:repeat(2,1fr) !important}
+}
+
 .student-already-rated{
   opacity:.52;
   background:#f2f4f7;
@@ -1892,6 +2077,13 @@ html[data-entry-contrast="high"] .assessment-weight-summary-action{
   background:#f8fafc;
 }
 .final-legal-hints summary{
+  background:#eef2f7;
+}
+.bloom-hint{
+  border-color:#cfd4dc;
+  background:#f8fafc;
+}
+.bloom-hint summary{
   background:#eef2f7;
 }
 .final-decision-context{

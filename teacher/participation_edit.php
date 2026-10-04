@@ -73,6 +73,9 @@ $reasons=load_participation_options($pdo,(int)$u['id'],$subject_id,'reason');
 $impacts=load_participation_options($pdo,(int)$u['id'],$subject_id,'impact');
 $perfs=load_participation_options($pdo,(int)$u['id'],$subject_id,'performance');
 $groups=load_participation_options($pdo,(int)$u['id'],$subject_id,'observation_group');
+$groupsByAxis=participation_observation_group_split_by_axis($groups);
+$groupsAxis1=$groupsByAxis[1];
+$groupsAxis2=$groupsByAxis[2];
 $socials=load_participation_options($pdo,(int)$u['id'],$subject_id,'social_form');
 $phases=load_participation_options($pdo,(int)$u['id'],$subject_id,'phase');
 $homeworks=load_participation_options($pdo,(int)$u['id'],$subject_id,'homework');
@@ -202,6 +205,15 @@ if(!$selGroups){
     2
   );
 }
+// Manueller Umstieg auf das aktuelle Modell: Ein Eintrag, dessen bisherige
+// Beobachtungsbereich-Auswahl nicht dazu passt (siehe $groupSelectionIsLegacy
+// weiter unten - u.a. jede historische Achse-2-Zuordnung), zeigt
+// standardmäßig weiterhin die alte Mehrfachauswahl unverändert an. Erst über
+// diesen expliziten Link wird die Auswahl (nur für die Anzeige, nicht in der
+// Datenbank) zurückgesetzt, damit das Einfachauswahl-Radio leer angezeigt wird.
+if(isset($_GET['reset_groups']) && $_SERVER['REQUEST_METHOD']!=='POST'){
+  $selGroups=[];
+}
 
 $manual=get_tags($pdo,$id,'manual');
 $auto=get_tags($pdo,$id,'auto');
@@ -265,7 +277,19 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $form_reason_text=trim((string)($_POST['reason_text'] ?? ''));
     $selCriteria=array_map('intval',(array)($_POST['criteria_ids'] ?? []));
     $selPerfs=array_map('intval',(array)($_POST['performance_option_ids'] ?? []));
-    $selGroups=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['group_option_ids'] ?? [])), fn($v)=>$v>0)));
+    // Zwei moegliche Formen: das Achse-1-Radio (group_axis1_id) oder - im
+    // Kompatibilitaetsmodus fuer Alteintraege, die dem aktuellen Modell nicht
+    // entsprechen (siehe $groupSelectionIsLegacy - u.a. alle Eintraege mit
+    // einer historischen Achse-2-Zuordnung, seit Achse 2 entfernt wurde) -
+    // die bisherige freie Mehrfachauswahl (group_option_ids[]). So bleibt
+    // eine unveraendert uebernommene Alt-Auswahl beim Speichern erhalten.
+    $usedLegacyGroupField=isset($_POST['group_option_ids']);
+    if($usedLegacyGroupField){
+      $selGroups=array_values(array_unique(array_filter(array_map('intval',(array)$_POST['group_option_ids']), fn($v)=>$v>0)));
+    } else {
+      $selAxis1Id=(int)($_POST['group_axis1_id'] ?? 0);
+      $selGroups=array_values(array_filter([$selAxis1Id], fn($v)=>$v>0));
+    }
   }
 
   if($action==='delete'){
@@ -334,7 +358,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     elseif(!$reason_id) $err='Bitte Grund wählen.';
     elseif(!$impact_id) $err='Bitte Eindruck/Relevanz wählen.';
     elseif(!$selGroups) $err='Bitte mindestens einen Beobachtungsbereich wählen.';
-    elseif(count($selGroups)>2) $err='Bitte höchstens zwei Beobachtungsbereiche wählen.';
+    elseif($usedLegacyGroupField){
+      // Kompatibilitaetsmodus: bisherige freie Mehrfachauswahl, unveraendert
+      // uebernommen oder manuell innerhalb der alten Regel angepasst.
+      if(count($selGroups)>2) $err='Bitte höchstens zwei Beobachtungsbereiche wählen.';
+    } elseif(!participation_observation_group_selection_conforms($groups,$selGroups)){
+      $err='Bitte genau einen Beobachtungsbereich wählen.';
+    }
 
     if($err===''){
       $reason_label = $optLabel[$reason_id] ?? '';
@@ -606,17 +636,39 @@ render_header('Mitarbeit bearbeiten',$u);
     <input class="input" name="reason_text" value="<?php echo h($form_reason_text); ?>" placeholder="z.B. Falllösung sauber erklärt.">
 
     <div style="height:12px"></div>
+    <?php $groupSelectionIsLegacy = $selGroups!==[] && !participation_observation_group_selection_conforms($groups,$selGroups); ?>
     <fieldset class="multi-field">
       <legend>Beobachtungsbereich</legend>
-      <div class="multi-grid">
-        <?php foreach($groups as $o): $oid=(int)$o['id']; ?>
-          <label class="multi-item">
-            <input class="groupCb" type="checkbox" name="group_option_ids[]" value="<?php echo $oid; ?>" <?php echo in_array($oid,$selGroups,true)?'checked':''; ?>>
-            <span><?php echo h(_participation_edit_option_display_label($o)); ?></span>
-          </label>
-        <?php endforeach; ?>
-      </div>
-      <div class="small muted" style="margin-top:6px">Ein Hauptbereich genügt meistens. Ein zweiter Bereich ist nur als Ergänzung gedacht.</div>
+      <?php if($groupSelectionIsLegacy): ?>
+        <div class="flash info" style="margin-bottom:8px">
+          Dieser Eintrag enthält eine Auswahl aus der Zeit vor der aktuellen Einfachauswahl - z.&nbsp;B. eine Kombination aus zwei Bereichen (frühere Achse 2 "Arbeitsweise/Genauigkeit" bzw. "Kooperation/Selbstständigkeit", die inzwischen durch die eigenständige "Kompetenz-Beobachtung" abgelöst und entfernt wurde) oder zwei Bereiche aus demselben Fokus. Die bisherige Auswahl bleibt unverändert erhalten, solange Sie sie hier nicht ändern.
+          <div style="margin-top:6px">
+            <a class="btn small secondary" href="<?php echo h($bp); ?>/teacher/participation_edit.php?id=<?php echo (int)$id; ?>&amp;reset_groups=1">Auf aktuelles Modell umstellen (Auswahl wird zurückgesetzt)</a>
+          </div>
+        </div>
+        <div class="multi-grid">
+          <?php foreach($groups as $o): $oid=(int)$o['id']; ?>
+            <label class="multi-item">
+              <input class="groupCb" type="checkbox" name="group_option_ids[]" value="<?php echo $oid; ?>" <?php echo in_array($oid,$selGroups,true)?'checked':''; ?>>
+              <span><?php echo h(_participation_edit_option_display_label($o)); ?></span>
+            </label>
+          <?php endforeach; ?>
+        </div>
+        <div class="small muted" style="margin-top:6px">Bisherige freie Mehrfachauswahl (höchstens 2 insgesamt).</div>
+      <?php else: ?>
+        <div class="axis-block axis-block-1">
+          <div class="small muted" style="margin-bottom:8px">Kognitiver Fokus – bitte genau einen wählen:</div>
+          <div class="axis-btn-row axis-btn-row-stepped">
+            <?php foreach($groupsAxis1 as $o): $oid=(int)$o['id']; $inputId='obs_axis1_'.$oid; ?>
+              <div class="axis-btn-item">
+                <input class="groupAxisRadio axis-btn-input" type="radio" id="<?php echo h($inputId); ?>" name="group_axis1_id" value="<?php echo $oid; ?>" required <?php echo in_array($oid,$selGroups,true)?'checked':''; ?>>
+                <label class="axis-btn" for="<?php echo h($inputId); ?>"><?php echo h(_participation_edit_option_display_label($o)); ?></label>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <div class="small muted" style="margin-top:10px">Beschreibt den kognitiven Schwerpunkt der Beobachtung (z.B. Verstehen oder Anwenden). Methoden-, Sozial- und Selbstkompetenz-Beobachtungen erfasst du separat über „Kompetenz-Beobachtung“ im Dashboard.</div>
+      <?php endif; ?>
     </fieldset>
 
     <div style="height:12px"></div>
@@ -754,16 +806,22 @@ render_header('Mitarbeit bearbeiten',$u);
       box.innerHTML='Auswahl eher <strong style="color:#2f855a">formativ</strong>; daher <strong style="color:#2f855a">keine negative</strong> Erfassung von Eindruck/Relevanz.';
     }
 
-    if(!boxes.length) return;
-    boxes.forEach(cb=>{
-      cb.addEventListener('change', ()=>{
-        const checked=boxes.filter(box=>box.checked);
-        if(checked.length>2){
-          cb.checked=false;
-          alert('Bitte höchstens zwei Beobachtungsbereiche auswählen.');
-        }
+    // boxes ist nur im Kompatibilitaetsmodus fuer Alteintraege belegt (siehe
+    // $groupSelectionIsLegacy in der Seite); bei der aktuellen Einfachauswahl
+    // gibt es keine .groupCb-Elemente. Die restliche Initialisierung
+    // (Hinweisbox, Stunden-Datum-Abgleich, Formular-Absenden) darf davon
+    // nicht abhaengen.
+    if(boxes.length){
+      boxes.forEach(cb=>{
+        cb.addEventListener('change', ()=>{
+          const checked=boxes.filter(box=>box.checked);
+          if(checked.length>2){
+            cb.checked=false;
+            alert('Bitte höchstens zwei Beobachtungsbereiche auswählen.');
+          }
+        });
       });
-    });
+    }
     if(reason){
       reason.addEventListener('change', updatePedagogicalHint);
     }
@@ -815,14 +873,19 @@ render_header('Mitarbeit bearbeiten',$u);
       form.addEventListener('submit', (ev)=>{
         const submitter=ev.submitter;
         if(submitter && submitter.value==='save_preset') return;
-        const checked=boxes.filter(box=>box.checked);
-        if(checked.length===0){
-          ev.preventDefault();
-          alert('Bitte mindestens einen Beobachtungsbereich auswählen.');
-        } else if(checked.length>2){
-          ev.preventDefault();
-          alert('Bitte höchstens zwei Beobachtungsbereiche auswählen.');
+        if(boxes.length){
+          const checked=boxes.filter(box=>box.checked);
+          if(checked.length===0){
+            ev.preventDefault();
+            alert('Bitte mindestens einen Beobachtungsbereich auswählen.');
+          } else if(checked.length>2){
+            ev.preventDefault();
+            alert('Bitte höchstens zwei Beobachtungsbereiche auswählen.');
+          }
         }
+        // Bei der aktuellen Einfachauswahl (.groupAxisRadio) sorgt das
+        // required-Attribut bereits fuer die native Formularvalidierung -
+        // keine zusaetzliche JS-Pruefung noetig.
       });
     }
   })();

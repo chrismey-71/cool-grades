@@ -16,6 +16,95 @@ function load_participation_criteria(PDO $pdo, int $teacher_id, int $subject_id)
   return $st->fetchAll();
 }
 
+/**
+ * Gesamt-Nutzungszahl je Kriterium fuer diese Lehrkraft/dieses Fach (ueber
+ * alle Schueler:innen hinweg). Bestimmt in teacher/participation_new.php,
+ * welche Kriterien als Schnell-Chips direkt sichtbar sind (die meist-
+ * genutzten) und welche hinter "+ weitere Kriterien" stehen.
+ * Rueckgabe: [criteria_id => count]
+ */
+function participation_criteria_usage_counts(PDO $pdo, int $teacher_id, int $subject_id): array {
+  $st=$pdo->prepare("SELECT pec.criteria_id, COUNT(*) AS c
+                     FROM participation_event_criteria pec
+                     JOIN participation_events pe ON pe.id=pec.event_id
+                     WHERE pe.teacher_id=? AND pe.subject_id=?
+                     GROUP BY pec.criteria_id");
+  $st->execute([$teacher_id,$subject_id]);
+  $result=[];
+  foreach($st->fetchAll() as $row){ $result[(int)$row['criteria_id']]=(int)$row['c']; }
+  return $result;
+}
+
+/**
+ * Je Kriterium, wie oft es bei einer bestimmten Schueler:in (dieselbe
+ * Lehrkraft/Klasse/Fach) bereits verwendet wurde. Grundlage fuer die
+ * dynamische Chip-Anzahl in teacher/participation_new.php, wenn genau eine
+ * Person ausgewaehlt ist ("schon 3x bei ... notiert" statt einer
+ * irrefuehrenden Gesamtzahl ueber alle Schueler:innen - siehe Feedback vom
+ * 2026-10-02). Rueckgabe: [student_id => [criteria_id => count]]
+ */
+function participation_criteria_counts_by_student(PDO $pdo, int $teacher_id, int $class_id, int $subject_id, array $student_ids): array {
+  if(!$student_ids) return [];
+  $in=implode(',',array_fill(0,count($student_ids),'?'));
+  $st=$pdo->prepare("SELECT pe.student_id, pec.criteria_id, COUNT(*) AS c
+                     FROM participation_event_criteria pec
+                     JOIN participation_events pe ON pe.id=pec.event_id
+                     WHERE pe.teacher_id=? AND pe.class_id=? AND pe.subject_id=? AND pe.student_id IN ($in)
+                     GROUP BY pe.student_id, pec.criteria_id");
+  $st->execute(array_merge([$teacher_id,$class_id,$subject_id],array_map('intval',$student_ids)));
+  $result=[];
+  foreach($st->fetchAll() as $row){
+    $sid=(int)$row['student_id'];
+    if(!isset($result[$sid])) $result[$sid]=[];
+    $result[$sid][(int)$row['criteria_id']]=(int)$row['c'];
+  }
+  return $result;
+}
+
+/**
+ * Aggregierte Kriterien-Nutzung je Schueler:in einer Klasse/eines Fachs in
+ * einem Zeitraum - Grundlage fuer teacher/criteria_profile.php
+ * ("Kriterien-Profil", analog zu teacher/competence_profile.php). Nur
+ * Schueler:innen mit mindestens einem Kriterien-Eintrag im Zeitraum werden
+ * zurueckgegeben. 'total_entries' zaehlt die Mitarbeit-Eintraege (nicht die
+ * Kriterien-Nennungen) mit mindestens einem erfassten Kriterium - ein
+ * einzelner Eintrag kann mehrere Kriterien zugleich tragen.
+ * Rueckgabe: [student_id => ['total_entries'=>int, 'by_criteria'=>[criteria_id=>count]]]
+ */
+function criteria_profile_aggregate(PDO $pdo, int $class_id, int $subject_id, string $date_from, string $date_to, int $teacher_id=0): array {
+  $sql="SELECT pe.student_id, pec.criteria_id, COUNT(*) AS c
+        FROM participation_event_criteria pec
+        JOIN participation_events pe ON pe.id=pec.event_id
+        WHERE pe.class_id=? AND pe.subject_id=? AND pe.event_date BETWEEN ? AND ?";
+  $params=[$class_id,$subject_id,$date_from,$date_to];
+  if($teacher_id>0){ $sql.=" AND pe.teacher_id=?"; $params[]=$teacher_id; }
+  $sql.=" GROUP BY pe.student_id, pec.criteria_id";
+  $st=$pdo->prepare($sql);
+  $st->execute($params);
+  $result=[];
+  foreach($st->fetchAll() as $row){
+    $sid=(int)$row['student_id'];
+    if(!isset($result[$sid])) $result[$sid]=['total_entries'=>0,'by_criteria'=>[]];
+    $result[$sid]['by_criteria'][(int)$row['criteria_id']]=(int)$row['c'];
+  }
+
+  $sql2="SELECT pe.student_id, COUNT(DISTINCT pe.id) AS c
+        FROM participation_events pe
+        JOIN participation_event_criteria pec ON pec.event_id=pe.id
+        WHERE pe.class_id=? AND pe.subject_id=? AND pe.event_date BETWEEN ? AND ?";
+  $params2=[$class_id,$subject_id,$date_from,$date_to];
+  if($teacher_id>0){ $sql2.=" AND pe.teacher_id=?"; $params2[]=$teacher_id; }
+  $sql2.=" GROUP BY pe.student_id";
+  $st2=$pdo->prepare($sql2);
+  $st2->execute($params2);
+  foreach($st2->fetchAll() as $row){
+    $sid=(int)$row['student_id'];
+    if(!isset($result[$sid])) $result[$sid]=['total_entries'=>0,'by_criteria'=>[]];
+    $result[$sid]['total_entries']=(int)$row['c'];
+  }
+  return $result;
+}
+
 function load_participation_presets(PDO $pdo, int $teacher_id, int $subject_id=0): array {
   $sql="SELECT p.id, p.teacher_id, p.class_id, p.subject_id, p.name, p.payload_json, p.created_at, p.updated_at,
                c.name AS class_name, s.code AS subject_code, s.name AS subject_name
