@@ -509,6 +509,62 @@ CREATE TABLE IF NOT EXISTS teacher_seating_plan_seats (
   FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Kompetenz-Beobachtung: schlankes, von der Mitarbeitserfassung getrenntes
+-- Schnellnotiz-Werkzeug fuer Methoden-/Sozial-/Selbst-Personalkompetenz.
+-- Siehe migrations/2026-10-01_competence_observations.sql.
+CREATE TABLE IF NOT EXISTS competence_tags (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  category VARCHAR(16) NOT NULL,
+  label VARCHAR(120) NOT NULL,
+  sort INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  archived TINYINT(1) NOT NULL DEFAULT 0,
+  UNIQUE KEY uniq_competence_tag (category, label)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS competence_observations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  teacher_id INT NOT NULL,
+  student_id INT NOT NULL,
+  class_id INT NOT NULL,
+  subject_id INT NOT NULL,
+  observation_date DATE NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  UNIQUE KEY uniq_competence_observation (teacher_id, student_id, class_id, subject_id, observation_date),
+  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+  INDEX idx_competence_obs_lookup (class_id, subject_id, observation_date),
+  INDEX idx_competence_obs_student (student_id, observation_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS competence_observation_tags (
+  observation_id INT NOT NULL,
+  tag_id INT NOT NULL,
+  PRIMARY KEY (observation_id, tag_id),
+  FOREIGN KEY (observation_id) REFERENCES competence_observations(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES competence_tags(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO competence_tags (category,label,sort,active) VALUES
+('methoden','Strukturiertes Vorgehen',10,1),
+('methoden','Vorgehen/Ablauf erklärt',20,1),
+('methoden','Eigenständige Zeitplanung',30,1),
+('methoden','Informationen zielgerichtet beschafft',40,1),
+('methoden','Lösungsweg nachvollziehbar dokumentiert',50,1),
+('sozial','Mitschüler:in unterstützt',10,1),
+('sozial','Verantwortung übernommen',20,1),
+('sozial','Konstruktiv im Team mitgearbeitet',30,1),
+('sozial','Auf andere eingegangen / zugehört',40,1),
+('sozial','Konflikt sachlich gelöst',50,1),
+('selbst','Erstmals vor der Klasse gesprochen',10,1),
+('selbst','Eigeninitiative gezeigt',20,1),
+('selbst','Mit Rückschlag konstruktiv umgegangen',30,1),
+('selbst','Eigene Fehler erkannt und korrigiert',40,1),
+('selbst','Über sich hinausgewachsen',50,1);
+
 CREATE TABLE IF NOT EXISTS final_assessments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   class_id INT NOT NULL,

@@ -10,7 +10,7 @@ render_header('Verwaltung', $u);
   <div class="col-12">
     <div class="card">
       <h1>Verwaltung</h1>
-      <p class="muted">Hier pflegst du die zentralen Kriterien, Kriterien-Vorschläge und Picklisten für die Anwendung.</p>
+      <p class="muted">Hier pflegst du die zentralen Kriterien, Kriterien-Vorschläge, Picklisten und Kompetenz-Tags für die Anwendung.</p>
 
       <div class="grid" style="margin-top:14px">
         <div class="col-12 col-md-4">
@@ -37,6 +37,15 @@ render_header('Verwaltung', $u);
             <div class="muted" style="font-size:13px">Globale und fachbezogene Bezeichnungen für Mitarbeit und Leistungsfeststellungen pflegen.</div>
             <div style="height:10px"></div>
             <a class="btn secondary" href="<?php echo h($bp); ?>/admin/options.php">Picklisten verwalten</a>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card" style="padding:14px">
+            <h2 style="margin:0 0 8px 0">Kompetenz-Tags</h2>
+            <div class="muted" style="font-size:13px">Tag-Liste je Kompetenzkategorie (Methoden-, Sozial-, Selbst-/Personalkompetenz) für die Kompetenz-Beobachtung pflegen.</div>
+            <div style="height:10px"></div>
+            <a class="btn secondary" href="<?php echo h($bp); ?>/admin/competence_tags.php">Kompetenz-Tags verwalten</a>
           </div>
         </div>
       </div>

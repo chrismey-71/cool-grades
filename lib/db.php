@@ -1427,6 +1427,107 @@ function _ensure_schema(PDO $pdo): void {
     app_log('error','_ensure_schema: could not add webuntis_auto_import_enabled',['message'=>$e->getMessage()]);
   }
 
+  try{
+    // Kompetenz-Beobachtung: schlankes, von der Mitarbeitserfassung getrenntes
+    // Schnellnotiz-Werkzeug fuer Methoden-/Sozial-/Selbst-Personalkompetenz
+    // (siehe migrations/2026-10-01_competence_observations.sql). Feste,
+    // global gepflegte Tag-Taxonomie - bewusst ohne die Lehrkraft-/Fach-
+    // Override-Logik von participation_options, da hier keine individuelle
+    // Anpassung pro Lehrkraft vorgesehen ist.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS competence_tags (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      category VARCHAR(16) NOT NULL,
+      label VARCHAR(120) NOT NULL,
+      sort INT NOT NULL DEFAULT 0,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      UNIQUE KEY uniq_competence_tag (category, label)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+  }catch(Exception $e){
+    app_log('error','_ensure_schema: could not create competence_tags',['message'=>$e->getMessage()]);
+  }
+
+  try{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS competence_observations (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      teacher_id INT NOT NULL,
+      student_id INT NOT NULL,
+      class_id INT NOT NULL,
+      subject_id INT NOT NULL,
+      observation_date DATE NOT NULL,
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME NOT NULL,
+      UNIQUE KEY uniq_competence_observation (teacher_id, student_id, class_id, subject_id, observation_date),
+      FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+      FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+      FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+      INDEX idx_competence_obs_lookup (class_id, subject_id, observation_date),
+      INDEX idx_competence_obs_student (student_id, observation_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+  }catch(Exception $e){
+    app_log('error','_ensure_schema: could not create competence_observations',['message'=>$e->getMessage()]);
+  }
+
+  try{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS competence_observation_tags (
+      observation_id INT NOT NULL,
+      tag_id INT NOT NULL,
+      PRIMARY KEY (observation_id, tag_id),
+      FOREIGN KEY (observation_id) REFERENCES competence_observations(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES competence_tags(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+  }catch(Exception $e){
+    app_log('error','_ensure_schema: could not create competence_observation_tags',['message'=>$e->getMessage()]);
+  }
+
+  try{
+    // Seed idempotent je Zeile nachziehen (nicht nur bei leerer Tabelle),
+    // damit auch ein Upgrade von einem Zwischenstand aus fehlende Tags
+    // automatisch ergaenzt, ohne vom Administrator deaktivierte/umbenannte
+    // Tags anzutasten.
+    $competenceTagSeed=[
+      ['methoden','Strukturiertes Vorgehen',10],
+      ['methoden','Vorgehen/Ablauf erklärt',20],
+      ['methoden','Eigenständige Zeitplanung',30],
+      ['methoden','Informationen zielgerichtet beschafft',40],
+      ['methoden','Lösungsweg nachvollziehbar dokumentiert',50],
+      ['sozial','Mitschüler:in unterstützt',10],
+      ['sozial','Verantwortung übernommen',20],
+      ['sozial','Konstruktiv im Team mitgearbeitet',30],
+      ['sozial','Auf andere eingegangen / zugehört',40],
+      ['sozial','Konflikt sachlich gelöst',50],
+      ['selbst','Erstmals vor der Klasse gesprochen',10],
+      ['selbst','Eigeninitiative gezeigt',20],
+      ['selbst','Mit Rückschlag konstruktiv umgegangen',30],
+      ['selbst','Eigene Fehler erkannt und korrigiert',40],
+      ['selbst','Über sich hinausgewachsen',50],
+    ];
+    $checkSt=$pdo->prepare("SELECT 1 FROM competence_tags WHERE category=? AND label=?");
+    $insSt=$pdo->prepare("INSERT INTO competence_tags (category,label,sort,active) VALUES (?,?,?,1)");
+    foreach($competenceTagSeed as [$cat,$label,$sort]){
+      $checkSt->execute([$cat,$label]);
+      if(!$checkSt->fetch()){
+        $insSt->execute([$cat,$label,$sort]);
+      }
+    }
+  }catch(Exception $e){
+    app_log('error','_ensure_schema: could not seed competence_tags',['message'=>$e->getMessage()]);
+  }
+
+  try{
+    // Admin-Verwaltungsseite (admin/competence_tags.php): ein bereits in
+    // competence_observation_tags verwendeter Tag darf nicht hart geloescht
+    // werden (wuerde historische Beobachtungen per ON DELETE CASCADE
+    // mitloeschen) - daher analog zu participation_options.archived ein
+    // eigenes Archiv-Flag statt eines harten Deletes.
+    $st=$pdo->query("SHOW COLUMNS FROM competence_tags LIKE 'archived'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE competence_tags ADD COLUMN archived TINYINT(1) NOT NULL DEFAULT 0 AFTER active");
+    }
+  }catch(Exception $e){
+    app_log('error','_ensure_schema: could not add competence_tags.archived',['message'=>$e->getMessage()]);
+  }
+
 }
 
 function db(): PDO {

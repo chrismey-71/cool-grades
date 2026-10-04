@@ -69,6 +69,14 @@ function _event_type_de(string $type): string {
     'admin_option_updated' => 'Picklisten-Option (Admin) geändert',
     'admin_options_reordered' => 'Picklisten-Reihenfolge (Admin) geändert',
 
+    'admin_competence_tag_created' => 'Kompetenz-Tag (Admin) erstellt',
+    'admin_competence_tag_updated' => 'Kompetenz-Tag (Admin) geändert',
+    'admin_competence_tag_toggled' => 'Kompetenz-Tag (Admin) aktiviert/deaktiviert',
+    'admin_competence_tag_archived' => 'Kompetenz-Tag (Admin) archiviert',
+    'admin_competence_tag_deleted' => 'Kompetenz-Tag (Admin) gelöscht',
+    'admin_competence_tag_restored' => 'Kompetenz-Tag (Admin) wiederhergestellt',
+    'admin_competence_tags_reordered' => 'Kompetenz-Tag-Reihenfolge (Admin) geändert',
+
     'admin_suggestions_imported' => 'Vorschlagskatalog importiert',
     'admin_database_backup_downloaded' => 'Datenbanksicherung heruntergeladen',
     'teacher_backup_downloaded' => 'Lehrkraft-Datensicherung heruntergeladen',

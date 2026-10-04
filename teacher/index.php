@@ -253,6 +253,7 @@ render_header('Dashboard',$u);
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/lesson.php">Stundenerfassung (Schnell + Detail)</a>
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/participation_list.php">Einträge bearbeiten</a>
               <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/student_groups.php">Gruppen verwalten</a>
+              <a class="btn competence new-marker" href="<?php echo h($bp); ?>/teacher/competence_quick.php">Kompetenz-Beobachtung</a>
             </div>
           </div>
 
