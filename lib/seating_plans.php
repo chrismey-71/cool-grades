@@ -189,3 +189,52 @@ function unassign_seating_plan_seat(PDO $pdo, int $planId, int $col, int $row): 
   $pdo->prepare("DELETE FROM teacher_seating_plan_seats WHERE plan_id=? AND seat_col=? AND seat_row=?")->execute([$planId, $col, $row]);
   $pdo->prepare("UPDATE teacher_seating_plans SET updated_at=? WHERE id=?")->execute([now_iso(), $planId]);
 }
+
+/**
+ * Sitzplaene derselben Klasse in ANDEREN Faechern dieser Lehrkraft, inkl.
+ * aller Platzzuweisungen - Grundlage fuer den "Sitzplan aus Fach X
+ * uebernehmen"-Vorschlag beim Anlegen eines neuen Sitzplans: eine Klasse
+ * sitzt in den meisten Faellen unabhaengig vom Fach im selben Raum, daher
+ * muss die Anordnung nicht jedes Mal neu eingetippt werden (Feedback vom
+ * 2026-10-04).
+ */
+function load_teacher_seating_plans_for_class_other_subjects(PDO $pdo, int $teacherId, int $classId, int $excludeSubjectId): array {
+  $st = $pdo->prepare("SELECT sp.id, sp.teacher_id, sp.class_id, sp.subject_id, sp.name, sp.layout_type, sp.columns, sp.grid_rows AS `rows`, sp.created_at, sp.updated_at,
+                              sub.code AS subject_code, sub.name AS subject_name
+                       FROM teacher_seating_plans sp
+                       JOIN subjects sub ON sub.id=sp.subject_id
+                       WHERE sp.teacher_id=? AND sp.class_id=? AND sp.subject_id<>?
+                       ORDER BY sp.updated_at DESC, sp.name, sp.id");
+  $st->execute([$teacherId, $classId, $excludeSubjectId]);
+  $plans = $st->fetchAll();
+  foreach($plans as &$plan){
+    $plan['id'] = (int)$plan['id'];
+    $plan['subject_id'] = (int)$plan['subject_id'];
+    $plan['columns'] = (int)$plan['columns'];
+    $plan['rows'] = (int)$plan['rows'];
+    [$seatsByPosition, $seatsByStudent] = seating_plan_load_seats($pdo, $plan['id']);
+    $plan['seats_by_position'] = $seatsByPosition;
+    $plan['seats_by_student'] = $seatsByStudent;
+  }
+  unset($plan);
+  return $plans;
+}
+
+/**
+ * Liefert einen in diesem Fach noch unbenutzten Sitzplan-Namen - haengt bei
+ * einer Namenskollision "(2)", "(3)", ... an. Wird beim Uebernehmen eines
+ * Sitzplans aus einem anderen Fach gebraucht, falls dort zufaellig schon
+ * ein gleichnamiger Sitzplan existiert (z.B. beide heissen "Standard").
+ */
+function seating_plan_unique_name(PDO $pdo, int $teacherId, int $classId, int $subjectId, string $baseName): string {
+  $name = seating_plan_name($baseName);
+  $candidate = $name;
+  $suffix = 2;
+  while(true){
+    $st = $pdo->prepare("SELECT id FROM teacher_seating_plans WHERE teacher_id=? AND class_id=? AND subject_id=? AND name=? LIMIT 1");
+    $st->execute([$teacherId, $classId, $subjectId, $candidate]);
+    if(!$st->fetch()) return $candidate;
+    $candidate = $name.' ('.$suffix.')';
+    $suffix++;
+  }
+}

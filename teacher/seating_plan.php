@@ -68,6 +68,31 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       seating_plan_redirect($bp,$class_id,$subject_id,0,'Sitzplan gelöscht.');
     }
 
+    if($action==='copy_plan'){
+      $sourcePlanId=(int)($_POST['source_plan_id'] ?? 0);
+      $source=load_teacher_seating_plan_by_id($pdo,(int)$u['id'],$sourcePlanId);
+      if(!$source) throw new RuntimeException('Quell-Sitzplan nicht gefunden.');
+      if((int)$source['class_id']!==$class_id) throw new RuntimeException('Der gewählte Sitzplan gehört zu einer anderen Klasse.');
+
+      $validStudentIds=array_map('intval', array_column(load_class_students($pdo,$class_id,false), 'id'));
+
+      $targetName=seating_plan_unique_name($pdo,(int)$u['id'],$class_id,$subject_id,(string)$source['name']);
+      $result=save_seating_plan($pdo,(int)$u['id'],$class_id,$subject_id,$targetName,(int)$source['columns'],(int)$source['rows'],0);
+      $newPlanId=(int)$result['plan_id'];
+      $copiedSeatCount=0;
+      foreach($source['seats_by_position'] as $seat){
+        if(!in_array((int)$seat['student_id'],$validStudentIds,true)) continue;
+        assign_seating_plan_seat($pdo,$newPlanId,(int)$seat['student_id'],(int)$seat['col'],(int)$seat['row']);
+        $copiedSeatCount++;
+      }
+      emit_event('teacher_seating_plan_copied',[
+        'plan_id'=>$newPlanId,'source_plan_id'=>$sourcePlanId,'class_id'=>$class_id,'subject_id'=>$subject_id,
+        'source_subject_id'=>(int)$source['subject_id'],'name'=>$targetName,'columns'=>(int)$source['columns'],'rows'=>(int)$source['rows'],
+        'seat_count'=>$copiedSeatCount,
+      ]);
+      seating_plan_redirect($bp,$class_id,$subject_id,$newPlanId,'Sitzplan „'.$targetName.'“ übernommen ('.$copiedSeatCount.' Platzzuweisung(en)).');
+    }
+
     if($action==='assign_seat' || $action==='unassign_seat'){
       $isAjax=!empty($_POST['ajax']);
       $plan=load_teacher_seating_plan_by_id($pdo,(int)$u['id'],$plan_id);
@@ -159,6 +184,13 @@ foreach($students as $studentRow){
   if(!isset($seatsByStudent[(int)$studentRow['id']])) $unplacedStudents[]=$studentRow;
 }
 
+// Sitzplaene derselben Klasse aus anderen Faechern - nur fuer den
+// Uebernahme-Vorschlag gebraucht, daher nur abfragen, wenn gerade ein
+// neuer Sitzplan angelegt wird (kein bestehender in Bearbeitung).
+$otherSubjectPlans = $isNewPlan
+  ? load_teacher_seating_plans_for_class_other_subjects($pdo,(int)$u['id'],$class_id,$subject_id)
+  : [];
+
 render_header('Sitzplan',$u);
 ?>
 <div class="grid"><div class="col-12"><div class="card">
@@ -168,6 +200,25 @@ render_header('Sitzplan',$u);
 
   <?php if($msg): ?><div class="flash success" style="margin-top:10px"><?php echo h($msg); ?></div><?php endif; ?>
   <?php if($err): ?><div class="flash error" style="margin-top:10px"><?php echo h($err); ?></div><?php endif; ?>
+
+  <?php if($otherSubjectPlans): ?>
+    <div class="flash info" style="margin-top:10px">
+      <div style="font-weight:700;margin-bottom:6px">Sitzplan aus einem anderen Fach übernehmen?</div>
+      <div class="muted" style="margin-bottom:10px">Diese Klasse sitzt meistens im selben Raum - übernimm statt neu einzutippen eine bereits angelegte Anordnung (Name, Größe und Platzzuweisungen werden kopiert, der Ursprungs-Sitzplan bleibt unverändert):</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <?php foreach($otherSubjectPlans as $op): ?>
+          <form method="post" style="margin:0">
+            <?php echo csrf_input(); ?>
+            <input type="hidden" name="action" value="copy_plan">
+            <input type="hidden" name="class_id" value="<?php echo (int)$class_id; ?>">
+            <input type="hidden" name="subject_id" value="<?php echo (int)$subject_id; ?>">
+            <input type="hidden" name="source_plan_id" value="<?php echo (int)$op['id']; ?>">
+            <button type="submit" class="btn small secondary">„<?php echo h($op['name']); ?>“ aus <?php echo h($op['subject_code']); ?> übernehmen (<?php echo (int)$op['columns']; ?>×<?php echo (int)$op['rows']; ?>, <?php echo count($op['seats_by_position']); ?> Plätze belegt)</button>
+          </form>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <?php if($plans): ?>
     <div style="height:14px"></div>
