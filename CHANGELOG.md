@@ -8,14 +8,30 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ### Geplant
 
-- formative Lernrückmeldungen als eigener Workflow neben bewertungsrelevanter Mitarbeit
-- Trennung zwischen reinen Lernhinweisen und Einträgen, die in Notenvorschläge einfließen
-- Lernziele, Erfolgskriterien, beobachteter Lernstand und nächste Lernschritte pro Rückmeldung
-- separate Darstellung formativer Lernrückmeldungen in Webauswertung und PDF-Berichten
-- optionale Selbst- und Peer-Feedback-Funktionen
-- stärkere Unterstützung von Lernentwicklung, Feedbackkultur und pädagogischer Reflexion
-- Sitzplan: weitere Tischanordnungen (z. B. Gruppentische/Inseln) neben der klassischen Reihen-/Spalten-Anordnung
+- Formative Lernrückmeldung (#4): Kennzeichnung der Bewertungsrelevanz je Eintrag, eigener Erfassungsweg mit Lernziel, Erfolgskriterium, Lernstand und nächstem Lernschritt sowie getrennte Darstellung in Webauswertung und PDF-Berichten
+- Lernentwicklungs- und Reflexionsansicht (#10), aufbauend auf #4
+- Beteiligung der Schüler:innen (#8): Konzept für Zugang, Datenschutz, Selbst- und Peer-Feedback
 - weitere Fehlerkorrekturen, Sicherheits- und Dokumentationspflege nach Bedarf
+
+## [1.81.6] - 2026-10-07
+
+### Hinzugefügt
+
+- Sitzplan-Editor (`teacher/seating_plan.php`, `lib/seating_plans.php`, `assets/seating_layout.js`, `assets/seating.css`): Neben dem bisherigen Raster aus Spalten × Reihen lassen sich Sitzpläne jetzt frei anordnen. Tische (Einzel-, Zweier-, Dreiertisch, Inseln mit 3–8 Plätzen, Konferenztische, Einzelstühle), Lehrertisch und Tafel werden per Ziehen verschoben und in 15°-Schritten gedreht; die Plätze bleiben dabei immer waagrecht lesbar, eine Lehnen-Markierung zeigt die Blickrichtung. Elf Vorlagen erzeugen die Anordnung aus der Schülerzahl der Klasse: Reihen und Fischgräte (Tischspalten, Reihen und Plätze je Tisch wählbar), EDV-Raum, U-Form (Tische hinten wählbar), Doppel-U, Konferenz und Bankett (Anzahl der Blöcke wählbar), Sitzkreis, Fishbowl, Lerninseln (Plätze je Insel wählbar) und kleine Hufeisen; „Leer“ startet ohne Tische. Beim Wechsel der Vorlage bleibt die Reihenfolge der Platzbelegung erhalten. Die Belegung funktioniert wie bisher (Name antippen, Platz antippen, belegte Plätze tauschen), zusätzlich gibt es „Freie Plätze alphabetisch belegen“. Standardmäßig wird der Plan aus Sicht des Lehrertischs gezeigt (Tafel unten), umschaltbar auf die Sicht von hinten. Hintergrund: Lerninseln, U-Form, Fischgräte und andere Sitzordnungen ließen sich im Raster nicht abbilden, die Zuordnung der Schüler:innen in der Mitarbeitserfassung soll aber zum tatsächlichen Raum passen (Feedback vom 2026-10-07, Vorlagen angelehnt an gängige Sitzordnungen im Klassenzimmer).
+- Konto → Persönliche Einstellungen → Sitzplan (`account.php`): Neue Kategorie mit der Wahl zwischen „Klassisches Design (Spalten × Reihen)“ und „Mit Sitzplan-Editor“ sowie der Auswahl, welche Vorlagen der Editor anbietet (z. B. Sitzkreis ausblenden, wenn er nur ausnahmsweise gebraucht wird). Die Einstellung gilt für neu angelegte Sitzpläne; bestehende Sitzpläne werden immer in der Form bearbeitet, in der sie angelegt wurden. Voreinstellung ist „Klassisches Design“, damit sich für bestehende Nutzer:innen ohne eigenes Zutun nichts ändert.
+- Datenbank (`migrations/2026-10-07_seating_plan_editor.sql`, `schema.sql`, `lib/db.php`): Neue Spalte `teacher_seating_plans.layout_json` für die Tische freier Sitzpläne (`layout_type = 'free'`) sowie `users.pref_seating_design` und `users.pref_seating_templates` für die neue Einstellung. Die Platzbelegung bleibt in `teacher_seating_plan_seats` (`seat_col` = Tischnummer, `seat_row` = Platz am Tisch), sodass die bestehenden eindeutigen Schlüssel ohne Änderung weiter gelten. Die App ergänzt die Spalten beim ersten Aufruf selbst.
+
+### Geändert
+
+- Mitarbeitserfassung (`teacher/participation_new.php`): Freie Sitzpläne erscheinen in der Sitzplan-Ansicht als Grafik aus Sicht des Lehrertischs. Antippen eines Platzes wählt die Person aus wie bisher, ausgewählte Plätze werden grün, in dieser Stunde bereits bewertete orange hervorgehoben. Die Namensliste bleibt umschaltbar; in der Sitzplan-Auswahl steht bei freien Plänen „frei, N Plätze“ statt Spalten × Reihen.
+- Kompetenz-Beobachtung (`teacher/competence_quick.php`): Ist der zuletzt verwendete Sitzplan ein freier Sitzplan, wird er ebenfalls als Grafik gezeigt (Plätze mit Notiz von heute grün umrandet), statt fälschlich als Raster aus Tischzahl × Plätzen.
+- Sitzplan-Übernahme aus einem anderen Fach (`teacher/seating_plan.php`): Kopiert bei freien Sitzplänen die Tische samt Belegung. Ein freier Sitzplan kann nicht versehentlich über das Raster-Formular überschrieben werden (`lib/seating_plans.php`, `save_seating_plan()`), weil das seine Platzbelegung zerstören würde.
+- Roadmap (`ROADMAP.md`): An die zusammengelegten GitHub-Issues angepasst. #4 bündelt jetzt die formative Lernrückmeldung (vorher #4–#7), #8 die Beteiligung der Schüler:innen mit Selbst- und Peer-Feedback (vorher #8 und #9), #10 bleibt als Lernentwicklungsansicht und baut auf #4 auf. Der bereits umgesetzte WebUntis-Import (#2) steht nicht mehr als „nächster Schritt“ in der Roadmap. Hintergrund: Die bisherigen Issues beschrieben teils dasselbe Feature in Einzelschritten oder hingen an derselben, noch offenen Voraussetzung (Zugang für Schüler:innen).
+- Mitarbeitserfassung (`teacher/participation_new.php`): Im Bereich „Schüler:innen auswählen“ wird jetzt automatisch der Sitzplan statt der Namensliste angezeigt, sobald für die Klasse/das Fach ein Sitzplan angelegt ist (vorher musste dafür jedes Mal manuell auf „Sitzplan“ umgeschaltet werden, Standard war immer die Liste). Die Umschalt-Buttons „Liste“/„Sitzplan“ bleiben erhalten, falls doch die Liste gebraucht wird (z. B. zur Volltextsuche). Hintergrund: Bei der Bewertung anhand des Sitzplatzes fällt die Zuordnung der Schüler:innen deutlich leichter als über eine alphabetische Liste.
+
+### Behoben
+
+- Login (`login.php`, `lib/auth.php`): Wenn der Browser komplett geschlossen und wieder geöffnet wurde, während die Login-Seite noch offen war (bzw. der Browser sie beim Neustart aus dem Tab-Speicher wiederherstellt), erschien beim nächsten Anmeldeversuch nur die rohe Fehlermeldung „Ungueltiger CSRF-Token.“ ohne Kontext. Ursache: Das Session-Cookie ist absichtlich ein reines Sitzungscookie (verfällt beim Schließen des Browsers), die wiederhergestellte Seite im Tab enthielt aber noch den alten, zu keiner aktiven Sitzung mehr passenden Token. Login.php erkennt eine aus dem Tab-Speicher wiederhergestellte Seite jetzt selbst (`pageshow`/`persisted`) und lädt sie automatisch neu, bevor es zu einem Absendeversuch kommt; falls das (z. B. ohne JavaScript) doch passiert, führt ein ungültiger CSRF-Token auf der Login-Seite jetzt zu einer automatischen Weiterleitung zurück auf das (frische) Formular mit der verständlichen Meldung „Diese Seite war im Hintergrund geöffnet und hatte veraltete Sicherheitsdaten. Bitte Benutzername und Passwort erneut eingeben.“ statt zur alten Rohtext-Fehlerseite. Die strikte Prüfung `verify_csrf()` (inkl. der harten Fehlerseite) bleibt für alle anderen 44 Formulare der App unverändert.
 
 ## [1.81.5] - 2026-10-04
 
