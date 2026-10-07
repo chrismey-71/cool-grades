@@ -6,6 +6,20 @@ Das Format orientiert sich an "Keep a Changelog". Die Versionsnummern folgen der
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Lehrer:innen-Handbuch (`docs/lehrerhandbuch.md`, `docs/lehrerhandbuch.docx`): Sitzpläne sind jetzt beschrieben. Neu sind die Kontoeinstellung „Sitzplan“ (Kapitel 3), die Sitzplan-Ansicht bei der Auswahl der Schüler:innen in der Mitarbeitserfassung (Kapitel 4) und das neue Kapitel 8.6 „Sitzpläne anlegen und verwalten“ mit klassischem Raster, Sitzplan-Editor, allen Vorlagen und den Arbeitsschritten. Zwei neue Screenshots (`docs/screenshots/lehrerhandbuch/28-sitzplan-editor.png`, `29-sitzplan-mitarbeitserfassung.png`). Hintergrund: Der Sitzplan war seit 1.81.4 in der App, im Handbuch aber noch gar nicht erwähnt. Die Word-Fassung wurde mit `scripts/export-lehrerhandbuch.py` neu erzeugt (Stand 07.10.2026, Version 1.81.6).
+- Handbuch im Browser (`docs/handbuch.html`, `docs/assets/marked.umd.js`): Das Lehrer:innen-Handbuch und die übrigen Dokumente (Demoinstallation, Schuljahreswechsel, Sicherheit & Betrieb) werden auf der Projektseite formatiert angezeigt, mit Inhaltsverzeichnis, Links zu einzelnen Abschnitten und vergrößerbaren Screenshots. Bisher öffnete der Link nur die rohe Markdown-Datei als Text. Die Seite liest die `.md`-Dateien direkt, bleibt also ohne zusätzlichen Arbeitsschritt aktuell; die Markdown-Bibliothek liegt lokal im Repository (MIT-Lizenz), damit beim Lesen keine Daten an fremde Server gehen.
+
+### Geändert
+
+- Projektseite (`docs/index.html`): Kompakter gestaltet. Die Einblicke zeigen Screenshots als gleich große Vorschaubilder in vier Spalten statt bildschirmhoher Bilder in zwei Spalten (Klick vergrößert wie bisher); der Funktionsumfang steht in drei Spalten mit knapperem Abstand. Live-Demo und Zugangsdaten stehen jetzt in einem Block direkt unter der Einleitung, statt dass oben nur ein Link und die Zugangsdaten erst weiter unten erschienen. Der Sitzplan-Editor ist als Funktion und mit Screenshot (`docs/screenshots/lehrerhandbuch/28-sitzplan-editor.png`) aufgenommen. Die Seite ist dadurch etwa 40 % kürzer.
+
+### Behoben
+
+- Handbuch-Export (`scripts/export-lehrerhandbuch.py`): Nummerierte Listen in der Word-Fassung begannen nicht bei 1, sondern zählten über das ganze Dokument weiter (z. B. „30. Einloggen“ in der Kurzanleitung). Jede nummerierte Liste beginnt jetzt wieder bei 1.
+- Handbuch-Export (`scripts/export-lehrerhandbuch.py`): Als Autor der Word-Datei stand „OpenAI Codex“ in den Dokumenteigenschaften. Autor ist jetzt Christian Meysing, als erstellende Anwendung steht „COOL-Grades Handbuch-Export“.
+
 ### Geplant
 
 - Formative Lernrückmeldung (#4): Kennzeichnung der Bewertungsrelevanz je Eintrag, eigener Erfassungsweg mit Lernziel, Erfolgskriterium, Lernstand und nächstem Lernschritt sowie getrennte Darstellung in Webauswertung und PDF-Berichten
