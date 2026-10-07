@@ -279,6 +279,25 @@ Die Kontoeinstellungen betreffen die **persönliche Arbeitsumgebung**. Sie könn
 - **Empfehlung für den Start**
   Quick-Pick eingeschaltet lassen und mit einer mittleren Anzahl starten, zum Beispiel 8 bis 12 Vorschläge.
 
+### Sitzplan: Klassisches Design / Sitzplan-Editor
+
+- **Wo finde ich die Einstellung?**
+  Im Bereich **Konto** unter **Persönliche Einstellungen → Sitzplan**.
+- **Welche Auswahlmöglichkeiten gibt es?**
+  `Klassisches Design (Spalten × Reihen)` oder `Mit Sitzplan-Editor (freie Anordnung mit Vorlagen)`. Für den Sitzplan-Editor legen Sie zusätzlich fest, welche Vorlagen angeboten werden.
+- **Was bewirkt die Einstellung?**
+  Sie bestimmt, wie **neue** Sitzpläne angelegt werden: als einfaches Raster oder im Sitzplan-Editor mit frei verschiebbaren Tischen. Die angehakten Vorlagen erscheinen im Editor zur Auswahl; selten genutzte Anordnungen wie den Sitzkreis können Sie ausblenden. Die Vorlage `Leer` steht immer zur Verfügung.
+- **Betrifft sie nur meine persönliche Ansicht oder auch gespeicherte Daten?**
+  Nur das Anlegen neuer Sitzpläne. Bestehende Sitzpläne bleiben unverändert und werden immer in der Form bearbeitet, in der sie angelegt wurden.
+- **Hat die Einstellung Auswirkungen auf Auswertung oder PDF?**
+  Nein. Sitzpläne dienen nur der schnelleren Auswahl von Schüler:innen.
+- **Kann ich sie später ändern?**
+  Ja, jederzeit.
+- **Empfehlung für den Start**
+  Wer in klassischen Reihen unterrichtet, kommt mit dem klassischen Design am schnellsten zum Ziel. Wer mit Lerninseln, U-Form oder wechselnden Sitzordnungen arbeitet, schaltet den Sitzplan-Editor ein.
+
+Ausführlich beschrieben sind Sitzpläne im Abschnitt **8.6 Sitzpläne anlegen und verwalten**.
+
 ### Empfehlung für neue Nutzer:innen: So starten Sie am einfachsten
 
 Für den Einstieg hat sich diese Kombination bewährt:
@@ -589,11 +608,25 @@ Hilfen in diesem Bereich:
 - **Gruppen**: übernimmt eine zuvor angelegte Schüler:innengruppe als Vorauswahl
 - **Suche**: filtert die angezeigte Liste
 - **Auswahl leeren**: entfernt nur die aktuelle Auswahl im Formular
+- **Sitzplan**: zeigt die Schüler:innen an ihren Plätzen statt als Liste
 
 Wichtig:
 
 - Suche und Quick-Pick verändern keine Daten.
 - Sie steuern nur, wie schnell Sie zu einer sinnvollen Auswahl kommen.
+
+#### Ansicht Liste oder Sitzplan
+
+Über die Schaltflächen **Liste** und **Sitzplan** wechseln Sie zwischen der alphabetischen Namensliste und dem Sitzplan. Sobald für Klasse und Fach ein Sitzplan angelegt ist, öffnet die Erfassung automatisch die Sitzplan-Ansicht.
+
+![Sitzplan-Ansicht in der Mitarbeitserfassung mit ausgewählten Schüler:innen](screenshots/lehrerhandbuch/29-sitzplan-mitarbeitserfassung.png)
+
+- Ein Tipp auf einen Platz wählt die Person aus, ein zweiter Tipp hebt die Auswahl wieder auf. Das wirkt genauso wie das Häkchen in der Liste.
+- Ausgewählte Plätze sind **grün** umrandet. Schüler:innen, die in der gewählten Stunde bereits bewertet wurden, sind **orange** markiert.
+- Sitzpläne aus dem Sitzplan-Editor werden aus Sicht des Lehrertischs gezeigt: Die Tafel ist unten, die hinteren Reihen sind oben.
+- Gibt es mehrere Sitzpläne (z. B. für verschiedene Räume), wählen Sie den passenden über das Auswahlfeld neben den Schaltflächen.
+- Schüler:innen, die im Sitzplan noch keinen Platz haben, erscheinen darunter als eigene Liste und bleiben auswählbar.
+- **Sitzplan anlegen** bzw. **Sitzpläne verwalten** führt direkt zur Sitzplanverwaltung.
 
 ### Speichern
 
@@ -1234,6 +1267,82 @@ Wirkung:
 - Die Einstellung beeinflusst nur künftig live berechnete Notenvorschläge und den beim Speichern erzeugten Vorschlags-Snapshot.
 - Eine bereits manuell festgelegte oder final gespeicherte Note wird nicht automatisch verändert.
 - Die Lehrkraft kann weiterhin bewusst vom Vorschlag abweichen.
+
+### 8.6 Sitzpläne anlegen und verwalten
+
+Sitzpläne helfen, Schüler:innen in der Mitarbeitserfassung schnell über ihren Platz im Raum auszuwählen. Sie gelten pro Lehrkraft, Klasse und Fach und verändern keine Leistungsdaten.
+
+Sie erreichen die Sitzplanverwaltung aus der Mitarbeitserfassung über **Sitzplan anlegen** bzw. **Sitzpläne verwalten** im Bereich „Schüler:innen auswählen“.
+
+#### Mehrere Sitzpläne und Übernahme aus anderen Fächern
+
+- Pro Klasse und Fach können Sie mehrere benannte Sitzpläne anlegen, zum Beispiel `Standard`, `EDV-Saal` oder `Gruppe A`.
+- In der Mitarbeitserfassung wählen Sie aus, welcher Sitzplan gerade gilt.
+- Gibt es für dieselbe Klasse bereits einen Sitzplan in einem anderen Fach, schlägt die App beim Anlegen vor, ihn zu übernehmen. Anordnung und Platzbelegung werden dabei kopiert; der ursprüngliche Sitzplan bleibt unverändert.
+
+Ob ein neuer Sitzplan als Raster oder im Sitzplan-Editor angelegt wird, hängt von der Einstellung **Konto → Persönliche Einstellungen → Sitzplan** ab (siehe Kapitel 3).
+
+#### Klassisches Design: Spalten × Reihen
+
+1. Name, Anzahl der Spalten und Reihen eingeben und **Sitzplan anlegen** wählen.
+2. Unter **Noch nicht platziert** eine Schülerin oder einen Schüler antippen.
+3. Danach den gewünschten Platz antippen.
+
+Ein Tipp auf einen belegten Platz nimmt die Person auf, damit Sie sie auf einen anderen Platz setzen können. **entfernen** gibt einen Platz wieder frei. Die Zuweisung wird sofort gespeichert.
+
+#### Sitzplan-Editor: freie Tischanordnung
+
+![Sitzplan-Editor mit Lerninseln, Tafel und Lehrertisch](screenshots/lehrerhandbuch/28-sitzplan-editor.png)
+
+Der Sitzplan-Editor bildet auch Sitzordnungen ab, die sich nicht in Reihen und Spalten darstellen lassen. Tische, Lehrertisch und Tafel lassen sich frei verschieben und drehen.
+
+**Vorlagen**
+
+Eine Vorlage erzeugt eine fertige Anordnung, passend zur Zahl der Schüler:innen der Klasse. Angeboten werden die Vorlagen, die Sie im Konto ausgewählt haben:
+
+- **Reihen**: klassische Tischreihen. Einstellbar: Tischspalten, Reihen, Plätze je Tisch (1–3)
+- **Fischgräte**: Reihen, schräg zur Mitte gedreht. Einstellbar: Tischspalten, Reihen, Plätze je Tisch
+- **EDV-Raum**: Einzelplätze an den Wänden, Blick zur Wand
+- **U-Form**: Hufeisen mit Öffnung zur Tafel. Einstellbar: Tische hinten (bestimmt die Breite)
+- **Doppel-U**: zwei U-Formen ineinander. Einstellbar: Tische hinten (äußeres U)
+- **Konferenz**: große Tische mit Plätzen rundum. Einstellbar: Anzahl der Blöcke
+- **Bankett**: lange Reihen, die einander gegenübersitzen. Einstellbar: Anzahl der Blöcke
+- **Sitzkreis**: Stühle im Kreis ohne Tische
+- **Fishbowl**: Innenkreis diskutiert, Außenkreis beobachtet
+- **Lerninseln**: Gruppentische. Einstellbar: Plätze je Insel (3–8)
+- **Kleine Hufeisen**: mehrere kleine U-Formen aus je drei Tischen
+- **Leer**: nur Tafel und Lehrertisch
+
+Wechseln Sie später die Vorlage, werden die Tische neu angeordnet. Die Reihenfolge, in der die Schüler:innen sitzen, bleibt dabei erhalten.
+
+**Ansicht**
+
+Standardmäßig zeigt der Editor den Raum **vom Lehrertisch** aus (Tafel unten). Mit **Von hinten (Tafel oben)** wechseln Sie die Blickrichtung. Das ändert nur die Darstellung. Ein grauer Strich an jedem Platz markiert die Rückenlehne und zeigt so, in welche Richtung die Person blickt.
+
+**Schritt 1 · Tische anordnen**
+
+- Einen Tisch, den Lehrertisch oder die Tafel antippen und ziehen, um ihn zu verschieben. Mit den Pfeiltasten lässt er sich in kleinen Schritten verschieben.
+- Mit **↺ 15°**, **↻ 15°** und **↻ 90°** drehen.
+- Mit **Duplizieren** und **Entfernen** Tische ergänzen oder wegnehmen. Die Tafel lässt sich nicht entfernen.
+- Unter **Hinzufügen** stehen Einzel-, Zweier- und Dreiertisch, Inseln mit 4, 5 oder 6 Plätzen, Einzelstuhl und Lehrertisch bereit.
+- Belegte Plätze wandern beim Verschieben und Drehen mit.
+
+**Schritt 2 · Plätze belegen**
+
+- Einen Namen unter **Noch ohne Platz** antippen, dann den Platz.
+- Ein Tipp auf einen besetzten Platz nimmt die Person auf. Ist der Zielplatz ebenfalls belegt, tauschen die beiden.
+- **Freie Plätze alphabetisch belegen** verteilt alle noch nicht platzierten Schüler:innen auf die freien Plätze. Anschließend lassen sich einzelne Plätze tauschen.
+- **Alle Plätze leeren** entfernt alle Zuweisungen dieses Sitzplans.
+
+**Speichern**
+
+Im Sitzplan-Editor werden Änderungen erst mit **Speichern** übernommen. Verlassen Sie die Seite mit ungespeicherten Änderungen, fragt der Browser nach.
+
+Wichtig:
+
+- Bestehende Sitzpläne behalten ihre Form: Raster-Sitzpläne werden weiterhin im Raster bearbeitet, Sitzpläne aus dem Editor im Editor.
+- Die **Kompetenz-Beobachtung** zeigt den zuletzt verwendeten Sitzplan zur Orientierung an, egal ob Raster oder Editor.
+- Sitzpläne sind eine Auswahlhilfe. Sie fließen weder in Auswertungen noch in Notenvorschläge ein.
 
 ## 9. Fächer und Schularbeitsstatus
 
@@ -2174,7 +2283,7 @@ Wenn
 1. Einloggen
 2. Im Bereich `Konto` die persönliche Darstellung kurz prüfen
 3. Im Dashboard Klasse und Fach auswählen
-4. Bei Bedarf Kriterien, Picklisten oder Presets vorbereiten
+4. Bei Bedarf Kriterien, Picklisten, Presets oder einen Sitzplan vorbereiten
 5. Mitarbeit schnell erfassen
 6. Besondere mündliche oder schriftliche Leistungen separat erfassen
 7. Einträge bei Bedarf über `Einträge bearbeiten` kontrollieren
@@ -2209,6 +2318,7 @@ Dort liegen unter anderem:
 - besondere mündliche und schriftliche Leistungsfeststellungen
 - Eintragsliste und Bearbeiten
 - Kriterien, Picklisten, Presets und Gruppenverwaltung
+- Sitzplan-Editor und Sitzplan-Ansicht in der Mitarbeitserfassung
 - Auswertungsfilter, Haupttabelle und Detailansicht
 - PDF-Export-Schaltfläche sowie Beispiel-PDF
 - Abschlussbeurteilung als Übersicht, Detailansicht und PDF-Bericht

@@ -47,6 +47,9 @@ Verwendete Hilfsskripte:
 - `24-abschlussbeurteilung-uebersicht.png`
 - `25-abschlussbeurteilung-details.png`
 - `26-abschlussbeurteilung-pdf.png`
+- `27-schnellerfassung-stundenplan.png`
+- `28-sitzplan-editor.png` (Sitzplan-Editor, Version 1.81.6; mit Playwright aus einer Testumgebung mit Demo-Namen erzeugt, nicht über `capture_lehrerhandbuch_screenshots.js`)
+- `29-sitzplan-mitarbeitserfassung.png` (Sitzplan-Ansicht in der Mitarbeitserfassung, Version 1.81.6; ebenso erzeugt)
 - `example-report.pdf`
 - `final-assessment-report.pdf`
 
