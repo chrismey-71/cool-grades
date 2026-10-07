@@ -197,7 +197,7 @@ function csrf_input(): string {
   return '<input type="hidden" name="_csrf" value="'.h(csrf_token()).'">';
 }
 
-function verify_csrf(): void {
+function csrf_valid(): bool {
   start_session();
   $token = (string)($_POST['_csrf'] ?? '');
   if ($token === '') {
@@ -205,11 +205,14 @@ function verify_csrf(): void {
     if (is_string($header)) $token = $header;
   }
   $known = $_SESSION['csrf_token'] ?? '';
-  if (!is_string($known) || $known === '' || !hash_equals($known, $token)) {
-    app_log('warn','invalid csrf token',[
-      'request'=>app_log_request_context(),
-    ]);
-    http_response_code(403);
-    exit('Ungueltiger CSRF-Token.');
-  }
+  return is_string($known) && $known !== '' && hash_equals($known, $token);
+}
+
+function verify_csrf(): void {
+  if (csrf_valid()) return;
+  app_log('warn','invalid csrf token',[
+    'request'=>app_log_request_context(),
+  ]);
+  http_response_code(403);
+  exit('Ungueltiger CSRF-Token.');
 }

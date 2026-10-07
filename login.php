@@ -7,14 +7,26 @@ $info='';
 if(!empty($_GET['timeout'])){
   $info='Sie wurden aus Datenschutzgründen automatisch abgemeldet (Inaktivität). Bitte erneut anmelden.';
 }
+if(!empty($_GET['csrf'])){
+  $info='Diese Seite war im Hintergrund geöffnet und hatte veraltete Sicherheitsdaten. Bitte Benutzername und Passwort erneut eingeben.';
+}
 if($_SERVER['REQUEST_METHOD']==='POST'){
-  verify_csrf();
+  if(!csrf_valid()){
+    redirect('/login.php?csrf=1');
+  }
   $username=trim($_POST['username']??''); $pw=(string)($_POST['password']??'');
   if(login($username,$pw)){ emit_event('login',[]); redirect('/dashboard.php'); }
   $error=login_last_error() ?: 'Login fehlgeschlagen.';
 }
 render_header('Login');
 ?>
+<script>
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
+</script>
 <div class="grid"><div class="col-12 col-6"><div class="card">
 <h1>Login</h1><p class="muted">Mit Username und Passwort anmelden.</p>
 <?php if($info): ?><div class="flash info"><?php echo h($info); ?></div><?php endif; ?>
