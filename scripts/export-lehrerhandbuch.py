@@ -789,7 +789,10 @@ def build_numbering(numbering_defs: list[tuple[int, int]]) -> bytes:
   </w:abstractNum>
 """
     for num_id, abstract_num_id in numbering_defs:
-        xml += f'  <w:num w:numId="{num_id}"><w:abstractNumId w:val="{abstract_num_id}"/></w:num>\n'
+        # Nummerierte Listen beginnen jeweils wieder bei 1; ohne startOverride
+        # zählen Word/LibreOffice über alle Listen mit derselben abstractNum weiter.
+        override = '<w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride>' if abstract_num_id == 0 else ''
+        xml += f'  <w:num w:numId="{num_id}"><w:abstractNumId w:val="{abstract_num_id}"/>{override}</w:num>\n'
     xml += """\
 </w:numbering>
 """
@@ -977,10 +980,10 @@ def build_core_props(title: str, subject: str, description: str, stand_iso: str)
     root = ET.Element(f"{{{NS_CP}}}coreProperties")
     ET.SubElement(root, f"{{{NS_DC}}}title").text = title
     ET.SubElement(root, f"{{{NS_DC}}}subject").text = subject
-    ET.SubElement(root, f"{{{NS_DC}}}creator").text = "OpenAI Codex"
+    ET.SubElement(root, f"{{{NS_DC}}}creator").text = "Christian Meysing"
     ET.SubElement(root, f"{{{NS_CP}}}keywords").text = "Lehrer:innen-Handbuch, COOL-Grades, Mitarbeitsbewertung"
     ET.SubElement(root, f"{{{NS_DC}}}description").text = description
-    ET.SubElement(root, f"{{{NS_CP}}}lastModifiedBy").text = "OpenAI Codex"
+    ET.SubElement(root, f"{{{NS_CP}}}lastModifiedBy").text = "Christian Meysing"
     created = ET.SubElement(root, f"{{{NS_DCTERMS}}}created", {f"{{{NS_XSI}}}type": "dcterms:W3CDTF"})
     created.text = stand_iso
     modified = ET.SubElement(root, f"{{{NS_DCTERMS}}}modified", {f"{{{NS_XSI}}}type": "dcterms:W3CDTF"})
@@ -991,7 +994,7 @@ def build_core_props(title: str, subject: str, description: str, stand_iso: str)
 def build_app_props() -> bytes:
     xml = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="{NS_VT}">
-  <Application>OpenAI Codex</Application>
+  <Application>COOL-Grades Handbuch-Export</Application>
   <DocSecurity>0</DocSecurity>
   <ScaleCrop>false</ScaleCrop>
   <HeadingPairs>
