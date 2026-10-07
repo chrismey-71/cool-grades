@@ -14,10 +14,14 @@ require_once __DIR__.'/helpers.php';
  * vorhandenen Sitzpläne sie gerade sehen möchte, und kann jederzeit einen
  * bestehenden Sitzplan weiterverwenden oder einen neuen dafür anlegen.
  *
- * layout_type ist bewusst schon vorgesehen, damit später neben 'grid'
- * (klassische Tischreihen) auch andere Anordnungen (z.B. 'groups' für
- * Gruppentische/Inseln) ergänzt werden können, ohne die Tabelle erneut
- * migrieren zu müssen. Aktuell wird ausschließlich 'grid' unterstützt.
+ * layout_type:
+ *  - 'grid': klassisches Raster aus Spalten x Reihen (seat_col/seat_row =
+ *    Spalte/Reihe).
+ *  - 'free': Sitzplan-Editor (seit 1.81.6). Die Tische stehen mit Typ,
+ *    Position und Drehung in layout_json; seat_col ist die Tischnummer
+ *    (1-basiert, Reihenfolge in layout_json), seat_row der Platz am Tisch.
+ *    columns/grid_rows enthalten dann nur Kennzahlen (Anzahl Tische /
+ *    größte Platzzahl an einem Tisch), damit bestehende Prüfungen gültig bleiben.
  */
 
 const SEATING_PLAN_MIN_SIZE = 1;
@@ -45,7 +49,7 @@ function seating_plan_name(string $name): string {
  * Spalte namens "rows" es wäre - genau das hat den Fehler in Produktion
  * verursacht, obwohl die Spalte selbst schon grid_rows hieß.
  */
-const SEATING_PLAN_COLUMNS_SQL = "id,teacher_id,class_id,subject_id,name,layout_type,columns,grid_rows AS `rows`,created_at,updated_at";
+const SEATING_PLAN_COLUMNS_SQL = "id,teacher_id,class_id,subject_id,name,layout_type,columns,grid_rows AS `rows`,layout_json,created_at,updated_at";
 
 function seating_plan_load_seats(PDO $pdo, int $planId): array {
   $st = $pdo->prepare("SELECT sp.seat_col, sp.seat_row, sp.student_id, s.first_name, s.last_name
@@ -93,6 +97,7 @@ function load_teacher_seating_plans(PDO $pdo, int $teacherId, int $classId, int 
     [$seatsByPosition, $seatsByStudent] = seating_plan_load_seats($pdo, $plan['id']);
     $plan['seats_by_position'] = $seatsByPosition;
     $plan['seats_by_student'] = $seatsByStudent;
+    $plan['layout'] = seating_plan_decode_layout($plan);
   }
   unset($plan);
   return $plans;
@@ -116,6 +121,7 @@ function load_teacher_seating_plan_by_id(PDO $pdo, int $teacherId, int $planId):
   [$seatsByPosition, $seatsByStudent] = seating_plan_load_seats($pdo, $plan['id']);
   $plan['seats_by_position'] = $seatsByPosition;
   $plan['seats_by_student'] = $seatsByStudent;
+  $plan['layout'] = seating_plan_decode_layout($plan);
   return $plan;
 }
 
@@ -139,9 +145,13 @@ function save_seating_plan(PDO $pdo, int $teacherId, int $classId, int $subjectI
 
   $removed = 0;
   if($planId > 0){
-    $check = $pdo->prepare("SELECT id FROM teacher_seating_plans WHERE id=? AND teacher_id=? AND class_id=? AND subject_id=?");
+    $check = $pdo->prepare("SELECT id, layout_type FROM teacher_seating_plans WHERE id=? AND teacher_id=? AND class_id=? AND subject_id=?");
     $check->execute([$planId, $teacherId, $classId, $subjectId]);
-    if(!$check->fetch()) throw new RuntimeException('Sitzplan nicht gefunden.');
+    $existing = $check->fetch();
+    if(!$existing) throw new RuntimeException('Sitzplan nicht gefunden.');
+    // Freie Sitzpläne (Sitzplan-Editor) haben kein Spalten-/Reihen-Raster;
+    // ein Raster-Speichern würde ihre Platzbelegung zerstören.
+    if(($existing['layout_type'] ?? 'grid') === 'free') throw new RuntimeException('Dieser Sitzplan wird im Sitzplan-Editor bearbeitet.');
 
     $st = $pdo->prepare("SELECT COUNT(*) FROM teacher_seating_plan_seats WHERE plan_id=? AND (seat_col>? OR seat_row>?)");
     $st->execute([$planId, $columns, $rows]);
@@ -199,7 +209,7 @@ function unassign_seating_plan_seat(PDO $pdo, int $planId, int $col, int $row): 
  * 2026-10-04).
  */
 function load_teacher_seating_plans_for_class_other_subjects(PDO $pdo, int $teacherId, int $classId, int $excludeSubjectId): array {
-  $st = $pdo->prepare("SELECT sp.id, sp.teacher_id, sp.class_id, sp.subject_id, sp.name, sp.layout_type, sp.columns, sp.grid_rows AS `rows`, sp.created_at, sp.updated_at,
+  $st = $pdo->prepare("SELECT sp.id, sp.teacher_id, sp.class_id, sp.subject_id, sp.name, sp.layout_type, sp.columns, sp.grid_rows AS `rows`, sp.layout_json, sp.created_at, sp.updated_at,
                               sub.code AS subject_code, sub.name AS subject_name
                        FROM teacher_seating_plans sp
                        JOIN subjects sub ON sub.id=sp.subject_id
@@ -215,6 +225,7 @@ function load_teacher_seating_plans_for_class_other_subjects(PDO $pdo, int $teac
     [$seatsByPosition, $seatsByStudent] = seating_plan_load_seats($pdo, $plan['id']);
     $plan['seats_by_position'] = $seatsByPosition;
     $plan['seats_by_student'] = $seatsByStudent;
+    $plan['layout'] = seating_plan_decode_layout($plan);
   }
   unset($plan);
   return $plans;
@@ -237,4 +248,206 @@ function seating_plan_unique_name(PDO $pdo, int $teacherId, int $classId, int $s
     $candidate = $name.' ('.$suffix.')';
     $suffix++;
   }
+}
+
+/* ------------------------------------------------------------------------
+ * Sitzplan-Editor (layout_type 'free', seit 1.81.6)
+ * --------------------------------------------------------------------- */
+
+const SEATING_LAYOUT_MAX_TABLES = 80;
+
+/**
+ * Vorlagen des Sitzplan-Editors. Die Geometrie selbst erzeugt
+ * assets/seating_layout.js; hier stehen nur Schlüssel, Bezeichnung,
+ * Gruppe und Kurzbeschreibung für die Kontoeinstellung und den Editor.
+ */
+function seating_plan_templates(): array {
+  return [
+    'reihen'    => ['label'=>'Reihen',          'group'=>'Frontal',       'desc'=>'Klassische Reihen, auch Einzeltische (Prüfung) oder Paare'],
+    'fisch'     => ['label'=>'Fischgräte',      'group'=>'Frontal',       'desc'=>'Reihen schräg zur Mitte gedreht'],
+    'edv'       => ['label'=>'EDV-Raum',        'group'=>'Frontal',       'desc'=>'Einzelplätze an den Wänden, Blick zur Wand'],
+    'u'         => ['label'=>'U-Form',          'group'=>'Diskussion',    'desc'=>'Hufeisen mit Öffnung zur Tafel'],
+    'doppelu'   => ['label'=>'Doppel-U',        'group'=>'Diskussion',    'desc'=>'Zwei U-Formen ineinander für große Klassen'],
+    'konferenz' => ['label'=>'Konferenz',       'group'=>'Diskussion',    'desc'=>'Ein oder mehrere große Tische, Plätze rundum'],
+    'bankett'   => ['label'=>'Bankett',         'group'=>'Diskussion',    'desc'=>'Lange Reihen, die einander gegenübersitzen'],
+    'kreis'     => ['label'=>'Sitzkreis',       'group'=>'Diskussion',    'desc'=>'Stühle im Kreis ohne Tische'],
+    'fishbowl'  => ['label'=>'Fishbowl',        'group'=>'Diskussion',    'desc'=>'Innenkreis diskutiert, Außenkreis beobachtet'],
+    'inseln'    => ['label'=>'Lerninseln',      'group'=>'Gruppenarbeit', 'desc'=>'Gruppentische mit 3 bis 8 Plätzen'],
+    'hufeisen'  => ['label'=>'Kleine Hufeisen', 'group'=>'Gruppenarbeit', 'desc'=>'Mehrere kleine U-Formen aus je drei Tischen'],
+  ];
+}
+
+/** 'classic' (Raster wie bisher) oder 'editor' (Sitzplan-Editor). */
+function user_seating_design(?array $u): string {
+  return (($u['pref_seating_design'] ?? 'classic') === 'editor') ? 'editor' : 'classic';
+}
+
+/** Vom Benutzer freigegebene Vorlagen (NULL in der DB = alle). */
+function user_seating_templates(?array $u): array {
+  $all = array_keys(seating_plan_templates());
+  $raw = $u['pref_seating_templates'] ?? null;
+  if($raw === null) return $all;
+  $chosen = array_filter(array_map('trim', explode(',', (string)$raw)), 'strlen');
+  return array_values(array_intersect($all, $chosen));
+}
+
+/** Anzahl der Plätze eines Tisch-Typs, null bei unbekanntem Typ. */
+function seating_layout_type_seats(string $type): ?int {
+  static $fixed = ['t1'=>1,'t2'=>2,'t3'=>3,'chair'=>1,'lt'=>0,'board'=>0];
+  if(isset($fixed[$type])) return $fixed[$type];
+  if(preg_match('/^i([3-8])$/', $type, $m)) return (int)$m[1];
+  if(preg_match('/^k(\d{1,2})$/', $type, $m)){
+    $k = (int)$m[1];
+    if($k >= 4 && $k <= 30 && $k % 2 === 0) return $k;
+  }
+  return null;
+}
+
+/**
+ * Prüft und normalisiert ein Layout aus dem Editor. Wirft eine
+ * RuntimeException bei ungültigen Daten. Rückgabe:
+ * ['version'=>1,'tables'=>[['type'=>..,'x'=>..,'y'=>..,'rot'=>..], ...]]
+ */
+function seating_layout_normalize($layout): array {
+  if(is_string($layout)) $layout = json_decode($layout, true);
+  if(!is_array($layout) || !isset($layout['tables']) || !is_array($layout['tables'])){
+    throw new RuntimeException('Der Sitzplan konnte nicht gelesen werden.');
+  }
+  if(count($layout['tables']) > SEATING_LAYOUT_MAX_TABLES){
+    throw new RuntimeException('Ein Sitzplan kann höchstens '.SEATING_LAYOUT_MAX_TABLES.' Tische enthalten.');
+  }
+  $tables = [];
+  $boards = 0;
+  foreach(array_values($layout['tables']) as $t){
+    if(!is_array($t)) throw new RuntimeException('Ungültiger Tisch im Sitzplan.');
+    $type = (string)($t['type'] ?? '');
+    if(seating_layout_type_seats($type) === null) throw new RuntimeException('Unbekannter Tischtyp im Sitzplan.');
+    if($type === 'board') $boards++;
+    $x = (int)round((float)($t['x'] ?? 0));
+    $y = (int)round((float)($t['y'] ?? 0));
+    $rot = (int)round((float)($t['rot'] ?? 0));
+    $rot = (($rot % 360) + 360) % 360;
+    $tables[] = [
+      'type'=>$type,
+      'x'=>max(-3000, min(5000, $x)),
+      'y'=>max(-3000, min(5000, $y)),
+      'rot'=>$rot,
+    ];
+  }
+  if($boards > 1) throw new RuntimeException('Ein Sitzplan kann nur eine Tafel enthalten.');
+  return ['version'=>1, 'tables'=>$tables];
+}
+
+/** Dekodiertes Layout eines Sitzplans ('free'), sonst null. */
+function seating_plan_decode_layout(array $plan): ?array {
+  if(($plan['layout_type'] ?? 'grid') !== 'free') return null;
+  try{
+    return seating_layout_normalize((string)($plan['layout_json'] ?? ''));
+  }catch(Throwable $e){
+    return ['version'=>1, 'tables'=>[]];
+  }
+}
+
+/** Gesamtzahl der Plätze eines Layouts. */
+function seating_layout_seat_count(array $layout): int {
+  $n = 0;
+  foreach($layout['tables'] as $t) $n += (int)seating_layout_type_seats((string)$t['type']);
+  return $n;
+}
+
+/** Kurzbeschreibung für Buttons/Auswahllisten, z.B. "4×5" oder "frei, 26 Plätze". */
+function seating_plan_size_label(array $plan): string {
+  if(($plan['layout_type'] ?? 'grid') === 'free'){
+    $layout = $plan['layout'] ?? seating_plan_decode_layout($plan);
+    return 'frei, '.seating_layout_seat_count($layout ?: ['tables'=>[]]).' Plätze';
+  }
+  return (int)$plan['columns'].'×'.(int)$plan['rows'];
+}
+
+/**
+ * Speichert einen Sitzplan aus dem Sitzplan-Editor (neu oder bestehend)
+ * inklusive kompletter Platzbelegung in einer Transaktion.
+ * $seats: Liste von [student_id, seat_col (Tisch-Nr.), seat_row (Platz)].
+ * Personen, die nicht (mehr) zur Klasse gehören, und Plätze, die es im
+ * Layout nicht gibt, werden übersprungen. Rückgabe: ['plan_id'=>..,'seat_count'=>..]
+ */
+function save_free_seating_plan(PDO $pdo, int $teacherId, int $classId, int $subjectId, string $name, $layout, array $seats, int $planId = 0): array {
+  $name = seating_plan_name($name);
+  $layout = seating_layout_normalize($layout);
+
+  $dup = $pdo->prepare("SELECT id FROM teacher_seating_plans
+                        WHERE teacher_id=? AND class_id=? AND subject_id=? AND name=? AND id<>?
+                        LIMIT 1");
+  $dup->execute([$teacherId, $classId, $subjectId, $name, $planId]);
+  if($dup->fetch()) throw new RuntimeException('Ein Sitzplan mit diesem Namen existiert für diese Klasse/dieses Fach bereits.');
+
+  $tableCount = count($layout['tables']);
+  $maxSeats = 1;
+  foreach($layout['tables'] as $t) $maxSeats = max($maxSeats, (int)seating_layout_type_seats($t['type']));
+
+  $st = $pdo->prepare("SELECT id FROM students WHERE class_id=?");
+  $st->execute([$classId]);
+  $validStudents = array_flip(array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN)));
+
+  $clean = [];
+  $usedStudents = [];
+  $usedSeats = [];
+  foreach($seats as $seat){
+    if(!is_array($seat) || count($seat) < 3) continue;
+    [$sid, $col, $row] = array_map('intval', array_values($seat));
+    if(!isset($validStudents[$sid]) || isset($usedStudents[$sid])) continue;
+    if($col < 1 || $col > $tableCount) continue;
+    $capacity = (int)seating_layout_type_seats($layout['tables'][$col-1]['type']);
+    if($row < 1 || $row > $capacity) continue;
+    if(isset($usedSeats[$col.'_'.$row])) continue;
+    $usedStudents[$sid] = true;
+    $usedSeats[$col.'_'.$row] = true;
+    $clean[] = [$sid, $col, $row];
+  }
+
+  $json = json_encode($layout, JSON_UNESCAPED_UNICODE);
+  $ownTx = !$pdo->inTransaction();
+  if($ownTx) $pdo->beginTransaction();
+  try{
+    if($planId > 0){
+      $check = $pdo->prepare("SELECT id FROM teacher_seating_plans WHERE id=? AND teacher_id=? AND class_id=? AND subject_id=?");
+      $check->execute([$planId, $teacherId, $classId, $subjectId]);
+      if(!$check->fetch()) throw new RuntimeException('Sitzplan nicht gefunden.');
+      $pdo->prepare("UPDATE teacher_seating_plans SET name=?, layout_type='free', columns=?, grid_rows=?, layout_json=?, updated_at=? WHERE id=?")
+          ->execute([$name, $tableCount, $maxSeats, $json, now_iso(), $planId]);
+      $pdo->prepare("DELETE FROM teacher_seating_plan_seats WHERE plan_id=?")->execute([$planId]);
+    } else {
+      $pdo->prepare("INSERT INTO teacher_seating_plans (teacher_id,class_id,subject_id,name,layout_type,columns,grid_rows,layout_json,created_at,updated_at) VALUES (?,?,?,?,'free',?,?,?,?,?)")
+          ->execute([$teacherId, $classId, $subjectId, $name, $tableCount, $maxSeats, $json, now_iso(), now_iso()]);
+      $planId = (int)$pdo->lastInsertId();
+    }
+    $ins = $pdo->prepare("INSERT INTO teacher_seating_plan_seats (plan_id,student_id,seat_col,seat_row) VALUES (?,?,?,?)");
+    foreach($clean as [$sid, $col, $row]) $ins->execute([$planId, $sid, $col, $row]);
+    if($ownTx) $pdo->commit();
+  }catch(Throwable $e){
+    if($ownTx && $pdo->inTransaction()) $pdo->rollBack();
+    throw $e;
+  }
+  return ['plan_id'=>$planId, 'seat_count'=>count($clean)];
+}
+
+/**
+ * Daten eines Sitzplans für assets/seating_layout.js (Anzeige oder Editor):
+ * Layout plus Belegung als [student_id, Tisch-Nr., Platz].
+ */
+function seating_plan_client_data(array $plan): array {
+  $seats = [];
+  foreach(($plan['seats_by_position'] ?? []) as $seat){
+    $seats[] = [(int)$seat['student_id'], (int)$seat['col'], (int)$seat['row']];
+  }
+  return ['layout'=>$plan['layout'] ?? seating_plan_decode_layout($plan) ?? ['version'=>1,'tables'=>[]], 'seats'=>$seats];
+}
+
+/** Schülerliste für assets/seating_layout.js. */
+function seating_plan_client_students(array $students): array {
+  $out = [];
+  foreach($students as $s){
+    $out[] = ['id'=>(int)$s['id'], 'first'=>(string)$s['first_name'], 'last'=>(string)$s['last_name']];
+  }
+  return $out;
 }

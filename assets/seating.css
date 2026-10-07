@@ -1,0 +1,64 @@
+/* COOL-Grades – Sitzplan-Editor und Anzeige freier Sitzpläne (assets/seating_layout.js) */
+.cs-editor,.cs-viewwrap{
+  --cs-room:#fbfcfa; --cs-grid:#e4e9e2; --cs-board:#2c3a30; --cs-board-fg:#e9efe9;
+  --cs-table:#dcc9a6; --cs-table-stroke:#b39a6e; --cs-teacher:#c9d6cc; --cs-teacher-stroke:#8fa595;
+  --cs-seat:#ffffff; --cs-seat-stroke:#a3aea5; --cs-seat-filled:#eef6ef; --cs-seat-back:#7d8a80;
+  --cs-pick:#e08a00; --cs-pick-soft:#fff2db; --cs-on:#2f855a; --cs-on-soft:#d9f2e3;
+  --cs-rated:#f6ad55; --cs-rated-soft:#fffaf0;
+}
+html[data-theme="dark"] .cs-editor, html[data-theme="dark"] .cs-viewwrap{
+  --cs-room:#0f1a2b; --cs-grid:#1c2940; --cs-board:#05080f; --cs-board-fg:#cfd8e6;
+  --cs-table:#6a5839; --cs-table-stroke:#8f7650; --cs-teacher:#2c3d55; --cs-teacher-stroke:#4b6385;
+  --cs-seat:#16233a; --cs-seat-stroke:#3d4f6d; --cs-seat-filled:#1d3048; --cs-seat-back:#8293ad;
+  --cs-pick:#f3a63a; --cs-pick-soft:#3a2d16; --cs-on:#68d391; --cs-on-soft:#1e4030;
+  --cs-rated:#f6ad55; --cs-rated-soft:#3a2d16;
+}
+.cs-stage{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--cs-room);padding:6px}
+.cs-svg{display:block;width:100%;min-width:560px;height:auto;user-select:none;-webkit-user-select:none}
+.cs-svg.cs-arrange{touch-action:none}
+.cs-svg:focus{outline:none}
+.cs-svg:focus-visible{outline:2px solid var(--cs-pick);outline-offset:2px}
+.cs-room{fill:var(--cs-room)}
+.cs-grid{stroke:var(--cs-grid);stroke-width:1}
+.cs-table rect{fill:var(--cs-table);stroke:var(--cs-table-stroke);stroke-width:1.5}
+.cs-table.cs-teacher rect{fill:var(--cs-teacher);stroke:var(--cs-teacher-stroke)}
+.cs-table.cs-board rect{fill:var(--cs-board);stroke:var(--cs-board)}
+.cs-table.cs-sel rect{stroke:var(--cs-pick);stroke-width:3}
+.cs-labels{pointer-events:none}
+.cs-boardtxt{fill:var(--cs-board-fg);font-size:13px;font-weight:700;letter-spacing:.12em}
+.cs-tabletxt{fill:var(--text);font-size:12px;opacity:.7}
+.cs-tableno{fill:var(--text);font-size:11px;opacity:.5}
+.cs-seat rect{fill:var(--cs-seat);stroke:var(--cs-seat-stroke);stroke-width:1.3}
+.cs-seat line{stroke:var(--cs-seat-back);stroke-width:3.5;stroke-linecap:round}
+.cs-seat.cs-filled rect{fill:var(--cs-seat-filled)}
+.cs-seat.cs-picked rect{fill:var(--cs-pick-soft);stroke:var(--cs-pick);stroke-width:2.5}
+.cs-seat.cs-rated rect{fill:var(--cs-rated-soft);stroke:var(--cs-rated);stroke-width:2}
+.cs-seat.cs-on rect, .cs-seat.cq-has-note rect{fill:var(--cs-on-soft);stroke:var(--cs-on);stroke-width:2.5}
+.cs-seattxt{fill:var(--text);font-size:12.5px;font-weight:600}
+.cs-seattxt.cs-empty{fill:var(--muted);font-weight:400;font-style:italic}
+.cs-view .cs-seat.cs-filled, .cs-editor .cs-seat, .cs-editor .cs-table{cursor:pointer}
+.cs-editor .cs-svg.cs-arrange .cs-table, .cs-editor .cs-svg.cs-arrange .cs-seat{cursor:grab}
+@media (prefers-reduced-motion:no-preference){.cs-seat rect{transition:fill .12s ease}}
+
+.cs-editor{display:flex;flex-direction:column;gap:12px}
+.cs-toolbar{display:flex;flex-direction:column;gap:8px}
+.cs-row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.cs-chips{display:flex;flex-wrap:wrap;gap:6px}
+.cs-lbl{font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+.cs-param{display:flex;gap:6px;align-items:center}
+.cs-param .input,.cs-param select,.cs-param input{width:76px;min-height:0;padding:6px 8px}
+.cs-stat{margin-left:auto}
+.cs-warn{color:var(--cs-pick)}
+.cs-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.cs-tab{width:auto;min-height:0;border:0;border-radius:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent}
+.cs-tab:hover{transform:none;box-shadow:none;filter:none;color:var(--text)}
+.cs-tab[aria-selected="true"]{color:var(--blue);border-bottom-color:var(--blue)}
+.cs-main{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px;align-items:start}
+@media (max-width:980px){.cs-main{grid-template-columns:minmax(0,1fr)}}
+.cs-panel{display:flex;flex-direction:column;gap:10px;min-width:0;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--card)}
+.cs-h{font-weight:700}
+.cs-selbox{background:var(--cs-seat-filled);border-radius:8px;padding:8px 10px}
+.cs-btnrow{display:flex;flex-wrap:wrap;gap:6px}
+.cs-addgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cs-addgrid .btn{justify-content:flex-start}
+.cs-names{display:flex;flex-wrap:wrap;gap:5px;max-height:320px;overflow:auto}

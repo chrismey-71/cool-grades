@@ -59,6 +59,21 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       seating_plan_redirect($bp,$class_id,$subject_id,(int)$result['plan_id'],$doneMsg);
     }
 
+    if($action==='save_free_plan'){
+      // Sitzplan-Editor: Layout (Tische) und komplette Belegung kommen
+      // gemeinsam als JSON aus assets/seating_layout.js und werden in einer
+      // Transaktion gespeichert (lib/seating_plans.php, save_free_seating_plan()).
+      $name=(string)($_POST['name'] ?? '');
+      $seatsRaw=json_decode((string)($_POST['seats_json'] ?? '[]'),true);
+      if(!is_array($seatsRaw)) $seatsRaw=[];
+      $result=save_free_seating_plan($pdo,(int)$u['id'],$class_id,$subject_id,$name,(string)($_POST['layout_json'] ?? ''),$seatsRaw,$plan_id);
+      emit_event('teacher_seating_plan_saved',[
+        'plan_id'=>$result['plan_id'],'class_id'=>$class_id,'subject_id'=>$subject_id,
+        'name'=>seating_plan_name($name),'layout_type'=>'free','seat_count'=>$result['seat_count'],
+      ]);
+      seating_plan_redirect($bp,$class_id,$subject_id,(int)$result['plan_id'],'Sitzplan gespeichert ('.$result['seat_count'].' Platzzuweisung(en)).');
+    }
+
     if($action==='delete_plan'){
       $deleted=delete_seating_plan($pdo,(int)$u['id'],$plan_id);
       if(!$deleted) throw new RuntimeException('Sitzplan nicht gefunden.');
@@ -77,6 +92,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
       $validStudentIds=array_map('intval', array_column(load_class_students($pdo,$class_id,false), 'id'));
 
       $targetName=seating_plan_unique_name($pdo,(int)$u['id'],$class_id,$subject_id,(string)$source['name']);
+      if(($source['layout_type'] ?? 'grid')==='free'){
+        // Freier Sitzplan: Tische und Belegung gemeinsam kopieren.
+        $sourceData=seating_plan_client_data($source);
+        $result=save_free_seating_plan($pdo,(int)$u['id'],$class_id,$subject_id,$targetName,$sourceData['layout'],$sourceData['seats'],0);
+        emit_event('teacher_seating_plan_copied',[
+          'plan_id'=>(int)$result['plan_id'],'source_plan_id'=>$sourcePlanId,'class_id'=>$class_id,'subject_id'=>$subject_id,
+          'source_subject_id'=>(int)$source['subject_id'],'name'=>$targetName,'layout_type'=>'free','seat_count'=>(int)$result['seat_count'],
+        ]);
+        seating_plan_redirect($bp,$class_id,$subject_id,(int)$result['plan_id'],'Sitzplan „'.$targetName.'“ übernommen ('.(int)$result['seat_count'].' Platzzuweisung(en)).');
+      }
       $result=save_seating_plan($pdo,(int)$u['id'],$class_id,$subject_id,$targetName,(int)$source['columns'],(int)$source['rows'],0);
       $newPlanId=(int)$result['plan_id'];
       $copiedSeatCount=0;
@@ -173,6 +198,10 @@ if($notice_code!=='') $msg=$notice_code;
 if($err==='' && isset($_GET['err'])) $err=(string)$_GET['err'];
 
 $isNewPlan = ($plan===null);
+// Freie Sitzpläne werden immer im Sitzplan-Editor bearbeitet, Raster-
+// Sitzpläne immer klassisch. Für neue Sitzpläne entscheidet die persönliche
+// Einstellung (Konto > Persönliche Einstellungen > Sitzplan).
+$useEditor = $plan ? (($plan['layout_type'] ?? 'grid')==='free') : (user_seating_design($u)==='editor');
 $name_value = $plan ? (string)$plan['name'] : '';
 $columns_value = $plan ? (int)$plan['columns'] : 4;
 $rows_value = $plan ? (int)$plan['rows'] : 4;
@@ -197,6 +226,7 @@ render_header('Sitzplan',$u);
   <h1>Sitzplan</h1>
   <div class="muted">Klasse: <b><?php echo h($class['name']); ?></b> · Fach: <b><?php echo h($subject['code']); ?></b> · Lehrkraft: <b><?php echo h($u['username'] ?? ''); ?></b></div>
   <p class="muted" style="margin-top:8px">Du kannst mehrere Sitzpläne für diese Klasse/dieses Fach anlegen, z.&nbsp;B. für unterschiedliche Räume oder für Gruppenstunden mit abweichender Sitzordnung. In der Mitarbeitserfassung wählst du dann aus, welcher Sitzplan gerade gelten soll.</p>
+  <p class="muted small" style="margin-top:4px">Ob neue Sitzpläne als Raster (Spalten × Reihen) oder mit dem Sitzplan-Editor (freie Anordnung mit Vorlagen) angelegt werden, stellst du unter <a href="<?php echo h($bp); ?>/account.php#account-pref-seating">Konto › Persönliche Einstellungen › Sitzplan</a> ein.</p>
 
   <?php if($msg): ?><div class="flash success" style="margin-top:10px"><?php echo h($msg); ?></div><?php endif; ?>
   <?php if($err): ?><div class="flash error" style="margin-top:10px"><?php echo h($err); ?></div><?php endif; ?>
@@ -213,7 +243,7 @@ render_header('Sitzplan',$u);
             <input type="hidden" name="class_id" value="<?php echo (int)$class_id; ?>">
             <input type="hidden" name="subject_id" value="<?php echo (int)$subject_id; ?>">
             <input type="hidden" name="source_plan_id" value="<?php echo (int)$op['id']; ?>">
-            <button type="submit" class="btn small secondary">„<?php echo h($op['name']); ?>“ aus <?php echo h($op['subject_code']); ?> übernehmen (<?php echo (int)$op['columns']; ?>×<?php echo (int)$op['rows']; ?>, <?php echo count($op['seats_by_position']); ?> Plätze belegt)</button>
+            <button type="submit" class="btn small secondary">„<?php echo h($op['name']); ?>“ aus <?php echo h($op['subject_code']); ?> übernehmen (<?php echo h(seating_plan_size_label($op)); ?>, <?php echo count($op['seats_by_position']); ?> Plätze belegt)</button>
           </form>
         <?php endforeach; ?>
       </div>
@@ -227,13 +257,88 @@ render_header('Sitzplan',$u);
       <?php foreach($plans as $p): ?>
         <a class="btn small <?php echo ($plan && (int)$plan['id']===(int)$p['id']) ? '' : 'secondary'; ?>"
            href="<?php echo h($bp); ?>/teacher/seating_plan.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'plan_id'=>(int)$p['id']])); ?>">
-          <?php echo h($p['name']); ?> (<?php echo (int)$p['columns']; ?>×<?php echo (int)$p['rows']; ?>)
+          <?php echo h($p['name']); ?> (<?php echo h(seating_plan_size_label($p)); ?>)
         </a>
       <?php endforeach; ?>
       <a class="btn small utility-manage" href="<?php echo h($bp); ?>/teacher/seating_plan.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'new'=>1])); ?>#seatingPlanForm">+ neuer Sitzplan</a>
     </div>
   <?php endif; ?>
 
+  <?php if($useEditor): ?>
+    <?php
+      $editorTemplates=[];
+      $templateMeta=seating_plan_templates();
+      foreach(user_seating_templates($u) as $tplKey){
+        $editorTemplates[]=[$tplKey,$templateMeta[$tplKey]['label'],$templateMeta[$tplKey]['desc']];
+      }
+      $editorData=$plan ? seating_plan_client_data($plan) : ['layout'=>null,'seats'=>[]];
+      // Speichern fehlgeschlagen (z.B. Name schon vergeben): ungespeicherte
+      // Anordnung aus dem Formular wieder anzeigen statt sie zu verlieren.
+      if($err!=='' && (string)($_POST['action'] ?? '')==='save_free_plan'){
+        $postedLayout=json_decode((string)($_POST['layout_json'] ?? ''),true);
+        $postedSeats=json_decode((string)($_POST['seats_json'] ?? ''),true);
+        if(is_array($postedLayout) && isset($postedLayout['tables'])){
+          try{ $editorData=['layout'=>seating_layout_normalize($postedLayout),'seats'=>is_array($postedSeats)?$postedSeats:[]]; }catch(Throwable $ignored){}
+        }
+        $name_value=(string)($_POST['name'] ?? $name_value);
+      }
+    ?>
+    <link rel="stylesheet" href="<?php echo h($bp); ?>/assets/seating.css?v=<?php echo h(_asset_v('assets/seating.css')); ?>">
+    <div style="height:16px"></div>
+    <form method="post" id="seatingPlanForm">
+      <?php echo csrf_input(); ?>
+      <input type="hidden" name="action" value="save_free_plan">
+      <input type="hidden" name="class_id" value="<?php echo (int)$class_id; ?>">
+      <input type="hidden" name="subject_id" value="<?php echo (int)$subject_id; ?>">
+      <input type="hidden" name="plan_id" value="<?php echo $plan ? (int)$plan['id'] : 0; ?>">
+      <input type="hidden" name="layout_json" id="seatingLayoutInput" value="">
+      <input type="hidden" name="seats_json" id="seatingSeatsInput" value="">
+      <div class="row" style="align-items:end;flex-wrap:wrap;gap:10px">
+        <div>
+          <label class="muted">Name</label>
+          <input class="input" name="name" maxlength="120" value="<?php echo h($name_value); ?>" placeholder="z.B. Standard, EDV-Saal, Gruppe A" style="width:220px">
+        </div>
+        <div style="flex:0 0 auto">
+          <label class="muted">&nbsp;</label>
+          <button class="btn"><?php echo $isNewPlan ? 'Sitzplan anlegen' : 'Speichern'; ?></button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="cs-editor" id="seatingEditor"><div class="muted">Sitzplan-Editor wird geladen …</div></div>
+      <div style="height:12px"></div>
+      <button class="btn" style="width:auto"><?php echo $isNewPlan ? 'Sitzplan anlegen' : 'Speichern'; ?></button>
+      <span class="muted small" style="margin-left:8px">Änderungen an Tischen und Plätzen werden erst mit diesem Knopf gespeichert.</span>
+    </form>
+    <?php if(!$isNewPlan): ?>
+      <div style="height:12px"></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <a class="btn secondary" style="flex:0 0 auto" href="<?php echo h($bp); ?>/teacher/seating_plan.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id,'new'=>1])); ?>">Neuen Sitzplan anlegen (statt bearbeiten)</a>
+        <form method="post" onsubmit="return confirm('Diesen Sitzplan wirklich löschen?');" style="margin:0;flex:0 0 auto">
+          <?php echo csrf_input(); ?>
+          <input type="hidden" name="action" value="delete_plan">
+          <input type="hidden" name="class_id" value="<?php echo (int)$class_id; ?>">
+          <input type="hidden" name="subject_id" value="<?php echo (int)$subject_id; ?>">
+          <input type="hidden" name="plan_id" value="<?php echo (int)$plan['id']; ?>">
+          <button class="btn small danger" type="submit">Diesen Sitzplan löschen</button>
+        </form>
+      </div>
+    <?php endif; ?>
+    <script src="<?php echo h($bp); ?>/assets/seating_layout.js?v=<?php echo h(_asset_v('assets/seating_layout.js')); ?>"></script>
+    <script>
+    (function(){
+      var form=document.getElementById('seatingPlanForm');
+      window.CoolSeating.mountEditor(document.getElementById('seatingEditor'), {
+        layout: <?php echo json_encode($editorData['layout'], JSON_HEX_TAG|JSON_HEX_AMP); ?>,
+        seats: <?php echo json_encode($editorData['seats'], JSON_HEX_TAG|JSON_HEX_AMP); ?>,
+        students: <?php echo json_encode(seating_plan_client_students($students), JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_AMP); ?>,
+        templates: <?php echo json_encode($editorTemplates, JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_AMP); ?>,
+        form: form,
+        layoutInput: document.getElementById('seatingLayoutInput'),
+        seatsInput: document.getElementById('seatingSeatsInput')
+      });
+    })();
+    </script>
+  <?php else: ?>
   <div style="height:16px"></div>
   <div class="row" style="align-items:end;flex-wrap:wrap">
     <form method="post" id="seatingPlanForm" style="display:contents">
@@ -541,6 +646,7 @@ render_header('Sitzplan',$u);
     })();
     </script>
   <?php endif; ?>
+  <?php endif; /* $useEditor */ ?>
 
   <div style="height:16px"></div>
   <a class="btn secondary" href="<?php echo h($bp); ?>/teacher/participation_new.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id])); ?>">Zurück zur Mitarbeitserfassung</a>

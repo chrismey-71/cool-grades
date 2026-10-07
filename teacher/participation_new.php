@@ -1113,7 +1113,7 @@ render_header('Mitarbeit',$u);
         <?php if(count($seatingPlans)>1): ?>
           <select class="input small" id="seatingPlanSelect" onchange="switchSeatingPlan(this.value)" style="width:auto">
             <?php foreach($seatingPlans as $planRow): ?>
-              <option value="<?php echo (int)$planRow['id']; ?>"><?php echo h($planRow['name']); ?> (<?php echo (int)$planRow['columns']; ?>×<?php echo (int)$planRow['rows']; ?>)</option>
+              <option value="<?php echo (int)$planRow['id']; ?>"><?php echo h($planRow['name']); ?> (<?php echo h(seating_plan_size_label($planRow)); ?>)</option>
             <?php endforeach; ?>
           </select>
         <?php endif; ?>
@@ -1181,6 +1181,10 @@ render_header('Mitarbeit',$u);
           <div style="height:10px"></div>
           <?php foreach($seatingPlans as $planIndex=>$planRow): ?>
             <div class="seatingPlanContainer" data-plan-id="<?php echo (int)$planRow['id']; ?>" style="<?php echo $planIndex===0?'':'display:none'; ?>">
+              <?php if(($planRow['layout_type'] ?? 'grid')==='free'): ?>
+                <?php $hasFreeSeatingPlan=true; ?>
+                <div class="cs-viewwrap" data-cs-view="<?php echo h(json_encode(seating_plan_client_data($planRow))); ?>"></div>
+              <?php else: ?>
               <div class="seating-grid" style="display:grid;grid-template-columns:repeat(<?php echo (int)$planRow['columns']; ?>, minmax(90px,1fr));gap:8px;max-width:100%;overflow-x:auto">
                 <?php for($seatR=1;$seatR<=(int)$planRow['rows'];$seatR++): ?>
                   <?php for($seatC=1;$seatC<=(int)$planRow['columns'];$seatC++): ?>
@@ -1195,6 +1199,7 @@ render_header('Mitarbeit',$u);
                   <?php endfor; ?>
                 <?php endfor; ?>
               </div>
+              <?php endif; ?>
               <?php $unplacedForPlan=$unplacedStudentsByPlan[(int)$planRow['id']] ?? []; ?>
               <?php if($unplacedForPlan): ?>
                 <div style="height:10px"></div>
@@ -1210,6 +1215,21 @@ render_header('Mitarbeit',$u);
               <?php endif; ?>
             </div>
           <?php endforeach; ?>
+          <?php if(!empty($hasFreeSeatingPlan)): ?>
+            <link rel="stylesheet" href="<?php echo h($bp); ?>/assets/seating.css?v=<?php echo h(_asset_v('assets/seating.css')); ?>">
+            <script src="<?php echo h($bp); ?>/assets/seating_layout.js?v=<?php echo h(_asset_v('assets/seating_layout.js')); ?>"></script>
+            <script>
+            (function(){
+              // Freie Sitzpläne (Sitzplan-Editor) als Grafik aus Sicht des Lehrertischs;
+              // Antippen eines Platzes schaltet die Auswahl wie bei der Liste um.
+              var csStudents=<?php echo json_encode(seating_plan_client_students($students), JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_AMP); ?>;
+              document.querySelectorAll('.cs-viewwrap[data-cs-view]').forEach(function(el){
+                var d=JSON.parse(el.getAttribute('data-cs-view'));
+                window.CoolSeating.mountView(el,{layout:d.layout,seats:d.seats,students:csStudents,onSeatClick:function(id){ toggleSeatStudent(id); }});
+              });
+            })();
+            </script>
+          <?php endif; ?>
         <?php else: ?>
           <div class="muted" style="margin-top:10px">Für diese Klasse/dieses Fach ist noch kein Sitzplan angelegt.</div>
         <?php endif; ?>
@@ -1368,6 +1388,14 @@ render_header('Mitarbeit',$u);
       el.style.borderColor = selected ? '#2f855a' : (alreadyRated ? '#f6ad55' : '#cbd5e1');
       el.style.borderWidth = selected ? '2px' : '1px';
       el.style.background = selected ? '#e6fffa' : (alreadyRated ? '#fffaf0' : '');
+    });
+    // Freie Sitzpläne (SVG, assets/seating_layout.js): Zustand über Klassen.
+    document.querySelectorAll('.cs-seat[data-student-id]').forEach(el=>{
+      const cb=document.getElementById('stu_'+el.getAttribute('data-student-id'));
+      const selected = !!(cb && cb.checked);
+      const alreadyRated = !!(cb && cb.closest('.studentItem') && cb.closest('.studentItem').classList.contains('student-already-rated'));
+      el.classList.toggle('cs-on', selected);
+      el.classList.toggle('cs-rated', !selected && alreadyRated);
     });
   }
 
@@ -1599,6 +1627,7 @@ render_header('Mitarbeit',$u);
       cb.addEventListener('change', updateCriteriaChipCounts);
     });
     updateCriteriaChipCounts();
+    syncSeatHighlights();
   })();
   </script>
 

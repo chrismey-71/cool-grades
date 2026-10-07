@@ -3,6 +3,7 @@ require_once __DIR__.'/lib/layout.php';
 require_once __DIR__.'/lib/events.php';
 require_once __DIR__.'/lib/security.php';
 require_once __DIR__.'/lib/webuntis_ical.php';
+require_once __DIR__.'/lib/seating_plans.php';
 $u=require_login(); $msg=''; $err='';
 $webuntisImportSummary=null;
 if($_SERVER['REQUEST_METHOD']==='POST'){
@@ -78,6 +79,17 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                              pref_nav_style=?, pref_lesson_lookback_days=?
                          WHERE id=?");
       $st->execute([$theme,$quick,$quickPickEnabled,$quickPickLimit,$legalHintsEnabled,$compactFormsEnabled,$visualContrast,$simpleParticipationEntry,$navStyle,$lessonLookbackDays,(int)$u['id']]);
+      if(($u['role'] ?? '')==='teacher'){
+        // Kategorie "Sitzplan": klassisches Raster oder Sitzplan-Editor und
+        // die im Editor angebotenen Vorlagen (lib/seating_plans.php).
+        $seatingDesign = (string)($_POST['pref_seating_design'] ?? 'classic');
+        if(!in_array($seatingDesign,['classic','editor'],true)) $seatingDesign='classic';
+        $seatingTemplatesPost = $_POST['pref_seating_templates'] ?? [];
+        if(!is_array($seatingTemplatesPost)) $seatingTemplatesPost = [];
+        $seatingTemplates = implode(',', array_values(array_intersect(array_keys(seating_plan_templates()), array_map('strval',$seatingTemplatesPost))));
+        $st=db()->prepare("UPDATE users SET pref_seating_design=?, pref_seating_templates=? WHERE id=?");
+        $st->execute([$seatingDesign,$seatingTemplates,(int)$u['id']]);
+      }
       $msg='Einstellungen gespeichert.';
       $u=current_user();
     } elseif($action==='webuntis_save'){
@@ -321,6 +333,50 @@ render_header('Konto',$u);
           </label>
         </div>
         <div class="small muted settings-panel-note">Bestimmt, ob die Menüpunkte oben als Text, als Symbol oder als Symbol mit Text angezeigt werden. Wirkt nur auf die Darstellung, nicht auf verfügbare Funktionen.</div>
+      </div>
+    </div>
+    </div>
+    <?php accordion_section_end(true); ?>
+    </div>
+    <?php
+      $seatingDesignPref = user_seating_design($u);
+      $seatingTemplatesPref = user_seating_templates($u);
+      $seatingTemplateGroups = [];
+      foreach(seating_plan_templates() as $tplKey=>$tplMeta) $seatingTemplateGroups[$tplMeta['group']][$tplKey]=$tplMeta;
+    ?>
+    <div class="col-12">
+    <?php accordion_section_start(true, 'Sitzplan', false, 'margin-top:0'); ?>
+    <div class="settings-grid">
+    <div class="col-12">
+      <div class="settings-panel" id="account-pref-seating">
+        <div class="settings-panel-title">Darstellung neuer Sitzpläne <span class="setting-impact">Sitzplan</span></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_seating_design" value="classic" style="width:auto" <?php echo $seatingDesignPref==='classic'?'checked':''; ?>>
+            <span>Klassisches Design (Spalten × Reihen)</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;min-width:auto;flex:0 0 auto">
+            <input type="radio" name="pref_seating_design" value="editor" style="width:auto" <?php echo $seatingDesignPref==='editor'?'checked':''; ?>>
+            <span>Mit Sitzplan-Editor (freie Anordnung mit Vorlagen)</span>
+          </label>
+        </div>
+        <div class="small muted settings-panel-note">Gilt für neu angelegte Sitzpläne. Bestehende Sitzpläne bleiben, wie sie sind, und werden in der Form bearbeitet, in der sie angelegt wurden. Die Namensliste in der Mitarbeitserfassung bleibt in beiden Fällen umschaltbar.</div>
+        <div style="height:12px"></div>
+        <div class="settings-panel-title" style="font-size:14px">Im Sitzplan-Editor angebotene Vorlagen</div>
+        <div class="small muted" style="margin-bottom:8px">Nur angehakte Vorlagen erscheinen im Editor. „Leer“ (freie Gestaltung) steht immer zur Verfügung.</div>
+        <div class="settings-grid">
+          <?php foreach($seatingTemplateGroups as $groupName=>$groupTemplates): ?>
+            <div class="col-12 col-4">
+              <div class="muted small" style="font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px"><?php echo h($groupName); ?></div>
+              <?php foreach($groupTemplates as $tplKey=>$tplMeta): ?>
+                <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">
+                  <input type="checkbox" name="pref_seating_templates[]" value="<?php echo h($tplKey); ?>" style="width:auto;margin-top:3px" <?php echo in_array($tplKey,$seatingTemplatesPref,true)?'checked':''; ?>>
+                  <span><b><?php echo h($tplMeta['label']); ?></b><br><span class="small muted"><?php echo h($tplMeta['desc']); ?></span></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
       </div>
     </div>
     </div>

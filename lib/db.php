@@ -881,6 +881,34 @@ function _ensure_schema(PDO $pdo): void {
   }
 
   try{
+    // Sitzplan-Editor (1.81.6): freie Tischanordnung. layout_type 'free'
+    // nutzt layout_json (Tische mit Typ/Position/Drehung); die Belegung
+    // bleibt in teacher_seating_plan_seats (seat_col = Tisch-Nr.,
+    // seat_row = Platz am Tisch). Siehe migrations/2026-10-07_seating_plan_editor.sql.
+    $st=$pdo->query("SHOW COLUMNS FROM teacher_seating_plans LIKE 'layout_json'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE teacher_seating_plans ADD COLUMN layout_json MEDIUMTEXT NULL AFTER grid_rows");
+    }
+  }catch(Exception $e){
+    if(function_exists('app_log')) app_log('error','_ensure_schema: could not add teacher_seating_plans.layout_json',['message'=>$e->getMessage()]);
+  }
+
+  try{
+    // Persönliche Einstellung "Sitzplan": klassisches Raster oder Sitzplan-Editor
+    // sowie die im Editor angebotenen Vorlagen (Komma-Liste, NULL = alle).
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'pref_seating_design'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN pref_seating_design VARCHAR(16) NOT NULL DEFAULT 'classic'");
+    }
+    $st=$pdo->query("SHOW COLUMNS FROM users LIKE 'pref_seating_templates'");
+    if(!$st->fetch()){
+      $pdo->exec("ALTER TABLE users ADD COLUMN pref_seating_templates TEXT NULL AFTER pref_seating_design");
+    }
+  }catch(Exception $e){
+    if(function_exists('app_log')) app_log('error','_ensure_schema: could not add seating plan preferences',['message'=>$e->getMessage()]);
+  }
+
+  try{
     $pdo->exec("CREATE TABLE IF NOT EXISTS assessment_weight_settings (
       id INT AUTO_INCREMENT PRIMARY KEY,
       teacher_id INT NOT NULL,

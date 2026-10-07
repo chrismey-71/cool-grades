@@ -122,7 +122,7 @@ if($class && $subject){
     ];
   }
 
-  if($plan){
+  if($plan && ($plan['layout_type'] ?? 'grid')!=='free'){
     for($r=1;$r<=(int)$plan['rows'];$r++){
       for($c=1;$c<=(int)$plan['columns'];$c++){
         $seat=$plan['seats_by_position'][$c.'_'.$r] ?? null;
@@ -203,7 +203,23 @@ render_header('Kompetenz-Beobachtung',$u);
       <span>Kompetenz-Modus für heute, <?php echo h(date('d.m.Y')); ?> – unabhängig von der Sitzordnung, es wird nichts an einem Sitzplan verändert.</span>
     </div>
 
-    <?php if($plan): ?>
+    <?php if($plan && ($plan['layout_type'] ?? 'grid')==='free'): ?>
+      <p class="cq-hint-line muted">Klicke auf eine Schülerin/einen Schüler, um eine Kompetenz-Notiz zu hinterlegen. Grün umrandet ist, wer heute schon erfasst wurde. Die Anordnung entspricht deinem zuletzt verwendeten Sitzplan „<?php echo h($plan['name']); ?>“ – rein zur Orientierung, hier lässt sich nichts umsetzen oder löschen.</p>
+      <link rel="stylesheet" href="<?php echo h($bp); ?>/assets/seating.css?v=<?php echo h(_asset_v('assets/seating.css')); ?>">
+      <div class="cs-viewwrap" id="cqSeatingView"></div>
+      <script src="<?php echo h($bp); ?>/assets/seating_layout.js?v=<?php echo h(_asset_v('assets/seating_layout.js')); ?>"></script>
+      <script>
+      (function(){
+        var d=<?php echo json_encode(seating_plan_client_data($plan), JSON_HEX_TAG|JSON_HEX_AMP); ?>;
+        window.CoolSeating.mountView(document.getElementById('cqSeatingView'),{
+          layout:d.layout, seats:d.seats,
+          students:<?php echo json_encode(seating_plan_client_students($students), JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_AMP); ?>,
+          seatClass:function(id){ return id ? 'cq-seat-cell' : ''; },
+          onSeatClick:function(id){ window.cqOpenPopover(id); }
+        });
+      })();
+      </script>
+    <?php elseif($plan): ?>
       <p class="cq-hint-line muted">Klicke auf eine Schülerin/einen Schüler, um eine Kompetenz-Notiz zu hinterlegen. Der grüne Punkt zeigt, wer heute schon erfasst wurde. Die Anordnung entspricht deinem zuletzt verwendeten Sitzplan „<?php echo h($plan['name']); ?>“ (<?php echo (int)$plan['columns']; ?>×<?php echo (int)$plan['rows']; ?>) – rein zur Orientierung, hier lässt sich nichts umsetzen oder löschen.</p>
       <div class="cq-seat-grid" style="grid-template-columns:repeat(<?php echo (int)$plan['columns']; ?>,1fr)">
         <?php foreach($seatGridCells as $cell): $sid=$cell['student_id']; ?>
