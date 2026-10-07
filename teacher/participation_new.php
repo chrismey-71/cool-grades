@@ -1108,8 +1108,8 @@ render_header('Mitarbeit',$u);
       <div style="height:10px"></div>
       <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
         <span class="muted"><b>Ansicht:</b></span>
-        <button type="button" class="btn small" id="studentViewListBtn" onclick="setStudentView('list')">Liste</button>
-        <button type="button" class="btn small secondary" id="studentViewSeatBtn" onclick="setStudentView('seat')" <?php echo $seatingPlans?'':'disabled title="Noch kein Sitzplan angelegt"'; ?>>Sitzplan</button>
+        <button type="button" class="btn small<?php echo $seatingPlans?' secondary':''; ?>" id="studentViewListBtn" onclick="setStudentView('list')">Liste</button>
+        <button type="button" class="btn small<?php echo $seatingPlans?'':' secondary'; ?>" id="studentViewSeatBtn" onclick="setStudentView('seat')" <?php echo $seatingPlans?'':'disabled title="Noch kein Sitzplan angelegt"'; ?>>Sitzplan</button>
         <?php if(count($seatingPlans)>1): ?>
           <select class="input small" id="seatingPlanSelect" onchange="switchSeatingPlan(this.value)" style="width:auto">
             <?php foreach($seatingPlans as $planRow): ?>
@@ -1120,7 +1120,7 @@ render_header('Mitarbeit',$u);
         <a class="btn small utility-manage" href="<?php echo h($bp); ?>/teacher/seating_plan.php?<?php echo h(http_build_query(['class_id'=>$class_id,'subject_id'=>$subject_id])); ?>"><?php echo $seatingPlans?'Sitzpläne verwalten':'Sitzplan anlegen'; ?></a>
       </div>
 
-      <div id="studentListView">
+      <div id="studentListView"<?php echo $seatingPlans?' style="display:none"':''; ?>>
       <?php if($quick): ?>
         <div style="height:10px"></div>
         <div class="muted">
@@ -1175,7 +1175,7 @@ render_header('Mitarbeit',$u);
       </div>
       </div>
 
-      <div id="studentSeatView" style="display:none">
+      <div id="studentSeatView"<?php echo $seatingPlans?'':' style="display:none"'; ?>>
         <?php if($seatingPlans): ?>
           <div class="muted" style="margin-top:10px">Klicke auf einen Platz, um die Auswahl umzuschalten.</div>
           <div style="height:10px"></div>
