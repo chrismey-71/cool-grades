@@ -4,181 +4,67 @@ Diese Roadmap beschreibt geplante Weiterentwicklungen von COOL-Grades. Die genan
 
 Grundsatz: COOL-Grades unterstützt Lehrkräfte bei Dokumentation, Auswertung und pädagogischer Entscheidungsfindung. Die App legt keine automatische rechtlich verbindliche Leistungsbeurteilung fest.
 
+## Bereits umgesetzt
+
+- **WebUntis-iCal-Import und Stundenplanansicht** ([#2](https://github.com/chrismey-71/cool-grades/issues/2), geschlossen): Unterrichtsstunden werden aus dem WebUntis-iCal-Feed übernommen, als Wochen-Stundenplan angezeigt und können direkt als Stundenkontext in der Mitarbeitserfassung verwendet werden. Details stehen im CHANGELOG.
+- **Kompetenz-Beobachtung** (1.81.5): eigener, nicht bewertender Erfassungsweg für Methoden-, Sozial- und Selbstkompetenz mit Kompetenzprofil. Er dient als Vorlage für die formative Lernrückmeldung.
+- **Sitzplan-Editor** (1.81.6): freie Tischanordnung mit Vorlagen (Lerninseln, U-Form, Fischgräte u. a.) für Mitarbeitserfassung und Kompetenz-Beobachtung.
+
 ## Nächster geplanter Entwicklungsschritt
 
-### 1. WebUntis-iCal-Import und Stundenplanansicht für den Stundenkontext
+### 1. Formative Lernrückmeldung
 
-GitHub-Issue: [#2 WebUntis-iCal-Import für Stundenkontext vorbereiten](https://github.com/chrismey-71/cool-grades/issues/2)
+GitHub-Issue: [#4 Formative Lernrückmeldung: Kennzeichnung, Erfassung und getrennte Auswertung](https://github.com/chrismey-71/cool-grades/issues/4) (fasst die früheren Issues #4, #5, #6 und #7 zusammen)
 
-Status: geplant, Umsetzung erst sinnvoll, sobald echte WebUntis-Daten aus dem laufenden Schuljahr verfügbar sind.
+Ziel ist, Lernfortschritte und Rückmeldungen zu dokumentieren, ohne dass daraus automatisch eine Bewertung oder ein Notenvorschlag entsteht.
 
-Ziel ist, Unterrichtsstunden aus einem WebUntis-iCal-/ICS-Feed als Vorschläge in COOL-Grades zu übernehmen. Die importierten Stunden sollen nicht nur technisch gespeichert werden, sondern für Lehrer:innen als übersichtlicher Stundenplan sichtbar sein.
+Ausgangslage: Mitarbeitseinträge lassen sich bereits als „lernbegleitend (formativ)“ oder „bilanzierend (summativ)“ beschriften, fließen aber unabhängig davon alle in die Notenvorschläge ein.
 
-Geplanter Nutzen für Lehrer:innen:
+Umsetzung in drei Schritten:
 
-- der eigene Stundenplan kann in COOL-Grades angezeigt werden
-- Unterrichtsstunden können direkt aus dem Stundenplan ausgewählt werden
-- Datum, Uhrzeit, Fach, Klasse/Gruppe, Raum und Thema müssen nicht erneut manuell eingegeben werden
-- die passende Stunde kann in der Mitarbeitserfassung als Stundenkontext übernommen werden
-- bereits dokumentierte Stunden können sichtbar markiert werden
-- doppelte oder versehentliche Mehrfacherfassungen werden leichter vermieden
-- manuelle Stundenerfassung bleibt weiterhin möglich
+1. **Bewertungsrelevanz kennzeichnen:** Jeder Eintrag ist eindeutig *bewertungsrelevant*, *nur Lernrückmeldung* oder *private Notiz*. Nur bewertungsrelevante Einträge fließen in Notenvorschläge ein. Bestehende Einträge bleiben bewertungsrelevant, damit sich bereits berechnete Notenvorschläge nicht nachträglich verändern.
+2. **Lernrückmeldung erfassen:** eigener Bereich nach dem Muster der Kompetenz-Beobachtung, mit den Feldern Lernziel, Erfolgskriterium, beobachteter Lernstand, nächster Lernschritt und Kommentar. Die Erfassung muss im Unterricht schnell gehen.
+3. **Getrennte Anzeige:** eigener Abschnitt „Formative Lernrückmeldungen“ in Webauswertung und PDF-Berichten, getrennt von der Beurteilungsgrundlage.
 
-Möglicher Workflow:
+Geplanter Nutzen:
 
-1. Lehrkraft hinterlegt ihren privaten WebUntis-iCal-Link in einem geschützten Konto- oder Verwaltungsbereich.
-2. Die App ruft den iCal-/ICS-Feed manuell per Button oder später optional automatisiert ab.
-3. Die App zeigt die importierten Stunden in einer Wochen- oder Tagesansicht an.
-4. Die Lehrkraft wählt eine konkrete Stunde aus dem angezeigten Stundenplan.
-5. COOL-Grades zeigt an, ob für diese Stunde bereits Mitarbeitseinträge vorhanden sind.
-6. Die Lehrkraft kann aus der Stunde heraus direkt zur Mitarbeitserfassung wechseln.
-7. Der Stundenkontext wird in der Mitarbeitserfassung vorausgefüllt.
-8. Unklare oder nicht zuordenbare WebUntis-Termine werden nicht automatisch falsch gespeichert, sondern in einer Vorschau zur Prüfung angezeigt.
-
-Mögliche Anzeige im Stundenplan:
-
-- normale Stunde: neutral dargestellt
-- Stunde mit vorhandenen Mitarbeitseinträgen: dezent markiert, z. B. mit kleinem Symbol oder Zähler
-- Stunde mit unklarer Zuordnung: Hinweis „Zuordnung prüfen“
-- entfallene oder geänderte Stunde: gesondert kennzeichnen, falls WebUntis diese Information liefert
-
-Wichtige Anforderungen:
-
-- iCal-Links enthalten Token und müssen wie Zugangsdaten behandelt werden
-- keine Veröffentlichung von Token in GitHub, Logs, Screenshots oder PDF
-- Import nur für berechtigte Lehrer:innen und deren Schulen/Klassen/Fächer
-- Vorschau vor dem Speichern
-- keine doppelten Stunden
-- Anzeige, in welchen Stunden bereits Einträge vorhanden sind
-- Auswahl einer Stunde direkt aus dem Stundenplan heraus
-- manuelle Stundenerfassung bleibt möglich
+- klare Trennung zwischen Lernbegleitung und Leistungsbeurteilung
+- weniger Risiko, formative Hinweise versehentlich als bewertungsrelevant zu behandeln
+- konkretere, handlungsorientierte Rückmeldungen als Grundlage für Feedbackgespräche
 
 ## Weitere geplante Entwicklungsschritte
 
-### 2. Formative Lernrückmeldungen als eigener Workflow
+### 2. Lernentwicklungs- und Reflexionsansicht
 
-Ziel ist ein eigener Bereich für Lernrückmeldungen, die nicht automatisch bewertungsrelevant sind.
+GitHub-Issue: [#10 Lernentwicklungs- und Reflexionsansicht planen](https://github.com/chrismey-71/cool-grades/issues/10) (setzt #4 voraus)
 
-Geplanter Nutzen für Lehrer:innen:
+Ziel ist, Entwicklungen über einen längeren Zeitraum sichtbar zu machen. Die Ansicht folgt dem Muster von Kompetenzprofil und Kriterien-Profil (Auswertung je Schüler:in über einen gewählten Zeitraum).
 
-- Lernfortschritte dokumentieren, ohne sofort eine Note oder Bewertung abzuleiten
-- klare Trennung zwischen Lernbegleitung und Leistungsbeurteilung
-- bessere Grundlage für Feedbackgespräche
-
-Geplanter Nutzen für Schüler:innen, falls später sichtbar gemacht:
-
-- verständlichere Hinweise zum eigenen Lernstand
-- konkrete nächste Lernschritte
-- weniger Verwechslung zwischen Feedback und Note
-
-Mögliche Umsetzung:
-
-- neuer Bereich „Lernrückmeldung erfassen“
-- Auswahl: Lernhinweis, bewertungsrelevanter Eintrag, private Notiz
-- keine automatische Einrechnung in Notenvorschläge
-- deutliche Kennzeichnung in Webansicht und Exporten
-
-### 3. Trennung zwischen Lernhinweisen und bewertungsrelevanten Einträgen
-
-Ziel ist, dass jeder Eintrag klar erkennen lässt, ob er in Auswertungen und Notenvorschläge einfließt.
-
-Geplanter Nutzen:
-
-- mehr Transparenz für Lehrkräfte
-- weniger Risiko, formative Hinweise versehentlich als bewertungsrelevant zu behandeln
-- bessere Nachvollziehbarkeit bei Auswertungen und Abschlussbeurteilungen
-
-Mögliche Umsetzung:
-
-- Kennzeichnung pro Eintrag:
-  - bewertungsrelevant
-  - nur formative Lernrückmeldung
-  - private Notiz
-- Filter in Auswertungen
-- getrennte Anzeige in PDF-Berichten
-
-### 4. Lernziele, Erfolgskriterien, Lernstand und nächste Schritte
-
-Ziel ist eine strukturierte Rückmeldung nach pädagogischen Gesichtspunkten.
-
-Mögliche Felder:
-
-- Lernziel
-- Erfolgskriterium
-- beobachteter Lernstand
-- nächster Lernschritt
-- optionaler Kommentar
-
-Geplanter Nutzen:
-
-- Rückmeldungen werden konkreter und handlungsorientierter
-- Schüler:innen erhalten klarere Hinweise, was sie bereits können und woran sie weiterarbeiten sollen
-- Lehrkräfte können Lernentwicklung besser nachvollziehen
-
-### 5. Separate Ausweisung formativer Rückmeldungen in Auswertung und PDF
-
-Ziel ist, formative Rückmeldungen sichtbar zu machen, aber nicht mit bewertungsrelevanter Mitarbeit zu vermischen.
-
-Geplanter Nutzen:
-
-- Auswertungen bleiben rechtlich und pädagogisch klar
-- PDF-Berichte können Lernentwicklung zusätzlich zur Beurteilungsgrundlage zeigen
-- Notenvorschläge bleiben getrennt von reinen Lernhinweisen
-
-Mögliche Umsetzung:
-
-- eigener Abschnitt „Formative Lernrückmeldungen“
-- Anzeige von Lernzielen, Lernstand und nächsten Schritten
-- Hinweis, dass diese Rückmeldungen nicht automatisch eine Note festlegen
-
-### 6. Optionale Selbstfeedback-Funktion
-
-Ziel ist, Schüler:innen einfache Selbsteinschätzungen zu ermöglichen, sofern die Schule bzw. Lehrkraft dies nutzen möchte.
-
-Mögliche Umsetzung:
-
-- Schüler:in schätzt eigenen Lernstand zu einem Lernziel ein
-- Lehrkraft sieht Selbstfeedback ergänzend zur eigenen Beobachtung
-- Selbstfeedback wird nicht automatisch bewertet
-
-Geplanter Nutzen:
-
-- stärkere Eigenverantwortung der Schüler:innen
-- bessere Gesprächsgrundlage
-- Unterstützung einer reflektierten Lernkultur
-
-### 7. Optionale Peer-Feedback-Funktion
-
-Ziel ist, strukturiertes Feedback zwischen Schüler:innen zu ermöglichen, z. B. bei Präsentationen, Gruppenarbeiten oder Projekten.
-
-Wichtige Voraussetzung:
-
-- Datenschutz und Sichtbarkeit müssen sehr sorgfältig geregelt werden
-- Lehrkraft muss steuern können, wer was sieht
-- Peer-Feedback darf nicht ungeprüft in Notenvorschläge einfließen
-
-Mögliche Umsetzung:
-
-- aktivierbare Funktion pro Klasse/Fach/Aufgabe
-- vorgegebene Feedbackkriterien
-- Freigabe oder Sichtprüfung durch Lehrkraft
-
-### 8. Lernentwicklungsansicht und Reflexionsübersicht
-
-Ziel ist, Entwicklungen über einen längeren Zeitraum sichtbar zu machen.
-
-Geplanter Nutzen:
-
-- Lehrkräfte erkennen Fortschritte, wiederkehrende Schwierigkeiten und Entwicklungslinien
-- Schüler:innen können Lernfortschritt besser nachvollziehen
-- Auswertung wird stärker pädagogisch interpretierbar
-
-Mögliche Umsetzung:
+Mögliche Inhalte:
 
 - Verlauf pro Schüler:in
-- Lernziele mit Statusentwicklung
+- Lernziele mit Entwicklung des Lernstands
 - Übersicht über wiederkehrende nächste Schritte
 - Reflexionsnotizen der Lehrkraft
+
+### 3. Beteiligung der Schüler:innen: Selbst- und Peer-Feedback
+
+GitHub-Issue: [#8 Beteiligung der Schüler:innen: Zugang, Selbst- und Peer-Feedback (Konzept)](https://github.com/chrismey-71/cool-grades/issues/8) (fasst die früheren Issues #8 und #9 zusammen)
+
+Ausgangslage: COOL-Grades kennt nur Lehrkräfte und Admins. Selbst- und Peer-Feedback setzen einen Zugang für Schüler:innen voraus und sind damit eine Architekturentscheidung.
+
+Zuerst zu klären:
+
+- Zugangsart (Schüler:innen-Konten, zeitlich begrenzte Links oder Erfassung am Gerät der Lehrkraft)
+- Sichtbarkeit, Freigabe durch die Lehrkraft, Speicherung und Löschung
+- datenschutzrechtliche Grundlage und Abstimmung mit der Schule
+
+Anwendungsfälle danach:
+
+- **Selbstfeedback:** Schüler:in schätzt den eigenen Lernstand zu einem Lernziel ein, sichtbar nur für die Lehrkraft.
+- **Peer-Feedback:** strukturierte Rückmeldungen zu Präsentationen, Gruppenarbeiten oder Projekten anhand vorgegebener Kriterien, mit Freigabe durch die Lehrkraft.
+
+Weder Selbst- noch Peer-Feedback fließen ohne Entscheidung der Lehrkraft in Notenvorschläge ein.
 
 ## Nicht-Ziele
 
@@ -191,13 +77,8 @@ COOL-Grades soll auch künftig nicht:
 
 ## Geplante GitHub-Issues
 
-Die Roadmap soll in einzelne, fachlich prüfbare GitHub-Issues aufgeteilt werden:
+1. [#4 Formative Lernrückmeldung: Kennzeichnung, Erfassung und getrennte Auswertung](https://github.com/chrismey-71/cool-grades/issues/4)
+2. [#10 Lernentwicklungs- und Reflexionsansicht planen](https://github.com/chrismey-71/cool-grades/issues/10)
+3. [#8 Beteiligung der Schüler:innen: Zugang, Selbst- und Peer-Feedback (Konzept)](https://github.com/chrismey-71/cool-grades/issues/8)
 
-1. [#2 WebUntis-iCal-Import und Stundenplanansicht vorbereiten und umsetzen](https://github.com/chrismey-71/cool-grades/issues/2)
-2. [#4 Formative Lernrückmeldungen als eigenen Workflow konzipieren](https://github.com/chrismey-71/cool-grades/issues/4)
-3. [#5 Bewertungsrelevanz von Einträgen eindeutig kennzeichnen](https://github.com/chrismey-71/cool-grades/issues/5)
-4. [#6 Strukturierte Lernrückmeldung mit Lernziel, Erfolgskriterium, Lernstand und nächstem Schritt einführen](https://github.com/chrismey-71/cool-grades/issues/6)
-5. [#7 Formative Rückmeldungen getrennt in Webauswertung und PDF-Berichten anzeigen](https://github.com/chrismey-71/cool-grades/issues/7)
-6. [#8 Selbstfeedback für Schüler:innen fachlich und datenschutzrechtlich prüfen](https://github.com/chrismey-71/cool-grades/issues/8)
-7. [#9 Peer-Feedback als optionalen Workflow konzipieren](https://github.com/chrismey-71/cool-grades/issues/9)
-8. [#10 Lernentwicklungs- und Reflexionsansicht planen](https://github.com/chrismey-71/cool-grades/issues/10)
+Die früheren Issues #5, #6 und #7 sind in #4 aufgegangen, #9 in #8.
