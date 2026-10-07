@@ -120,7 +120,7 @@
       grid-template-columns: minmax(0, 1fr) 330px;
       gap: 34px;
       align-items: start;
-      padding: 28px 0 34px;
+      padding: 24px 0 20px;
       border-bottom: 1px solid var(--line);
     }
 
@@ -229,7 +229,7 @@
     }
 
     .section {
-      padding: 34px 0 0;
+      padding: 26px 0 0;
     }
 
     .section-header {
@@ -250,12 +250,12 @@
 
     .feature-list {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
     }
 
     .feature {
-      padding: 16px 18px;
+      padding: 12px 14px;
       border: 1px solid var(--line);
       border-left: 5px solid var(--accent);
       border-radius: 8px;
@@ -270,6 +270,8 @@
 	    .feature p {
 	      margin: 0;
 	      color: var(--muted);
+	      font-size: .93rem;
+	      line-height: 1.5;
 	    }
 
 	    .demo-panel {
@@ -350,8 +352,8 @@
 
     .screenshot-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
     }
 
     .screenshot-card {
@@ -365,15 +367,28 @@
       margin: 0;
     }
 
+    .screenshot-card {
+      display: flex;
+      flex-direction: column;
+    }
+
     .screenshot-card img {
       display: block;
       width: 100%;
-      height: auto;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      object-position: top left;
       background: #eef2ef;
+      transition: transform .2s ease;
+    }
+
+    .screenshot-zoom-trigger:hover img {
+      transform: scale(1.02);
     }
 
     .screenshot-zoom-trigger {
       display: block;
+      overflow: hidden;
       width: 100%;
       padding: 0;
       border: 0;
@@ -389,18 +404,33 @@
     }
 
     .screenshot-card figcaption {
-      padding: 14px 16px 16px;
+      padding: 10px 12px 12px;
     }
 
     .screenshot-card h3 {
-      margin: 0 0 6px;
-      font-size: 1.02rem;
+      margin: 0 0 4px;
+      font-size: .95rem;
+      line-height: 1.3;
     }
 
     .screenshot-card p {
       margin: 0;
       color: var(--muted);
-      font-size: .96rem;
+      font-size: .86rem;
+      line-height: 1.45;
+    }
+
+    .screenshot-card .is-new {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      vertical-align: 1px;
     }
 
     .screenshot-hint {
@@ -573,14 +603,27 @@
       margin: 0;
     }
 
+    @media (max-width: 1000px) {
+      .screenshot-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .feature-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
     @media (max-width: 860px) {
 	      .nav,
 	      .intro,
 	      .demo-panel,
 	      .two-columns,
-	      .screenshot-grid,
 	      .handbook-list {
         grid-template-columns: 1fr;
+      }
+
+      .screenshot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .nav {
@@ -626,6 +669,10 @@
         overflow-wrap: anywhere;
       }
 
+      .screenshot-grid {
+        grid-template-columns: 1fr;
+      }
+
       .lightbox {
         padding: 10px;
       }
@@ -641,8 +688,8 @@
     <nav class="page nav" aria-label="Hauptnavigation">
       <div class="brand"><span class="brand-mark">CG</span><span>COOL-Grades</span></div>
       <div class="nav-links">
-	        <a href="#umfang">Funktionsumfang</a>
 	        <a href="#demo">Live-Demo</a>
+	        <a href="#umfang">Funktionsumfang</a>
 	        <a href="#einblicke">Einblicke</a>
 	        <a href="#handbuch">Handbuch</a>
         <a href="#einordnung">Einordnung</a>
@@ -664,7 +711,7 @@
         </p>
 	        <div class="actions">
 	          <a class="button primary" href="https://github.com/chrismey-71/cool-grades/releases/latest">Aktuelle Version herunterladen</a>
-	          <a class="button" href="https://demo-cool-grades.meysing.de">Live-Demo öffnen</a>
+	          <a class="button" href="#demo">Live-Demo mit Zugangsdaten</a>
 	          <a class="button" href="https://github.com/chrismey-71/cool-grades">Quellcode auf GitHub</a>
 	        </div>
       </div>
@@ -682,10 +729,42 @@
           <dd>PHP/MySQL-Webanwendung</dd>
 	          <dt>Lizenz</dt>
 	          <dd>AGPL-3.0</dd>
-	          <dt>Demo</dt>
-	          <dd><a href="https://demo-cool-grades.meysing.de">demo-cool-grades.meysing.de</a></dd>
 	        </dl>
 	      </aside>
+	    </section>
+
+	    <section class="section" id="demo">
+	      <div class="demo-panel">
+	        <div>
+	          <p class="kicker">Live-Demo mit Musterdaten</p>
+	          <h2>COOL-Grades direkt im Browser ausprobieren.</h2>
+	          <p>
+	            Demoschule HLW mit Klasse 2HLW, den Fächern BW und APM und anonymisierten Beispieldaten für ein Schuljahr:
+	            Mitarbeitserfassung, Sitzplan, besondere Leistungsfeststellungen, Auswertungen und Abschlussbeurteilung ohne eigene Installation ansehen.
+	          </p>
+	          <p>
+	            Die Demo wird regelmäßig zurückgesetzt. Bitte keine echten Schüler:innen- oder Schuldaten eintragen.
+	          </p>
+	          <div class="actions">
+	            <a class="button primary" href="https://demo-cool-grades.meysing.de">Zur Live-Demo</a>
+	            <a class="button" href="handbuch.html?doc=demoinstallation">Hinweise zur Demoinstallation</a>
+	          </div>
+	        </div>
+	        <aside class="demo-login" aria-label="Demo-Zugangsdaten">
+	          <h3>Zugangsdaten</h3>
+	          <dl>
+	            <dt>Lehrkraft</dt>
+	            <dd><code>demolehrer</code></dd>
+	            <dt>Admin</dt>
+	            <dd><code>demoadmin</code></dd>
+	            <dt>Passwort</dt>
+	            <dd><code>DemoZugang47!</code></dd>
+	          </dl>
+	          <div class="demo-note">
+	            Empfehlung: Zuerst als <code>demolehrer</code> anmelden. Der Admin-Zugang dient nur zum Erkunden der Verwaltung mit Demo-Daten.
+	          </div>
+	        </aside>
+	      </div>
 	    </section>
 
     <section class="section" id="umfang">
@@ -723,47 +802,17 @@
           <p>Lehrer:innen hinterlegen ihren privaten, verschlüsselt gespeicherten WebUntis-Kalenderlink und importieren ihre Stunden direkt in COOL-Grades. Ändert sich der Stundenplan, werden nicht mehr vorhandene Stunden automatisch entfernt – Stunden mit bereits erfassten Beobachtungen oder vergebenem Thema bleiben dabei immer erhalten.</p>
         </article>
         <article class="feature">
+          <h3>Sitzplan mit freier Tischanordnung</h3>
+          <p>Schüler:innen werden in der Mitarbeitserfassung direkt am Sitzplatz angetippt. Neben dem klassischen Raster gibt es einen Sitzplan-Editor mit Vorlagen wie Lerninseln, U-Form, Fischgräte oder Sitzkreis; Tische lassen sich frei verschieben und drehen.</p>
+        </article>
+        <article class="feature">
           <h3>Wochen-Stundenplan als Schnellerfassung</h3>
           <p>Das Dashboard kann die eigenen Stunden der aktuellen Woche als Stundenplan anzeigen, mit Pfeilen zum Wechseln der Woche. Ein Klick auf eine Stunde führt direkt zur Mitarbeit-Erfassung dafür – Lehrer:innen haben damit Wochenüberblick und schnellen Eintrag in einem.</p>
         </article>
 	      </div>
 	    </section>
 
-	    <section class="section" id="demo">
-	      <div class="demo-panel">
-	        <div>
-	          <p class="kicker">Live-Demo mit Musterdaten</p>
-	          <h2>COOL-Grades direkt im Browser ausprobieren.</h2>
-	          <p>
-	            Die Demoseite enthält eine Demoschule HLW, die Klasse 2HLW, die Fächer BW und APM
-	            sowie anonymisierte Beispieldaten für ein Schuljahr. Damit lassen sich Mitarbeitserfassung,
-	            besondere Leistungsfeststellungen, Auswertungen und Abschlussbeurteilung ohne eigene Installation ansehen.
-	          </p>
-	          <p>
-	            Die Demo ist ausschließlich zum Ausprobieren gedacht und wird regelmäßig auf den Ausgangszustand zurückgesetzt.
-	            Bitte dort keine echten Schüler:innen- oder Schuldaten eintragen.
-	          </p>
-	          <div class="actions">
-	            <a class="button primary" href="https://demo-cool-grades.meysing.de">Zur Live-Demo</a>
-	            <a class="button" href="demoinstallation.md">Hinweise zur Demoinstallation</a>
-	          </div>
-	        </div>
-	        <aside class="demo-login" aria-label="Demo-Zugangsdaten">
-	          <h3>Zugangsdaten</h3>
-	          <dl>
-	            <dt>Lehrkraft</dt>
-	            <dd><code>demolehrer</code></dd>
-	            <dt>Admin</dt>
-	            <dd><code>demoadmin</code></dd>
-	            <dt>Passwort</dt>
-	            <dd><code>DemoZugang47!</code></dd>
-	          </dl>
-	          <div class="demo-note">
-	            Empfehlung: Zuerst als <code>demolehrer</code> anmelden. Der Admin-Zugang dient nur zum Erkunden der Verwaltung mit Demo-Daten.
-	          </div>
-	        </aside>
-	      </div>
-	    </section>
+
 
 	    <section class="section" id="einblicke">
       <div class="section-header">
@@ -849,18 +898,29 @@
             </figcaption>
           </figure>
         </article>
+        <article class="screenshot-card">
+          <figure>
+            <button class="screenshot-zoom-trigger" type="button" data-full="screenshots/lehrerhandbuch/28-sitzplan-editor.png" data-title="Sitzplan-Editor" aria-label="Screenshot Sitzplan-Editor vergrößern">
+              <img style="object-position:30% 75%" src="screenshots/lehrerhandbuch/28-sitzplan-editor.png" alt="Sitzplan-Editor mit Lerninseln, Tafel und Lehrertisch aus Sicht des Lehrertischs" loading="lazy">
+            </button>
+            <figcaption>
+              <h3>Sitzplan-Editor<span class="is-new">neu</span></h3>
+              <p>Tische frei anordnen oder aus Vorlagen wie Lerninseln, U-Form und Fischgräte erzeugen. In der Mitarbeitserfassung genügt ein Tipp auf den Platz.</p>
+            </figcaption>
+          </figure>
+        </article>
       </div>
     </section>
 
     <section class="section" id="handbuch">
       <div class="section-header">
         <h2>Handbuch und Dokumentation</h2>
-        <p>Für die Einarbeitung gibt es ein ausführliches Lehrer:innen-Handbuch in zwei Formaten.</p>
+        <p>Für die Einarbeitung gibt es ein ausführliches Lehrer:innen-Handbuch: zum Lesen direkt im Browser oder als Word-Dokument.</p>
       </div>
       <div class="handbook-list">
-        <a class="handbook-link" href="lehrerhandbuch.md">
-          <strong>Lehrer:innen-Handbuch als Markdown</strong>
-          <span>Die `.md`-Datei ist die lesbare Quellfassung für GitHub und eignet sich gut zum schnellen Nachschlagen oder Weiterbearbeiten im Repository.</span>
+        <a class="handbook-link" href="handbuch.html">
+          <strong>Lehrer:innen-Handbuch im Browser lesen</strong>
+          <span>Formatiert mit Inhaltsverzeichnis, Abschnitts-Links und vergrößerbaren Screenshots. Die Markdown-Quelle ist von dort aus ebenfalls erreichbar.</span>
         </a>
         <a class="handbook-link" href="lehrerhandbuch.docx">
           <strong>Lehrer:innen-Handbuch als Word-Dokument</strong>
